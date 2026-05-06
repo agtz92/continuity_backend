@@ -3,7 +3,8 @@ __pycache__/
 *.pyo
 *.sqlite3
 .env
-.env.local
+.env.*
+!.env.example
 .venv/
 venv/
 staticfiles/
