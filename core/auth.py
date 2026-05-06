@@ -2,6 +2,7 @@ import uuid
 from typing import Optional
 
 import jwt
+from jwt import PyJWKClient
 from django.conf import settings
 from django.http import JsonResponse
 from strawberry.django.views import GraphQLView
@@ -11,21 +12,68 @@ class JWTAuthError(Exception):
     pass
 
 
+_jwks_client: Optional[PyJWKClient] = None
+
+
+def _get_jwks_client() -> Optional[PyJWKClient]:
+    """Lazily build a JWKS client for verifying Supabase asymmetric JWTs."""
+    global _jwks_client
+    if _jwks_client is not None:
+        return _jwks_client
+    if not settings.SUPABASE_URL:
+        return None
+    jwks_url = f"{settings.SUPABASE_URL}/auth/v1/.well-known/jwks.json"
+    _jwks_client = PyJWKClient(jwks_url, cache_keys=True, lifespan=3600)
+    return _jwks_client
+
+
 def verify_supabase_jwt(token: str) -> dict:
-    if not settings.SUPABASE_JWT_SECRET:
-        raise JWTAuthError("Server is missing SUPABASE_JWT_SECRET")
-    try:
-        return jwt.decode(
-            token,
-            settings.SUPABASE_JWT_SECRET,
-            algorithms=["HS256"],
-            audience="authenticated",
-            options={"require": ["exp", "sub"]},
-        )
-    except jwt.ExpiredSignatureError as e:
-        raise JWTAuthError("Token expired") from e
-    except jwt.InvalidTokenError as e:
-        raise JWTAuthError(f"Invalid token: {e}") from e
+    """Verify a Supabase JWT.
+
+    Tries the modern asymmetric path (ES256/RS256/EdDSA via JWKS) first,
+    then falls back to legacy HS256 with a shared secret. Either path is
+    enough — set SUPABASE_URL for the modern path or SUPABASE_JWT_SECRET
+    for the legacy one.
+    """
+    last_error: Optional[Exception] = None
+
+    client = _get_jwks_client()
+    if client is not None:
+        try:
+            signing_key = client.get_signing_key_from_jwt(token).key
+            return jwt.decode(
+                token,
+                signing_key,
+                algorithms=["ES256", "RS256", "EdDSA"],
+                audience="authenticated",
+                options={"require": ["exp", "sub"]},
+            )
+        except jwt.ExpiredSignatureError as e:
+            raise JWTAuthError("Token expired") from e
+        except jwt.InvalidTokenError as e:
+            last_error = e  # try HS256 fallback
+        except Exception as e:
+            last_error = e
+
+    if settings.SUPABASE_JWT_SECRET:
+        try:
+            return jwt.decode(
+                token,
+                settings.SUPABASE_JWT_SECRET,
+                algorithms=["HS256"],
+                audience="authenticated",
+                options={"require": ["exp", "sub"]},
+            )
+        except jwt.ExpiredSignatureError as e:
+            raise JWTAuthError("Token expired") from e
+        except jwt.InvalidTokenError as e:
+            last_error = e
+
+    if last_error is not None:
+        raise JWTAuthError(f"Invalid token: {last_error}")
+    raise JWTAuthError(
+        "Server is missing SUPABASE_URL (preferred) or SUPABASE_JWT_SECRET"
+    )
 
 
 def extract_user_id(request) -> Optional[uuid.UUID]:
@@ -44,7 +92,6 @@ class JWTAuthGraphQLView(GraphQLView):
     """GraphQL view that requires a valid Supabase JWT and exposes user_id on context."""
 
     def dispatch(self, request, *args, **kwargs):
-        # Allow GraphiQL GET in DEBUG without auth — convenience for local dev.
         if request.method == "GET" and settings.DEBUG:
             return super().dispatch(request, *args, **kwargs)
         try:

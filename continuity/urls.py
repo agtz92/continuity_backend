@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.urls import path
 from django.http import JsonResponse
-from strawberry.django.views import GraphQLView
+from django.views.decorators.csrf import csrf_exempt
 
 from core.schema import schema
 from core.auth import JWTAuthGraphQLView
@@ -13,7 +13,7 @@ def healthcheck(_request):
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("graphql/", JWTAuthGraphQLView.as_view(schema=schema)),
+    path("graphql/", csrf_exempt(JWTAuthGraphQLView.as_view(schema=schema))),
     path("healthz", healthcheck),
     path("", healthcheck),
 ]

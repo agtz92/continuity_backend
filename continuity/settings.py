@@ -8,7 +8,8 @@ SECRET_KEY = config("DJANGO_SECRET_KEY", default="dev-only-insecure-key")
 DEBUG = config("DJANGO_DEBUG", default=False, cast=bool)
 ALLOWED_HOSTS = config("DJANGO_ALLOWED_HOSTS", default="*", cast=Csv())
 
-SUPABASE_JWT_SECRET = config("SUPABASE_JWT_SECRET", default="")
+SUPABASE_URL = config("SUPABASE_URL", default="").rstrip("/")
+SUPABASE_JWT_SECRET = config("SUPABASE_JWT_SECRET", default="")  # legacy HS256 fallback
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -52,11 +53,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "continuity.wsgi.application"
 
+_DATABASE_URL = config("DATABASE_URL", default="sqlite:///db.sqlite3")
 DATABASES = {
     "default": dj_database_url.config(
-        default=config("DATABASE_URL", default="sqlite:///db.sqlite3"),
+        default=_DATABASE_URL,
         conn_max_age=600,
-        ssl_require=not DEBUG,
+        ssl_require=_DATABASE_URL.startswith("postgres") and not DEBUG,
     )
 }
 
