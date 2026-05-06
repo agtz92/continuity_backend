@@ -11,6 +11,13 @@ class ProjectStatus(models.TextChoices):
     ARCHIVED = "archived", "Archived"
 
 
+class Priority(models.TextChoices):
+    CRITICAL = "critical", "Critical"
+    HIGH = "high", "High"
+    MEDIUM = "medium", "Medium"
+    LOW = "low", "Low"
+
+
 class TimestampedModel(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user_id = models.UUIDField(db_index=True)
@@ -20,6 +27,19 @@ class TimestampedModel(models.Model):
         abstract = True
 
 
+class Category(TimestampedModel):
+    name = models.CharField(max_length=100)
+    color = models.CharField(max_length=20, default="emerald")
+
+    class Meta:
+        ordering = ["name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user_id", "name"], name="unique_category_per_user"
+            )
+        ]
+
+
 class Project(TimestampedModel):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, default="")
@@ -27,6 +47,16 @@ class Project(TimestampedModel):
     next_step = models.TextField(blank=True, default="")
     status = models.CharField(
         max_length=20, choices=ProjectStatus.choices, default=ProjectStatus.IDEA
+    )
+    priority = models.CharField(
+        max_length=20, choices=Priority.choices, default=Priority.MEDIUM
+    )
+    category = models.ForeignKey(
+        Category,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="projects",
     )
     last_activity = models.DateTimeField(auto_now_add=True)
 

@@ -1,12 +1,17 @@
 from django.contrib import admin
-from .models import Project, Task, Idea, Update, BackupMeta
+from .models import Project, Task, Idea, Update, BackupMeta, Category
 
 
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
-    list_display = ("name", "status", "user_id", "last_activity")
-    list_filter = ("status",)
+    list_display = ("name", "status", "priority", "category", "user_id", "last_activity")
+    list_filter = ("status", "priority")
     search_fields = ("name", "description")
+
+
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = ("name", "color", "user_id")
 
 
 @admin.register(Task)

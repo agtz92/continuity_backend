@@ -7,7 +7,14 @@ from strawberry.types import Info
 from django.db import transaction
 from django.utils import timezone
 
-from .models import Project as ProjectModel, Task as TaskModel, Idea as IdeaModel, Update as UpdateModel, BackupMeta
+from .models import (
+    Project as ProjectModel,
+    Task as TaskModel,
+    Idea as IdeaModel,
+    Update as UpdateModel,
+    BackupMeta,
+    Category as CategoryModel,
+)
 
 
 def _user_id(info: Info) -> uuid.UUID:
@@ -18,6 +25,23 @@ def _user_id(info: Info) -> uuid.UUID:
 
 
 @strawberry.type
+class Category:
+    id: strawberry.ID
+    name: str
+    color: str
+    created: dt.datetime
+
+    @classmethod
+    def from_model(cls, m: CategoryModel) -> "Category":
+        return cls(
+            id=strawberry.ID(str(m.id)),
+            name=m.name,
+            color=m.color,
+            created=m.created,
+        )
+
+
+@strawberry.type
 class Project:
     id: strawberry.ID
     name: str
@@ -25,6 +49,8 @@ class Project:
     why: str
     next_step: str
     status: str
+    priority: str
+    category_id: Optional[strawberry.ID]
     last_activity: dt.datetime
     created: dt.datetime
 
@@ -37,6 +63,8 @@ class Project:
             why=m.why,
             next_step=m.next_step,
             status=m.status,
+            priority=m.priority,
+            category_id=strawberry.ID(str(m.category_id)) if m.category_id else None,
             last_activity=m.last_activity,
             created=m.created,
         )
@@ -107,6 +135,7 @@ class Dashboard:
     tasks: List[Task]
     ideas: List[Idea]
     updates: List[Update]
+    categories: List[Category]
     last_backup: Optional[dt.datetime]
 
 
@@ -120,6 +149,14 @@ class ProjectInput:
     why: Optional[str] = ""
     next_step: Optional[str] = ""
     status: Optional[str] = "idea"
+    priority: Optional[str] = "medium"
+    category_id: Optional[strawberry.ID] = None
+
+
+@strawberry.input
+class CategoryInput:
+    name: str
+    color: Optional[str] = "emerald"
 
 
 @strawberry.input
@@ -155,12 +192,14 @@ class Query:
         tasks = list(TaskModel.objects.filter(user_id=uid))
         ideas = list(IdeaModel.objects.filter(user_id=uid))
         updates = list(UpdateModel.objects.filter(user_id=uid))
+        categories = list(CategoryModel.objects.filter(user_id=uid))
         meta = BackupMeta.objects.filter(user_id=uid).first()
         return Dashboard(
             projects=[Project.from_model(p) for p in projects],
             tasks=[Task.from_model(t) for t in tasks],
             ideas=[Idea.from_model(i) for i in ideas],
             updates=[Update.from_model(u) for u in updates],
+            categories=[Category.from_model(c) for c in categories],
             last_backup=meta.last_backup if meta else None,
         )
 
@@ -174,6 +213,9 @@ class Mutation:
     @strawberry.mutation
     def create_project(self, info: Info, data: ProjectInput) -> Project:
         uid = _user_id(info)
+        category = None
+        if data.category_id:
+            category = CategoryModel.objects.filter(pk=data.category_id, user_id=uid).first()
         m = ProjectModel.objects.create(
             user_id=uid,
             name=data.name,
@@ -181,6 +223,8 @@ class Mutation:
             why=data.why or "",
             next_step=data.next_step or "",
             status=data.status or "idea",
+            priority=data.priority or "medium",
+            category=category,
         )
         return Project.from_model(m)
 
@@ -193,6 +237,13 @@ class Mutation:
         m.why = data.why or ""
         m.next_step = data.next_step or ""
         m.status = data.status or m.status
+        m.priority = data.priority or m.priority
+        if data.category_id is None:
+            m.category = None
+        else:
+            m.category = CategoryModel.objects.filter(
+                pk=data.category_id, user_id=uid
+            ).first()
         m.last_activity = timezone.now()
         m.save()
         return Project.from_model(m)
@@ -299,6 +350,32 @@ class Mutation:
             last_activity=timezone.now()
         )
         return Update.from_model(m)
+
+    # Categories
+    @strawberry.mutation
+    def create_category(self, info: Info, data: CategoryInput) -> Category:
+        uid = _user_id(info)
+        m, _ = CategoryModel.objects.get_or_create(
+            user_id=uid,
+            name=data.name,
+            defaults={"color": data.color or "emerald"},
+        )
+        return Category.from_model(m)
+
+    @strawberry.mutation
+    def update_category(self, info: Info, id: strawberry.ID, data: CategoryInput) -> Category:
+        uid = _user_id(info)
+        m = CategoryModel.objects.get(pk=id, user_id=uid)
+        m.name = data.name
+        m.color = data.color or m.color
+        m.save()
+        return Category.from_model(m)
+
+    @strawberry.mutation
+    def delete_category(self, info: Info, id: strawberry.ID) -> bool:
+        uid = _user_id(info)
+        CategoryModel.objects.filter(pk=id, user_id=uid).delete()
+        return True
 
     # Backup metadata
     @strawberry.mutation
