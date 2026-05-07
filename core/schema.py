@@ -24,6 +24,24 @@ def _user_id(info: Info) -> uuid.UUID:
     return user_id
 
 
+class NotFoundError(Exception):
+    pass
+
+
+def _get_owned(model, pk, uid, label: str):
+    obj = model.objects.filter(pk=pk, user_id=uid).first()
+    if obj is None:
+        raise NotFoundError(f"{label} not found")
+    return obj
+
+
+def _assert_owned_project(uid, project_id) -> None:
+    if project_id and not ProjectModel.objects.filter(
+        pk=project_id, user_id=uid
+    ).exists():
+        raise NotFoundError("Project not found")
+
+
 @strawberry.type
 class Category:
     id: strawberry.ID
@@ -231,7 +249,7 @@ class Mutation:
     @strawberry.mutation
     def update_project(self, info: Info, id: strawberry.ID, data: ProjectInput) -> Project:
         uid = _user_id(info)
-        m = ProjectModel.objects.get(pk=id, user_id=uid)
+        m = _get_owned(ProjectModel, id, uid, "Project")
         m.name = data.name
         m.description = data.description or ""
         m.why = data.why or ""
@@ -258,6 +276,7 @@ class Mutation:
     @strawberry.mutation
     def create_task(self, info: Info, data: TaskInput) -> Task:
         uid = _user_id(info)
+        _assert_owned_project(uid, data.project_id)
         m = TaskModel.objects.create(
             user_id=uid,
             title=data.title,
@@ -274,7 +293,8 @@ class Mutation:
     @strawberry.mutation
     def update_task(self, info: Info, id: strawberry.ID, data: TaskInput) -> Task:
         uid = _user_id(info)
-        m = TaskModel.objects.get(pk=id, user_id=uid)
+        _assert_owned_project(uid, data.project_id)
+        m = _get_owned(TaskModel, id, uid, "Task")
         m.title = data.title
         m.project_id = data.project_id or None
         m.due_date = data.due_date
@@ -289,7 +309,7 @@ class Mutation:
     @strawberry.mutation
     def toggle_task(self, info: Info, id: strawberry.ID) -> Task:
         uid = _user_id(info)
-        m = TaskModel.objects.get(pk=id, user_id=uid)
+        m = _get_owned(TaskModel, id, uid, "Task")
         m.done = not m.done
         m.completed_at = timezone.now() if m.done else None
         m.save()
@@ -330,7 +350,7 @@ class Mutation:
     def promote_idea(self, info: Info, id: strawberry.ID) -> Project:
         uid = _user_id(info)
         with transaction.atomic():
-            i = IdeaModel.objects.get(pk=id, user_id=uid)
+            i = _get_owned(IdeaModel, id, uid, "Idea")
             p = ProjectModel.objects.create(
                 user_id=uid,
                 name=i.title,
@@ -345,6 +365,7 @@ class Mutation:
     @strawberry.mutation
     def add_update(self, info: Info, project_id: strawberry.ID, note: str) -> Update:
         uid = _user_id(info)
+        _assert_owned_project(uid, project_id)
         m = UpdateModel.objects.create(user_id=uid, project_id=project_id, note=note)
         ProjectModel.objects.filter(pk=project_id, user_id=uid).update(
             last_activity=timezone.now()
@@ -365,7 +386,7 @@ class Mutation:
     @strawberry.mutation
     def update_category(self, info: Info, id: strawberry.ID, data: CategoryInput) -> Category:
         uid = _user_id(info)
-        m = CategoryModel.objects.get(pk=id, user_id=uid)
+        m = _get_owned(CategoryModel, id, uid, "Category")
         m.name = data.name
         m.color = data.color or m.color
         m.save()
