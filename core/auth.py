@@ -5,11 +5,27 @@ import jwt
 from jwt import PyJWKClient
 from django.conf import settings
 from django.http import JsonResponse
+from django_ratelimit.core import is_ratelimited
 from strawberry.django.views import GraphQLView
 
 
 class JWTAuthError(Exception):
     pass
+
+
+def _client_ip(request) -> str:
+    xff = request.META.get("HTTP_X_FORWARDED_FOR", "")
+    if xff:
+        return xff.split(",")[0].strip()
+    return request.META.get("REMOTE_ADDR", "")
+
+
+def _ip_key(_group, request) -> str:
+    return f"ip:{_client_ip(request)}"
+
+
+def _user_key(_group, request) -> str:
+    return f"u:{getattr(request, 'user_id', '') or _client_ip(request)}"
 
 
 _jwks_client: Optional[PyJWKClient] = None
@@ -94,6 +110,19 @@ class JWTAuthGraphQLView(GraphQLView):
     def dispatch(self, request, *args, **kwargs):
         if request.method == "GET" and settings.DEBUG:
             return super().dispatch(request, *args, **kwargs)
+
+        if is_ratelimited(
+            request=request,
+            group="graphql:ip",
+            key=_ip_key,
+            rate=settings.GRAPHQL_RATE_LIMIT_IP,
+            method="POST",
+            increment=True,
+        ):
+            return JsonResponse(
+                {"errors": [{"message": "Rate limit exceeded"}]}, status=429
+            )
+
         try:
             user_id = extract_user_id(request)
         except JWTAuthError as e:
@@ -103,6 +132,19 @@ class JWTAuthGraphQLView(GraphQLView):
                 {"errors": [{"message": "Authentication required"}]}, status=401
             )
         request.user_id = user_id
+
+        if is_ratelimited(
+            request=request,
+            group="graphql:user",
+            key=_user_key,
+            rate=settings.GRAPHQL_RATE_LIMIT_USER,
+            method="POST",
+            increment=True,
+        ):
+            return JsonResponse(
+                {"errors": [{"message": "Rate limit exceeded"}]}, status=429
+            )
+
         return super().dispatch(request, *args, **kwargs)
 
     def get_context(self, request, response=None):

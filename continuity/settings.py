@@ -90,3 +90,13 @@ CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = [o for o in CORS_ALLOWED_ORIGINS if o.startswith("http")]
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "ratelimit",
+    }
+}
+
+GRAPHQL_RATE_LIMIT_USER = config("GRAPHQL_RATE_LIMIT_USER", default="120/m")
+GRAPHQL_RATE_LIMIT_IP = config("GRAPHQL_RATE_LIMIT_IP", default="300/m")
