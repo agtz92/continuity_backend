@@ -18,8 +18,29 @@ import uuid
 
 import jwt
 import pytest
-from django.conf import settings
+from django.conf import settings as django_settings
 from django.test import Client
+
+from core import auth
+
+
+@pytest.fixture(autouse=True)
+def _force_test_auth_settings(settings, monkeypatch):
+    """Hard-pin auth settings for every test in this module.
+
+    The project-root conftest.py overrides os.environ, but a developer's
+    .env file loaded by python-decouple can leak real prod values into
+    `settings.SUPABASE_URL` before our overrides take effect. Using
+    pytest-django's `settings` fixture is the authoritative way to set
+    them — it monkey-patches the live Django settings object regardless
+    of how it was originally loaded.
+
+    We also reset the module-level `_jwks_client` cache so a previous
+    test in the session can't carry a real JWKS client into this one.
+    """
+    settings.SUPABASE_URL = ""
+    settings.SUPABASE_JWT_SECRET = "test-jwt-secret"
+    monkeypatch.setattr(auth, "_jwks_client", None)
 
 
 @pytest.fixture
@@ -34,7 +55,7 @@ def _signed_token(user_id: uuid.UUID, **overrides) -> str:
         "exp": dt.datetime.now(tz=dt.timezone.utc) + dt.timedelta(hours=1),
         **overrides,
     }
-    return jwt.encode(payload, settings.SUPABASE_JWT_SECRET, algorithm="HS256")
+    return jwt.encode(payload, django_settings.SUPABASE_JWT_SECRET, algorithm="HS256")
 
 
 def test_missing_auth_returns_401(client):
@@ -68,7 +89,7 @@ def test_expired_token_returns_401(client):
             "aud": "authenticated",
             "exp": dt.datetime.now(tz=dt.timezone.utc) - dt.timedelta(hours=1),
         },
-        settings.SUPABASE_JWT_SECRET,
+        django_settings.SUPABASE_JWT_SECRET,
         algorithm="HS256",
     )
     response = client.post(
