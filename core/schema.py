@@ -390,6 +390,20 @@ class Mutation:
         )
         return Update.from_model(m)
 
+    @strawberry.mutation
+    def update_update(self, info: Info, id: strawberry.ID, note: str) -> Update:
+        uid = _user_id(info)
+        m = _get_owned(UpdateModel, id, uid, "Update")
+        m.note = note
+        m.save()
+        return Update.from_model(m)
+
+    @strawberry.mutation
+    def delete_update(self, info: Info, id: strawberry.ID) -> bool:
+        uid = _user_id(info)
+        UpdateModel.objects.filter(pk=id, user_id=uid).delete()
+        return True
+
     # Categories
     @strawberry.mutation
     def create_category(self, info: Info, data: CategoryInput) -> Category:
