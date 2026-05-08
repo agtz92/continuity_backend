@@ -344,6 +344,16 @@ class Mutation:
         return Idea.from_model(m)
 
     @strawberry.mutation
+    def update_idea(self, info: Info, id: strawberry.ID, data: IdeaInput) -> Idea:
+        uid = _user_id(info)
+        m = _get_owned(IdeaModel, id, uid, "Idea")
+        m.title = data.title
+        m.description = data.description or ""
+        m.why = data.why or ""
+        m.save()
+        return Idea.from_model(m)
+
+    @strawberry.mutation
     def delete_idea(self, info: Info, id: strawberry.ID) -> bool:
         uid = _user_id(info)
         IdeaModel.objects.filter(pk=id, user_id=uid).delete()
