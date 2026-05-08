@@ -100,6 +100,7 @@ class Task:
     done: bool
     completed_at: Optional[dt.datetime]
     created: dt.datetime
+    effort_hours: Optional[float] = None
 
     @classmethod
     def from_model(cls, m: TaskModel) -> "Task":
@@ -111,6 +112,7 @@ class Task:
             done=m.done,
             completed_at=m.completed_at,
             created=m.created,
+            effort_hours=m.effort_hours,
         )
 
 
@@ -186,6 +188,7 @@ class TaskInput:
     project_id: Optional[strawberry.ID] = None
     due_date: Optional[dt.datetime] = None
     done: Optional[bool] = False
+    effort_hours: Optional[float] = None
 
 
 @strawberry.input
@@ -286,6 +289,7 @@ class Mutation:
             project_id=data.project_id or None,
             due_date=data.due_date,
             done=bool(data.done),
+            effort_hours=data.effort_hours,
         )
         if m.project_id:
             ProjectModel.objects.filter(pk=m.project_id, user_id=uid).update(
@@ -302,6 +306,7 @@ class Mutation:
         m.project_id = data.project_id or None
         m.due_date = data.due_date
         m.done = bool(data.done)
+        m.effort_hours = data.effort_hours
         if m.done and not m.completed_at:
             m.completed_at = timezone.now()
         if not m.done:
