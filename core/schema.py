@@ -4,6 +4,7 @@ from typing import Optional, List
 
 import strawberry
 from strawberry.types import Info
+from graphql import GraphQLError
 from django.db import transaction
 from django.utils import timezone
 
@@ -20,18 +21,18 @@ from .models import (
 def _user_id(info: Info) -> uuid.UUID:
     user_id = getattr(info.context, "user_id", None)
     if not user_id:
-        raise PermissionError("Not authenticated")
+        raise GraphQLError(
+            "Not authenticated", extensions={"code": "UNAUTHENTICATED"}
+        )
     return user_id
-
-
-class NotFoundError(Exception):
-    pass
 
 
 def _get_owned(model, pk, uid, label: str):
     obj = model.objects.filter(pk=pk, user_id=uid).first()
     if obj is None:
-        raise NotFoundError(f"{label} not found")
+        raise GraphQLError(
+            f"{label} not found", extensions={"code": "NOT_FOUND"}
+        )
     return obj
 
 
@@ -39,7 +40,9 @@ def _assert_owned_project(uid, project_id) -> None:
     if project_id and not ProjectModel.objects.filter(
         pk=project_id, user_id=uid
     ).exists():
-        raise NotFoundError("Project not found")
+        raise GraphQLError(
+            "Project not found", extensions={"code": "NOT_FOUND"}
+        )
 
 
 @strawberry.type

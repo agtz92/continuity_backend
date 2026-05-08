@@ -97,10 +97,28 @@ class JWTAuthGraphQLView(GraphQLView):
         try:
             user_id = extract_user_id(request)
         except JWTAuthError as e:
-            return JsonResponse({"errors": [{"message": str(e)}]}, status=401)
+            return JsonResponse(
+                {
+                    "errors": [
+                        {
+                            "message": str(e),
+                            "extensions": {"code": "UNAUTHENTICATED"},
+                        }
+                    ]
+                },
+                status=401,
+            )
         if user_id is None:
             return JsonResponse(
-                {"errors": [{"message": "Authentication required"}]}, status=401
+                {
+                    "errors": [
+                        {
+                            "message": "Authentication required",
+                            "extensions": {"code": "UNAUTHENTICATED"},
+                        }
+                    ]
+                },
+                status=401,
             )
         request.user_id = user_id
         return super().dispatch(request, *args, **kwargs)
