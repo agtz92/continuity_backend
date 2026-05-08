@@ -72,6 +72,7 @@ class Task(TimestampedModel):
     due_date = models.DateTimeField(null=True, blank=True)
     done = models.BooleanField(default=False)
     completed_at = models.DateTimeField(null=True, blank=True)
+    effort_hours = models.FloatField(null=True, blank=True)
 
     class Meta:
         ordering = ["done", "due_date", "-created"]
