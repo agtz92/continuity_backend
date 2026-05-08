@@ -34,7 +34,7 @@ def test_dashboard_query_requires_auth(execute_query):
 @pytest.mark.django_db
 def test_create_project_requires_auth(execute_query):
     result = execute_query(
-        "mutation($d: ProjectInput!) { createProject(data: $d) { id } }",
+        "mutation($data: ProjectInput!) { createProject(data: $data) { id } }",
         user_id=None,
         variable_values={"data": {"name": "x"}},
     )
@@ -61,7 +61,7 @@ def test_update_missing_project_is_not_found(execute_query, user_a):
     import uuid
 
     result = execute_query(
-        "mutation($id: ID!, $d: ProjectInput!) { updateProject(id: $id, data: $d) { id } }",
+        "mutation($id: ID!, $data: ProjectInput!) { updateProject(id: $id, data: $data) { id } }",
         user_id=user_a,
         variable_values={"id": str(uuid.uuid4()), "data": {"name": "x"}},
     )
@@ -74,7 +74,7 @@ def test_update_missing_task_is_not_found(execute_query, user_a):
     import uuid
 
     result = execute_query(
-        "mutation($id: ID!, $d: TaskInput!) { updateTask(id: $id, data: $d) { id } }",
+        "mutation($id: ID!, $data: TaskInput!) { updateTask(id: $id, data: $data) { id } }",
         user_id=user_a,
         variable_values={"id": str(uuid.uuid4()), "data": {"title": "x"}},
     )
@@ -111,7 +111,7 @@ def test_create_task_with_unknown_project_is_not_found(execute_query, user_a):
     import uuid
 
     result = execute_query(
-        "mutation($d: TaskInput!) { createTask(data: $d) { id } }",
+        "mutation($data: TaskInput!) { createTask(data: $data) { id } }",
         user_id=user_a,
         variable_values={
             "data": {"title": "x", "projectId": str(uuid.uuid4())}
@@ -142,7 +142,7 @@ def test_user_b_cannot_update_user_a_project(
     """B tries to rename A's project → NOT_FOUND (not FORBIDDEN, by design)."""
     project = project_factory(user_a, name="A's")
     result = execute_query(
-        "mutation($id: ID!, $d: ProjectInput!) { updateProject(id: $id, data: $d) { id name } }",
+        "mutation($id: ID!, $data: ProjectInput!) { updateProject(id: $id, data: $data) { id name } }",
         user_id=user_b,
         variable_values={"id": str(project.id), "data": {"name": "Hijacked"}},
     )
@@ -172,7 +172,7 @@ def test_user_b_cannot_create_task_in_user_a_project(
 ):
     project = project_factory(user_a)
     result = execute_query(
-        "mutation($d: TaskInput!) { createTask(data: $d) { id } }",
+        "mutation($data: TaskInput!) { createTask(data: $data) { id } }",
         user_id=user_b,
         variable_values={
             "data": {"title": "Sneaky", "projectId": str(project.id)}

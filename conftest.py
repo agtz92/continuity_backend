@@ -15,10 +15,14 @@ overridden here.
 
 import os
 
-os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
-os.environ.setdefault("DJANGO_SECRET_KEY", "test-secret-key")
-os.environ.setdefault("DJANGO_DEBUG", "True")
-os.environ.setdefault("SUPABASE_JWT_SECRET", "test-jwt-secret")
+# Force-override (NOT setdefault) so values from a developer's .env or
+# shell environment never leak into a test run. python-decouple reads
+# os.environ before the .env file, so as long as we set these BEFORE
+# Django imports settings, the test values always win.
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+os.environ["DJANGO_SECRET_KEY"] = "test-secret-key"
+os.environ["DJANGO_DEBUG"] = "True"
+os.environ["SUPABASE_JWT_SECRET"] = "test-jwt-secret"
 # Empty so the JWKS path is skipped during tests; we exercise the HS256
 # fallback with the secret above.
-os.environ.setdefault("SUPABASE_URL", "")
+os.environ["SUPABASE_URL"] = ""
