@@ -6,17 +6,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config("DJANGO_SECRET_KEY", default="dev-only-insecure-key")
 DEBUG = config("DJANGO_DEBUG", default=False, cast=bool)
-
-# Production hosts that should ALWAYS be allowed regardless of what the
-# DJANGO_ALLOWED_HOSTS env var contains. The leading dot covers the apex
-# (`continuu.it`) and any subdomain (e.g. `www.`, `api.`).
-_BASELINE_ALLOWED_HOSTS = [".continuu.it"]
-ALLOWED_HOSTS = list(
-    dict.fromkeys(
-        config("DJANGO_ALLOWED_HOSTS", default="*", cast=Csv())
-        + _BASELINE_ALLOWED_HOSTS
-    )
-)
+ALLOWED_HOSTS = config("DJANGO_ALLOWED_HOSTS", default="*", cast=Csv())
 
 SUPABASE_URL = config("SUPABASE_URL", default="").rstrip("/")
 SUPABASE_JWT_SECRET = config("SUPABASE_JWT_SECRET", default="")  # legacy HS256 fallback
@@ -90,18 +80,10 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Production frontends that should ALWAYS be allowed in CORS regardless
-# of what the CORS_ALLOWED_ORIGINS env var contains. Both apex and www
-# variants are listed so neither one can drop off accidentally.
-_BASELINE_CORS_ORIGINS = [
-    "https://www.continuu.it",
-    "https://continuu.it",
-]
-CORS_ALLOWED_ORIGINS = list(
-    dict.fromkeys(
-        config("CORS_ALLOWED_ORIGINS", default="http://localhost:3000", cast=Csv())
-        + _BASELINE_CORS_ORIGINS
-    )
+CORS_ALLOWED_ORIGINS = config(
+    "CORS_ALLOWED_ORIGINS",
+    default="http://localhost:3000",
+    cast=Csv(),
 )
 CORS_ALLOW_CREDENTIALS = True
 
