@@ -22,6 +22,33 @@ Listo en este módulo:
   - `python manage.py test_notification --user-id <uuid> [--body "..."]` — envío manual end-to-end
 - **Frontend**: `/settings/notifications` con conexión de Telegram y toggles por tipo de notificación.
 
+### Fase 2 — Weekly digest (builder + comando) ✅
+
+Listo:
+
+- **Builder** ([builders.py](builders.py)): `build_weekly_digest(user_id) -> str` reusa `core.analytics.compute_analytics(user_id, LAST_7_DAYS)` y arma un mensaje MarkdownV2 con racha, top proyectos (con delta vs semana previa), backlog (vencidas/por vencer/abiertas, quick wins, almost there), proyectos durmiendo, ideas stale, funnel de ideas, horas de esfuerzo, y link al dashboard.
+- **Comando** ([management/commands/send_weekly_digest.py](management/commands/send_weekly_digest.py)):
+  - Diseñado para correr cada hora; respeta `setting.timezone + digest_day_of_week + digest_hour`.
+  - Flags: `--force` (ignora horario, usa dedupe key única por timestamp para permitir re-envíos), `--user-id <uuid>`, `--all-verified`.
+  - Dedupe natural en producción: `weekly:{iso_year}-W{iso_week}` → re-correr el cron es no-op.
+
+Pendiente (lo único que queda de Fase 2):
+
+- **Render Cron Job**. Agregar a `backend/render.yaml`:
+  ```yaml
+    - type: cron
+      name: continuity-notifications-hourly
+      runtime: python
+      rootDir: backend
+      plan: free
+      schedule: "0 * * * *"
+      buildCommand: "./build.sh"
+      startCommand: "python manage.py send_weekly_digest && python manage.py send_sleeping_alerts && python manage.py send_due_reminders"
+      envVars:
+        # mismas refs que el web service: DATABASE_URL, SUPABASE_*, TELEGRAM_*, NOTIFICATIONS_DEFAULT_TIMEZONE
+  ```
+  El cron corre cada hora; el filtro de "es la hora del usuario" se hace dentro del comando, así que un solo cron cubre cualquier zona horaria. Los comandos `send_sleeping_alerts` / `send_due_reminders` aún no existen — Render los ignorará con error hasta que aterricen en Fase 3 (puedes dejar solo `send_weekly_digest` por ahora).
+
 ### Activación local de Fase 1
 
 1. Crear bot con [@BotFather](https://t.me/BotFather) → `/newbot` → copiar token.
@@ -38,65 +65,15 @@ Listo en este módulo:
 
 En producción (Render): mismas envs en el dashboard, `--base-url https://continuity-backend.onrender.com`.
 
----
+### Disparar el digest manualmente
 
-## Fase 2 — Resumen semanal de analytics
+Una vez que un usuario está conectado, puedes mandarle el resumen semanal en cualquier momento:
 
-**Objetivo**: enviar cada usuario un digest configurable (día/hora locales) reusando `core/analytics.py`.
-
-### Archivos a crear
-
-- `builders.py` — funciones puras de renderizado:
-  ```python
-  def build_weekly_digest(user_id: UUID) -> str:
-      result = analytics.compute_analytics(user_id, AnalyticsRange.LAST_7_DAYS)
-      # Render Django template templates/telegram/weekly_digest.txt
-      # con: cadence.current_streak, top_projects[:3], backlog.overdue_tasks,
-      # sleeping_projects[:5], stale_ideas[:3]
-      return rendered_markdown_v2
-  ```
-- `templates/telegram/weekly_digest.txt` — Markdown V2 con `{% load %}` o `string.Template`. Recordar escapar con `md_escape` cualquier campo dinámico.
-- `management/commands/send_weekly_digest.py`:
-  ```
-  for setting in NotificationSettings.objects.filter(digest_enabled=True):
-      now_local = current time in setting.timezone
-      if (now_local.weekday(), now_local.hour) != (setting.digest_day_of_week, setting.digest_hour):
-          continue
-      iso_year, iso_week, _ = now_local.isocalendar()
-      enqueue(
-          user_id=setting.user_id,
-          kind="weekly_digest",
-          dedupe_key=f"weekly:{iso_year}-W{iso_week:02d}",
-          body=builders.build_weekly_digest(setting.user_id),
-      )
-  ```
-  Flag útil: `--force --user-id <uuid>` que ignore la hora y use `dedupe_key=f"weekly:test:{timestamp}"` para testing.
-
-### Render Cron Job
-
-Agregar a `backend/render.yaml`:
-
-```yaml
-  - type: cron
-    name: continuity-notifications-hourly
-    runtime: python
-    rootDir: backend
-    plan: free
-    schedule: "0 * * * *"
-    buildCommand: "./build.sh"
-    startCommand: "python manage.py send_weekly_digest && python manage.py send_sleeping_alerts && python manage.py send_due_reminders"
-    envVars:
-      # mismas refs que el web service (DATABASE_URL, TELEGRAM_*, etc.)
+```powershell
+python manage.py send_weekly_digest --force --user-id <uuid>
 ```
 
-El cron corre cada hora; el filtro de "es la hora del usuario" se hace dentro del comando. Esto cubre cualquier tz con un solo cron.
-
-### Verificación
-
-1. Configurar tu cuenta con `digest_hour = current_local_hour + 1`, `digest_day_of_week = today`.
-2. Esperar el cron O `python manage.py send_weekly_digest --force --user-id <uuid>`.
-3. Revisar tabla `notifications_notification`: 1 row con `status=sent`.
-4. Re-ejecutar: dedupe debe evitar duplicado (row count no aumenta, el segundo intento es `skipped`).
+`--force` ignora el cron schedule (día/hora) y usa una `dedupe_key` única por ejecución, así que puedes correrlo varias veces y todas llegarán. Para enviar a todos los usuarios verificados de un golpe: `--all-verified --force`. Sin `--force`, solo manda a quienes están en su `(día, hora) local` configurada.
 
 ---
 
