@@ -52,6 +52,7 @@ class NotificationLinkType:
 
 @strawberry.type
 class NotificationSettingsType:
+    locale: str
     timezone: str
     digest_enabled: bool
     digest_day_of_week: int
@@ -73,6 +74,7 @@ class ChannelLinkRequest:
 
 @strawberry.input
 class NotificationSettingsInput:
+    locale: Optional[str] = None
     timezone: Optional[str] = None
     digest_enabled: Optional[bool] = None
     digest_day_of_week: Optional[int] = None
@@ -83,9 +85,13 @@ class NotificationSettingsInput:
     manual_enabled: Optional[bool] = None
 
 
+SUPPORTED_LOCALES = {"en", "es"}
+
+
 def _to_gql(s: SettingsModel) -> NotificationSettingsType:
     links_qs = NotificationLink.objects.filter(user_id=s.user_id)
     return NotificationSettingsType(
+        locale=s.locale,
         timezone=s.timezone,
         digest_enabled=s.digest_enabled,
         digest_day_of_week=s.digest_day_of_week,
@@ -134,6 +140,13 @@ class NotificationsMutation:
         s = _get_or_create_settings(uid)
 
         # Apply only fields the client sent (None means "leave alone")
+        if data.locale is not None:
+            if data.locale not in SUPPORTED_LOCALES:
+                raise GraphQLError(
+                    f"Unsupported locale: {data.locale}",
+                    extensions={"code": "INVALID_LOCALE"},
+                )
+            s.locale = data.locale
         if data.timezone is not None:
             s.timezone = data.timezone
         if data.digest_enabled is not None:

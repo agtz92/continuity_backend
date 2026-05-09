@@ -22,9 +22,15 @@ class NotificationStatus(models.TextChoices):
 
 
 class NotificationSettings(models.Model):
-    """One row per user. Created lazily on first read of /settings/notifications."""
+    """One row per user. Created lazily on first read of /settings/notifications.
+
+    Despite the name, this also holds general user preferences (locale,
+    timezone, admin flag). Will likely be renamed `UserPreferences` if more
+    fields land that aren't notification-specific.
+    """
 
     user_id = models.UUIDField(primary_key=True)
+    locale = models.CharField(max_length=8, default="en")
     timezone = models.CharField(max_length=64, default="America/Mexico_City")
 
     digest_enabled = models.BooleanField(default=True)
