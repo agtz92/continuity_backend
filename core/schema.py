@@ -13,6 +13,7 @@ from . import analytics as analytics_mod
 from .analytics import AnalyticsRange as AnalyticsRangeEnum
 from .models import (
     Project as ProjectModel,
+    ProjectNote as ProjectNoteModel,
     Task as TaskModel,
     Idea as IdeaModel,
     Update as UpdateModel,
@@ -76,7 +77,6 @@ class Project:
     description: str
     why: str
     next_step: str
-    notes: str
     status: str
     priority: str
     category_id: Optional[strawberry.ID]
@@ -91,12 +91,32 @@ class Project:
             description=m.description,
             why=m.why,
             next_step=m.next_step,
-            notes=m.notes,
             status=m.status,
             priority=m.priority,
             category_id=strawberry.ID(str(m.category_id)) if m.category_id else None,
             last_activity=m.last_activity,
             created=m.created,
+        )
+
+
+@strawberry.type
+class ProjectNote:
+    id: strawberry.ID
+    project_id: strawberry.ID
+    title: str
+    body: str
+    created: dt.datetime
+    updated_at: dt.datetime
+
+    @classmethod
+    def from_model(cls, m: ProjectNoteModel) -> "ProjectNote":
+        return cls(
+            id=strawberry.ID(str(m.id)),
+            project_id=strawberry.ID(str(m.project_id)),
+            title=m.title,
+            body=m.body,
+            created=m.created,
+            updated_at=m.updated_at,
         )
 
 
@@ -168,6 +188,7 @@ class Dashboard:
     ideas: List[Idea]
     updates: List[Update]
     categories: List[Category]
+    project_notes: List[ProjectNote]
     last_backup: Optional[dt.datetime]
 
 
@@ -180,10 +201,16 @@ class ProjectInput:
     description: Optional[str] = ""
     why: Optional[str] = ""
     next_step: Optional[str] = ""
-    notes: Optional[str] = ""
     status: Optional[str] = "idea"
     priority: Optional[str] = "medium"
     category_id: Optional[strawberry.ID] = None
+
+
+@strawberry.input
+class ProjectNoteInput:
+    project_id: strawberry.ID
+    title: Optional[str] = ""
+    body: str = ""
 
 
 @strawberry.input
@@ -429,6 +456,7 @@ class Query:
         ideas = list(IdeaModel.objects.filter(user_id=uid))
         updates = list(UpdateModel.objects.filter(user_id=uid))
         categories = list(CategoryModel.objects.filter(user_id=uid))
+        project_notes = list(ProjectNoteModel.objects.filter(user_id=uid))
         meta = BackupMeta.objects.filter(user_id=uid).first()
         return Dashboard(
             projects=[Project.from_model(p) for p in projects],
@@ -436,6 +464,7 @@ class Query:
             ideas=[Idea.from_model(i) for i in ideas],
             updates=[Update.from_model(u) for u in updates],
             categories=[Category.from_model(c) for c in categories],
+            project_notes=[ProjectNote.from_model(n) for n in project_notes],
             last_backup=meta.last_backup if meta else None,
         )
 
@@ -468,7 +497,6 @@ class Mutation:
             description=data.description or "",
             why=data.why or "",
             next_step=data.next_step or "",
-            notes=data.notes or "",
             status=data.status or "idea",
             priority=data.priority or "medium",
             category=category,
@@ -483,7 +511,6 @@ class Mutation:
         m.description = data.description or ""
         m.why = data.why or ""
         m.next_step = data.next_step or ""
-        m.notes = data.notes or ""
         m.status = data.status or m.status
         m.priority = data.priority or m.priority
         if data.category_id is None:
@@ -495,6 +522,39 @@ class Mutation:
         m.last_activity = timezone.now()
         m.save()
         return Project.from_model(m)
+
+    # Project notes (multiple per project)
+    @strawberry.mutation
+    def create_project_note(self, info: Info, data: ProjectNoteInput) -> ProjectNote:
+        uid = _user_id(info)
+        _assert_owned_project(uid, data.project_id)
+        m = ProjectNoteModel.objects.create(
+            user_id=uid,
+            project_id=data.project_id,
+            title=(data.title or "").strip(),
+            body=data.body or "",
+        )
+        ProjectModel.objects.filter(pk=data.project_id, user_id=uid).update(
+            last_activity=timezone.now()
+        )
+        return ProjectNote.from_model(m)
+
+    @strawberry.mutation
+    def update_project_note(
+        self, info: Info, id: strawberry.ID, data: ProjectNoteInput
+    ) -> ProjectNote:
+        uid = _user_id(info)
+        m = _get_owned(ProjectNoteModel, id, uid, "ProjectNote")
+        m.title = (data.title or "").strip()
+        m.body = data.body or ""
+        m.save(update_fields=["title", "body", "updated_at"])
+        return ProjectNote.from_model(m)
+
+    @strawberry.mutation
+    def delete_project_note(self, info: Info, id: strawberry.ID) -> bool:
+        uid = _user_id(info)
+        ProjectNoteModel.objects.filter(pk=id, user_id=uid).delete()
+        return True
 
     @strawberry.mutation
     def delete_project(self, info: Info, id: strawberry.ID) -> bool:

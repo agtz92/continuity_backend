@@ -45,7 +45,6 @@ class Project(TimestampedModel):
     description = models.TextField(blank=True, default="")
     why = models.TextField(blank=True, default="")
     next_step = models.TextField(blank=True, default="")
-    notes = models.TextField(blank=True, default="")
     status = models.CharField(
         max_length=20, choices=ProjectStatus.choices, default=ProjectStatus.IDEA
     )
@@ -98,6 +97,23 @@ class Update(TimestampedModel):
 
     class Meta:
         ordering = ["-date"]
+
+
+class ProjectNote(TimestampedModel):
+    """One of many free-form notes attached to a project. Distinct from
+    `Update` (timeline of activity) and `Project.description/why/next_step`
+    (single-value context fields). Title is optional — if blank, the UI
+    derives a preview from the first line of the body."""
+
+    project = models.ForeignKey(
+        Project, on_delete=models.CASCADE, related_name="note_items"
+    )
+    title = models.CharField(max_length=255, blank=True, default="")
+    body = models.TextField()
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
 
 
 class BackupMeta(models.Model):

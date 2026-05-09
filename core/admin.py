@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Project, Task, Idea, Update, BackupMeta, Category
+from .models import Project, ProjectNote, Task, Idea, Update, BackupMeta, Category
 
 
 @admin.register(Project)
@@ -28,6 +28,12 @@ class IdeaAdmin(admin.ModelAdmin):
 @admin.register(Update)
 class UpdateAdmin(admin.ModelAdmin):
     list_display = ("project", "note", "date")
+
+
+@admin.register(ProjectNote)
+class ProjectNoteAdmin(admin.ModelAdmin):
+    list_display = ("project", "title", "user_id", "updated_at")
+    search_fields = ("title", "body")
 
 
 admin.site.register(BackupMeta)
