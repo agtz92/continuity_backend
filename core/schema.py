@@ -76,6 +76,7 @@ class Project:
     description: str
     why: str
     next_step: str
+    notes: str
     status: str
     priority: str
     category_id: Optional[strawberry.ID]
@@ -90,6 +91,7 @@ class Project:
             description=m.description,
             why=m.why,
             next_step=m.next_step,
+            notes=m.notes,
             status=m.status,
             priority=m.priority,
             category_id=strawberry.ID(str(m.category_id)) if m.category_id else None,
@@ -178,6 +180,7 @@ class ProjectInput:
     description: Optional[str] = ""
     why: Optional[str] = ""
     next_step: Optional[str] = ""
+    notes: Optional[str] = ""
     status: Optional[str] = "idea"
     priority: Optional[str] = "medium"
     category_id: Optional[strawberry.ID] = None
@@ -465,6 +468,7 @@ class Mutation:
             description=data.description or "",
             why=data.why or "",
             next_step=data.next_step or "",
+            notes=data.notes or "",
             status=data.status or "idea",
             priority=data.priority or "medium",
             category=category,
@@ -479,6 +483,7 @@ class Mutation:
         m.description = data.description or ""
         m.why = data.why or ""
         m.next_step = data.next_step or ""
+        m.notes = data.notes or ""
         m.status = data.status or m.status
         m.priority = data.priority or m.priority
         if data.category_id is None:

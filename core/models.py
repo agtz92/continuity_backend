@@ -45,6 +45,7 @@ class Project(TimestampedModel):
     description = models.TextField(blank=True, default="")
     why = models.TextField(blank=True, default="")
     next_step = models.TextField(blank=True, default="")
+    notes = models.TextField(blank=True, default="")
     status = models.CharField(
         max_length=20, choices=ProjectStatus.choices, default=ProjectStatus.IDEA
     )
