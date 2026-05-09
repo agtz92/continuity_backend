@@ -11,6 +11,17 @@ ALLOWED_HOSTS = config("DJANGO_ALLOWED_HOSTS", default="*", cast=Csv())
 SUPABASE_URL = config("SUPABASE_URL", default="").rstrip("/")
 SUPABASE_JWT_SECRET = config("SUPABASE_JWT_SECRET", default="")  # legacy HS256 fallback
 
+# Notifications
+TELEGRAM_BOT_TOKEN = config("TELEGRAM_BOT_TOKEN", default="")
+TELEGRAM_BOT_USERNAME = config("TELEGRAM_BOT_USERNAME", default="")
+TELEGRAM_WEBHOOK_SECRET = config("TELEGRAM_WEBHOOK_SECRET", default="")
+TWILIO_ACCOUNT_SID = config("TWILIO_ACCOUNT_SID", default="")
+TWILIO_AUTH_TOKEN = config("TWILIO_AUTH_TOKEN", default="")
+TWILIO_WHATSAPP_FROM = config("TWILIO_WHATSAPP_FROM", default="")
+NOTIFICATIONS_DEFAULT_TIMEZONE = config(
+    "NOTIFICATIONS_DEFAULT_TIMEZONE", default="America/Mexico_City"
+)
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -20,6 +31,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "corsheaders",
     "core",
+    "core.notifications.apps.NotificationsConfig",
 ]
 
 MIDDLEWARE = [

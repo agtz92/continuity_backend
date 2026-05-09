@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.urls import path
+from django.urls import include, path
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
@@ -14,6 +14,7 @@ def healthcheck(_request):
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("graphql/", csrf_exempt(JWTAuthGraphQLView.as_view(schema=schema))),
+    path("api/", include("core.notifications.urls")),
     path("healthz", healthcheck),
     path("", healthcheck),
 ]

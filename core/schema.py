@@ -3,6 +3,7 @@ import datetime as dt
 from typing import Optional, List
 
 import strawberry
+from strawberry.tools import merge_types
 from strawberry.types import Info
 from graphql import GraphQLError
 from django.db import transaction
@@ -18,6 +19,7 @@ from .models import (
     BackupMeta,
     Category as CategoryModel,
 )
+from .notifications.schema import NotificationsQuery, NotificationsMutation
 
 
 AnalyticsRange = strawberry.enum(AnalyticsRangeEnum, name="AnalyticsRange")
@@ -659,4 +661,7 @@ class Mutation:
         return now
 
 
-schema = strawberry.Schema(query=Query, mutation=Mutation)
+CombinedQuery = merge_types("Query", (Query, NotificationsQuery))
+CombinedMutation = merge_types("Mutation", (Mutation, NotificationsMutation))
+
+schema = strawberry.Schema(query=CombinedQuery, mutation=CombinedMutation)
