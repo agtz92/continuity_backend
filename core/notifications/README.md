@@ -1,40 +1,40 @@
-# Notificaciones
+# Notifications
 
-Sistema de notificaciones (Telegram → WhatsApp) para empujar el resumen de analíticas y alertas a los canales que el usuario ya consulta.
+Notification system (Telegram → WhatsApp) that pushes the analytics digest and alerts to channels users already check.
 
-**Estrategia**: arquitectura con abstracciones correctas desde el día 1 (Provider interface, outbox pattern, jobs idempotentes), pero implementación inicial mínima — Render Cron Jobs ejecuta management commands de Django, sin cola. Migrar a una cola real cuando duela; el contrato de `dispatcher.enqueue` no cambia.
+**Strategy**: right abstractions from day 1 (Provider interface, outbox pattern, idempotent jobs), but minimal initial implementation — Render Cron Jobs run Django management commands, no queue. Migrate to a real queue when it actually hurts; the `dispatcher.enqueue` contract doesn't change.
 
 ---
 
-## Estado actual
+## Current status
 
-### Fase 1 — Esqueleto + Telegram link ✅
+### Phase 1 — Skeleton + Telegram link ✅
 
-Listo en este módulo:
+Already in this module:
 
-- **Modelos** ([models.py](models.py)): `NotificationSettings` (1 por user), `NotificationLink` (canal vinculado), `Notification` (outbox, dedupe por `(user_id, channel, kind, dedupe_key)`).
-- **Providers** ([providers/](providers/)): `NotificationProvider` ABC, `TelegramProvider` (HTTP directo a `api.telegram.org`, sin SDK).
-- **Dispatcher** ([dispatcher.py](dispatcher.py)): `enqueue()` UPSERT-idempotente; reusable por cualquier comando.
-- **Webhook** ([views.py](views.py)): `/api/telegram/webhook/<secret>/` recibe `/start <token>` y vincula el `chat_id`.
-- **GraphQL** ([schema.py](schema.py)): query `notificationSettings`, mutaciones `updateNotificationSettings`, `requestChannelLink(TELEGRAM)`, `disconnectChannel(...)`.
-- **Comandos**:
-  - `python manage.py setup_telegram_webhook --base-url <url>` — registra webhook con Telegram
-  - `python manage.py test_notification --user-id <uuid> [--body "..."]` — envío manual end-to-end
-- **Frontend**: `/settings/notifications` con conexión de Telegram y toggles por tipo de notificación.
+- **Models** ([models.py](models.py)): `NotificationSettings` (1 per user), `NotificationLink` (linked channel), `Notification` (outbox, dedupe on `(user_id, channel, kind, dedupe_key)`).
+- **Providers** ([providers/](providers/)): `NotificationProvider` ABC, `TelegramProvider` (direct HTTP to `api.telegram.org`, no SDK).
+- **Dispatcher** ([dispatcher.py](dispatcher.py)): `enqueue()` UPSERT-idempotent; reusable from any command.
+- **Webhook** ([views.py](views.py)): `/api/telegram/webhook/<secret>/` receives `/start <token>` and binds the `chat_id`.
+- **GraphQL** ([schema.py](schema.py)): `notificationSettings` query, `updateNotificationSettings`, `requestChannelLink(TELEGRAM)`, `disconnectChannel(...)` mutations.
+- **Commands**:
+  - `python manage.py setup_telegram_webhook --base-url <url>` — registers the webhook with Telegram
+  - `python manage.py test_notification --user-id <uuid> [--body "..."]` — manual end-to-end send
+- **Frontend**: `/settings/notifications` with Telegram connect flow and per-type toggles.
 
-### Fase 2 — Weekly digest (builder + comando) ✅
+### Phase 2 — Weekly digest (builder + command) ✅
 
-Listo:
+Done:
 
-- **Builder** ([builders.py](builders.py)): `build_weekly_digest(user_id) -> str` reusa `core.analytics.compute_analytics(user_id, LAST_7_DAYS)` y arma un mensaje MarkdownV2 con racha, top proyectos (con delta vs semana previa), backlog (vencidas/por vencer/abiertas, quick wins, almost there), proyectos durmiendo, ideas stale, funnel de ideas, horas de esfuerzo, y link al dashboard.
-- **Comando** ([management/commands/send_weekly_digest.py](management/commands/send_weekly_digest.py)):
-  - Diseñado para correr cada hora; respeta `setting.timezone + digest_day_of_week + digest_hour`.
-  - Flags: `--force` (ignora horario, usa dedupe key única por timestamp para permitir re-envíos), `--user-id <uuid>`, `--all-verified`.
-  - Dedupe natural en producción: `weekly:{iso_year}-W{iso_week}` → re-correr el cron es no-op.
+- **Builder** ([builders.py](builders.py)): `build_weekly_digest(user_id) -> str` reuses `core.analytics.compute_analytics(user_id, LAST_7_DAYS)` and renders a MarkdownV2 message with streak, top projects (with delta vs previous week), backlog (overdue / due soon / open, quick wins, almost there), sleeping projects, stale ideas, idea funnel, logged hours, and a dashboard link.
+- **Command** ([management/commands/send_weekly_digest.py](management/commands/send_weekly_digest.py)):
+  - Designed to run hourly; respects `setting.timezone + digest_day_of_week + digest_hour`.
+  - Flags: `--force` (ignore schedule, uses a unique-per-run dedupe key so re-sends are allowed), `--user-id <uuid>`, `--all-verified`.
+  - Natural production dedupe: `weekly:{iso_year}-W{iso_week}` → re-running the cron is a no-op.
 
-Pendiente (lo único que queda de Fase 2):
+Pending (the only thing left from Phase 2):
 
-- **Render Cron Job**. Agregar a `backend/render.yaml`:
+- **Render Cron Job**. Add to `backend/render.yaml`:
   ```yaml
     - type: cron
       name: continuity-notifications-hourly
@@ -45,48 +45,48 @@ Pendiente (lo único que queda de Fase 2):
       buildCommand: "./build.sh"
       startCommand: "python manage.py send_weekly_digest && python manage.py send_sleeping_alerts && python manage.py send_due_reminders"
       envVars:
-        # mismas refs que el web service: DATABASE_URL, SUPABASE_*, TELEGRAM_*, NOTIFICATIONS_DEFAULT_TIMEZONE
+        # same refs as the web service: DATABASE_URL, SUPABASE_*, TELEGRAM_*, NOTIFICATIONS_DEFAULT_TIMEZONE
   ```
-  El cron corre cada hora; el filtro de "es la hora del usuario" se hace dentro del comando, así que un solo cron cubre cualquier zona horaria. Los comandos `send_sleeping_alerts` / `send_due_reminders` aún no existen — Render los ignorará con error hasta que aterricen en Fase 3 (puedes dejar solo `send_weekly_digest` por ahora).
+  The cron runs every hour; the "is it the user's hour?" filter happens inside the command, so a single cron covers any timezone. The `send_sleeping_alerts` / `send_due_reminders` commands don't exist yet — Render will error on those until they ship in Phase 3 (you can run only `send_weekly_digest` for now).
 
-### Activación local de Fase 1
+### Phase 1 local activation
 
-1. Crear bot con [@BotFather](https://t.me/BotFather) → `/newbot` → copiar token.
-2. Variables de entorno (en `backend/.env`):
+1. Create the bot via [@BotFather](https://t.me/BotFather) → `/newbot` → copy the token.
+2. Env vars (in `backend/.env`):
    ```
-   TELEGRAM_BOT_TOKEN=<del paso anterior>
-   TELEGRAM_BOT_USERNAME=<sin @, lo que va después de t.me/>
+   TELEGRAM_BOT_TOKEN=<from previous step>
+   TELEGRAM_BOT_USERNAME=<no @, the part after t.me/>
    TELEGRAM_WEBHOOK_SECRET=<python -c "import secrets; print(secrets.token_urlsafe(32))">
    NOTIFICATIONS_DEFAULT_TIMEZONE=America/Mexico_City
    ```
-3. Para webhook en localhost: túnel con `ngrok http 8000` o `cloudflared tunnel --url http://localhost:8000`.
-4. Registrar webhook: `python manage.py setup_telegram_webhook --base-url https://<tu-tunel>`.
-5. En la app → `/settings/notifications` → **Connect Telegram** → presionar Start en el bot → debe aparecer "✅ Connected".
+3. For webhook in localhost: tunnel with `ngrok http 8000` or `cloudflared tunnel --url http://localhost:8000`.
+4. Register webhook: `python manage.py setup_telegram_webhook --base-url https://<your-tunnel>`.
+5. In the app → `/settings/notifications` → **Connect Telegram** → press Start in the bot → "✅ Connected" appears.
 
-En producción (Render): mismas envs en el dashboard, `--base-url https://continuity-backend.onrender.com`.
+In production (Render): same envs in the dashboard, `--base-url https://continuity-backend.onrender.com`.
 
-### Disparar el digest manualmente
+### Trigger the digest manually
 
-Una vez que un usuario está conectado, puedes mandarle el resumen semanal en cualquier momento:
+Once a user is connected, you can send them the weekly digest at any time:
 
 ```powershell
 python manage.py send_weekly_digest --force --user-id <uuid>
 ```
 
-`--force` ignora el cron schedule (día/hora) y usa una `dedupe_key` única por ejecución, así que puedes correrlo varias veces y todas llegarán. Para enviar a todos los usuarios verificados de un golpe: `--all-verified --force`. Sin `--force`, solo manda a quienes están en su `(día, hora) local` configurada.
+`--force` ignores the cron schedule (day/hour) and uses a per-run unique `dedupe_key`, so you can run it multiple times and each will deliver. To send to all verified users at once: `--all-verified --force`. Without `--force`, it only sends to users whose configured `(day, hour)` in their local timezone matches now.
 
 ---
 
-## Fase 3 — Sleeping alerts + Due reminders + Manuales
+## Phase 3 — Sleeping alerts + Due reminders + Manual
 
 ### Sleeping alerts
 
 `management/commands/send_sleeping_alerts.py`:
 
-- Para cada usuario con `sleeping_alerts_enabled`:
-- Detectar proyectos donde `last_activity` cruzó **hoy** un umbral (7, 14, 30 días).
-- `dedupe_key = f"sleeping:{project_id}:{threshold}"` → cada proyecto recibe máximo 3 alertas en su vida (una por umbral).
-- Reutilizar `analytics.SLEEPING_THRESHOLD_DAYS`, `SLEEPING_BUCKET_MID`, `SLEEPING_BUCKET_LATE`.
+- For each user with `sleeping_alerts_enabled`:
+- Detect projects where `last_activity` crossed **today** a threshold (7, 14, 30 days).
+- `dedupe_key = f"sleeping:{project_id}:{threshold}"` → each project gets at most 3 alerts in its lifetime (one per threshold).
+- Reuse `analytics.SLEEPING_THRESHOLD_DAYS`, `SLEEPING_BUCKET_MID`, `SLEEPING_BUCKET_LATE`.
 
 ```python
 from core.analytics import SLEEPING_THRESHOLD_DAYS, SLEEPING_BUCKET_MID, SLEEPING_BUCKET_LATE
@@ -122,14 +122,14 @@ for setting in NotificationSettings.objects.filter(due_reminders_enabled=True):
         enqueue(
             user_id=setting.user_id,
             kind="due_reminder",
-            dedupe_key=f"due:{task.id}",  # un aviso por tarea, ever
+            dedupe_key=f"due:{task.id}",  # one notification per task, ever
             body=builders.build_due_reminder(task),
         )
 ```
 
-### Notificaciones manuales
+### Manual notifications
 
-Agregar a `notifications/schema.py`:
+Add to `notifications/schema.py`:
 
 ```python
 @strawberry.mutation
@@ -157,30 +157,30 @@ def send_manual_notification(
     return sent
 ```
 
-Promover una cuenta a admin: `python manage.py shell` → `NotificationSettings.objects.filter(user_id="...").update(is_admin=True)`.
+Promote an account to admin: `python manage.py shell` → `NotificationSettings.objects.filter(user_id="...").update(is_admin=True)`.
 
-### Verificación Fase 3
+### Phase 3 verification
 
-- Crear proyecto, modificar `last_activity = now - timedelta(days=8)` por shell, correr `send_sleeping_alerts` → llega mensaje con threshold=7.
-- Re-correr → no llega (dedupe).
-- Crear tarea con `due_date = now + 23h`, correr `send_due_reminders` → llega.
-- Mutación `sendManualNotification` con tu propio user_id (siendo admin) → llega.
+- Create a project, set `last_activity = now - timedelta(days=8)` via shell, run `send_sleeping_alerts` → message arrives with threshold=7.
+- Re-run → nothing (dedupe).
+- Create a task with `due_date = now + 23h`, run `send_due_reminders` → message arrives.
+- `sendManualNotification` mutation with your own user_id (as admin) → arrives.
 
 ---
 
-## Fase 4 — WhatsApp vía Twilio
+## Phase 4 — WhatsApp via Twilio
 
-### Sandbox primero (sin esperar aprobaciones)
+### Sandbox first (no approvals required)
 
-1. Activar [Twilio WhatsApp Sandbox](https://console.twilio.com/us1/develop/sms/try-it-out/whatsapp-learn) — gratis. Anotar `ACCOUNT_SID`, `AUTH_TOKEN`, número del sandbox (ej. `whatsapp:+14155238886`) y código de invitación (ej. `join brave-tiger`).
-2. Variables nuevas:
+1. Activate the [Twilio WhatsApp Sandbox](https://console.twilio.com/us1/develop/sms/try-it-out/whatsapp-learn) — free. Note `ACCOUNT_SID`, `AUTH_TOKEN`, sandbox number (e.g. `whatsapp:+14155238886`), and the join code (e.g. `join brave-tiger`).
+2. New env vars:
    ```
    TWILIO_ACCOUNT_SID=AC...
    TWILIO_AUTH_TOKEN=...
    TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
    ```
-3. `pip install twilio==9.x` y agregar a `requirements.txt`.
-4. Crear `providers/whatsapp.py`:
+3. `pip install twilio==9.x` and add to `requirements.txt`.
+4. Create `providers/whatsapp.py`:
    ```python
    from twilio.rest import Client
    from .base import NotificationProvider, DeliveryResult, ProviderError
@@ -205,26 +205,26 @@ Promover una cuenta a admin: `python manage.py shell` → `NotificationSettings.
            except Exception as e:
                return DeliveryResult(success=False, error=str(e))
    ```
-5. UI: en `NotificationSettings.tsx` agregar sección **WhatsApp** con input de número (`+5215512345678`), botón Connect que llama `requestChannelLink(WHATSAPP)`. En sandbox marca `verified_at = now()` directamente sin webhook (instrucciones en UI: "Manda `join <código>` al +1 415 523 8886 desde WhatsApp").
-6. Quitar el `raise NotImplementedError` de `requestChannelLink` para WhatsApp.
+5. UI: in `NotificationSettings.tsx` add a **WhatsApp** section with a phone number input (`+5215512345678`) and a Connect button that calls `requestChannelLink(WHATSAPP)`. In sandbox, mark `verified_at = now()` directly with no webhook (UI instructions: "Send `join <code>` to +1 415 523 8886 from WhatsApp").
+6. Remove the `raise NotImplementedError` for WhatsApp from `requestChannelLink`.
 
-### Producción
+### Production
 
-Pasos en Twilio Console (1-3 días hábiles):
+Twilio Console steps (1-3 business days):
 
-1. **WhatsApp Sender** → Request Access → Twilio gestiona el "embedded signup" con Meta.
-2. Verificar negocio en Meta Business Manager (puede ser persona física como negocio).
-3. Registrar **plantillas HSM** (una por `kind`):
-   - `weekly_digest` — categoría **Utility** (~$0.012/conversación en MX). Variables: `{{1}}` streak, `{{2}}` proyectos top, etc.
-   - `sleeping_alert` — Utility. Variables: `{{1}}` nombre del proyecto, `{{2}}` días idle.
-   - `due_reminder` — Utility. Variables: `{{1}}` título de tarea, `{{2}}` cuándo vence.
-4. Cada plantilla aprobada da un `content_sid`. Guardarlos en settings:
+1. **WhatsApp Sender** → Request Access → Twilio handles "embedded signup" with Meta.
+2. Verify the business in Meta Business Manager (sole proprietorship is OK).
+3. Register **HSM templates** (one per `kind`):
+   - `weekly_digest` — **Utility** category (~$0.012/conversation in MX). Variables: `{{1}}` streak, `{{2}}` top projects, etc.
+   - `sleeping_alert` — Utility. Variables: `{{1}}` project name, `{{2}}` days idle.
+   - `due_reminder` — Utility. Variables: `{{1}}` task title, `{{2}}` due date.
+4. Each approved template gets a `content_sid`. Save them in settings:
    ```python
    TWILIO_TEMPLATE_WEEKLY_DIGEST = "HX..."
    TWILIO_TEMPLATE_SLEEPING_ALERT = "HX..."
    TWILIO_TEMPLATE_DUE_REMINDER = "HX..."
    ```
-5. Modificar `TwilioWhatsAppProvider.send` para que cuando `kind` mapee a un template, use `content_sid` + `content_variables` en lugar de `body`:
+5. Update `TwilioWhatsAppProvider.send` so that when `kind` maps to a template, it uses `content_sid` + `content_variables` instead of `body`:
    ```python
    if kind in TEMPLATE_MAP:
        msg = self.client.messages.create(
@@ -233,59 +233,59 @@ Pasos en Twilio Console (1-3 días hábiles):
            content_variables=json.dumps({"1": ..., "2": ...}),
        )
    ```
-   El `body` libre solo funciona dentro de la ventana de 24h (después de que el usuario te escribe).
-6. Los **builders** ahora tienen que devolver tanto el texto Markdown (para Telegram) como un dict de variables (para WhatsApp). Refactor sugerido: `build_weekly_digest(user_id) → BuiltMessage(text, variables)`.
+   Free-form `body` only works inside the 24h window (after the user messages you).
+6. The **builders** now need to return both Markdown text (for Telegram) and a variables dict (for WhatsApp). Suggested refactor: `build_weekly_digest(user_id) → BuiltMessage(text, variables)`.
 
-### Verificación Fase 4
+### Phase 4 verification
 
-- **Sandbox**: vincular tu número → `python manage.py test_notification --user-id <uuid> --channel whatsapp` → llega en WhatsApp.
-- **Producción**: tras aprobación, mismo flujo con número real → llega como template formateado.
+- **Sandbox**: connect your number → `python manage.py test_notification --user-id <uuid> --channel whatsapp` → arrives on WhatsApp.
+- **Production**: after template approval, same flow with the production number → arrives as a formatted template.
 
 ---
 
-## Fase 5 — Escalabilidad (diferida)
+## Phase 5 — Scaling (deferred)
 
-**No hacer hasta que duela.** Disparadores: cron tarda >5 min, fallos en pico, retraso percibido.
+**Don't do this until it hurts.** Triggers: cron takes >5 min, provider failures during peaks, perceived delay from users.
 
-1. **`django-q2` sobre la misma Postgres** (sin Redis aún, ~$0/mes extra):
+1. **`django-q2` over the same Postgres** (no Redis yet, ~$0/mo extra):
    ```python
-   # En dispatcher.py:
+   # In dispatcher.py:
    if settings.NOTIFICATIONS_USE_QUEUE:
        async_task("core.notifications.dispatcher._attempt_send", notif.id, link.id)
    else:
-       _attempt_send(notif, link)  # camino actual
+       _attempt_send(notif, link)  # current path
    ```
-   Worker process en Render Starter ($7/mes) o como segundo `cron` que llame `python manage.py qcluster`.
-2. **Métricas**: tasa éxito por canal, latencia p50/p95, tiempo de cron. Endpoint `/api/metrics/` (Prometheus format) o Sentry transactions.
-3. **Sentry** para captura de errores en providers.
-4. **Backoff exponencial** en el campo `attempts`: `_attempt_send` solo procesa si `attempts < 5` y `now > created + 2^attempts minutes`.
-5. Cuando `django-q2` sea cuello de botella → migrar a Celery + Redis. La firma de `dispatcher.enqueue` no cambia.
+   Worker process on Render Starter ($7/mo) or as a second `cron` running `python manage.py qcluster`.
+2. **Metrics**: per-channel success rate, p50/p95 latency, cron duration. Endpoint `/api/metrics/` (Prometheus format) or Sentry transactions.
+3. **Sentry** for provider error capture.
+4. **Exponential backoff** on retries via the `attempts` field: `_attempt_send` only processes if `attempts < 5` and `now > created + 2^attempts minutes`.
+5. When django-q2 becomes the bottleneck → migrate to Celery + Redis. The `dispatcher.enqueue` signature stays the same.
 
 ---
 
-## Sobre licencias y permisos (resumen)
+## Licenses & permissions (summary)
 
-**Telegram**: gratis, sin licencias, sin templates obligatorios. Único requisito: cumplir [Telegram Bot ToS](https://telegram.org/tos/bots) (no spam). Opt-in implícito porque el usuario tiene que iniciar la conversación con el bot.
+**Telegram**: free, no licenses, no required templates. Only requirement: comply with [Telegram Bot ToS](https://telegram.org/tos/bots) (no spam). Implicit opt-in because the user has to start the conversation with the bot.
 
-**WhatsApp**: 3 capas obligatorias:
+**WhatsApp**: 3 mandatory layers:
 
-1. **WhatsApp Business Account** vinculada a Meta Business (verificación de identidad).
-2. **Número dedicado** verificado (no puede tener WhatsApp normal/Business app instalado).
-3. **Templates HSM** pre-aprobados por Meta para mensajes proactivos fuera de la ventana de 24h. Categorías: **Utility** (recordatorios — más barato), **Marketing** (promocionales — más caro), **Authentication** (OTPs), **Service** (respuestas).
+1. **WhatsApp Business Account** linked to a Meta Business (identity verification).
+2. **Dedicated number** verified (cannot be one already running WhatsApp regular/Business app).
+3. **HSM templates** pre-approved by Meta for proactive messages outside the 24h window. Categories: **Utility** (reminders — cheaper), **Marketing** (promotional — pricier), **Authentication** (OTPs), **Service** (replies).
 
-Costos típicos vía Twilio en MX (verificar [pricing actual](https://www.twilio.com/whatsapp/pricing)):
-- Utility conversation: ~$0.012 USD/conversación de 24h
+Typical Twilio costs in MX (verify [current pricing](https://www.twilio.com/whatsapp/pricing)):
+- Utility conversation: ~$0.012 USD/24h conversation
 - Marketing: ~$0.044 USD
-- Twilio agrega ~$0.005 USD encima
+- Twilio adds ~$0.005 USD on top
 
-El **sandbox de Twilio es gratis** y suficiente para validar todo el sistema antes de invertir en aprobaciones — el usuario manda un código de invitación y queda habilitado por 72h.
+The **Twilio sandbox is free** and enough to validate the entire system before investing in approvals — the user sends a join code and gets enabled for 72h.
 
 ---
 
-## Patrones a respetar
+## Patterns to respect
 
-- **Idempotencia**: nunca llamar `Notification.objects.create()` directo; siempre `dispatcher.enqueue()` con `dedupe_key` significativo. Re-correr el cron tiene que ser un no-op.
-- **Templates por canal y kind**: nunca `body=f"Hola {nombre}"` inline. Reusable + traducible a HSM cuando llegue WhatsApp.
-- **Provider abstracto**: nuevas plataformas (email, push, SMS) son una clase nueva en `providers/`, no un refactor.
-- **Zonas horarias**: el cron corre en UTC pero las decisiones de scheduling se toman en `setting.timezone`. No usar `timezone.now().hour` para decidir; convertir primero.
-- **Markdown V2**: cualquier contenido dinámico va por `md_escape()` antes de ir a `body`.
+- **Idempotency**: never call `Notification.objects.create()` directly; always `dispatcher.enqueue()` with a meaningful `dedupe_key`. Re-running the cron must be a no-op.
+- **Per-channel and per-kind templates**: never inline `body=f"Hi {name}"`. Reusable + translatable to HSM when WhatsApp lands.
+- **Provider abstraction**: new platforms (email, push, SMS) are a new class in `providers/`, not a refactor.
+- **Timezones**: cron runs in UTC but scheduling decisions are made in `setting.timezone`. Don't use `timezone.now().hour` to decide; convert first.
+- **Markdown V2**: any dynamic content must go through `md_escape()` before reaching `body`.

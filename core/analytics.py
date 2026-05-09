@@ -1,4 +1,4 @@
-"""Analytics aggregations for the dashboard's "Analíticas" view.
+"""Analytics aggregations for the dashboard's Analytics view.
 
 Pure-Python helpers + Django ORM aggregations. Schema layer (schema.py)
 imports the dataclasses defined here and exposes them through Strawberry
@@ -492,7 +492,7 @@ def _category_breakdown(
         out.append(
             CategoryRow(
                 category_id=cat_id,
-                name=r["category__name"] or "Sin categoría",
+                name=r["category__name"] or "Uncategorized",
                 color=r["category__color"] or "zinc",
                 project_count=r["c"],
                 interactions=interactions.get(cat_id, 0),
