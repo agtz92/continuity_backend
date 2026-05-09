@@ -1,0 +1,16 @@
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ('core', '0003_task_effort_hours'),
+    ]
+
+    operations = [
+        migrations.AddField(
+            model_name='project',
+            name='promoted_from_idea_at',
+            field=models.DateTimeField(blank=True, db_index=True, null=True),
+        ),
+    ]

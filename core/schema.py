@@ -8,6 +8,8 @@ from graphql import GraphQLError
 from django.db import transaction
 from django.utils import timezone
 
+from . import analytics as analytics_mod
+from .analytics import AnalyticsRange as AnalyticsRangeEnum
 from .models import (
     Project as ProjectModel,
     Task as TaskModel,
@@ -16,6 +18,9 @@ from .models import (
     BackupMeta,
     Category as CategoryModel,
 )
+
+
+AnalyticsRange = strawberry.enum(AnalyticsRangeEnum, name="AnalyticsRange")
 
 
 def _user_id(info: Info) -> uuid.UUID:
@@ -204,6 +209,208 @@ class ImportPayload:
     mode: str = "merge"  # "merge" | "replace"
 
 
+# ---------- Analytics types ----------
+
+
+@strawberry.type
+class CadenceStats:
+    current_streak: int
+    longest_streak: int
+    active_days_in_range: int
+    total_activity_events: int
+
+
+@strawberry.type
+class ActivityPoint:
+    day: dt.date
+    updates: int
+    completed_tasks: int
+    total_events: int
+
+
+@strawberry.type
+class WeekdayBucket:
+    weekday: int
+    count: int
+
+
+@strawberry.type
+class ProjectInteractionRow:
+    project_id: strawberry.ID
+    name: str
+    status: str
+    interactions: int
+    delta_vs_prev: int
+
+
+@strawberry.type
+class StatusCount:
+    status: str
+    count: int
+
+
+@strawberry.type
+class CategoryRow:
+    category_id: Optional[strawberry.ID]
+    name: str
+    color: str
+    project_count: int
+    interactions: int
+
+
+@strawberry.type
+class BacklogHealth:
+    overdue_tasks: int
+    due_soon_tasks: int
+    open_tasks: int
+    quick_wins: int
+    almost_there: int
+
+
+@strawberry.type
+class SleepingProjectRow:
+    project_id: strawberry.ID
+    name: str
+    days_idle: int
+    bucket: str
+
+
+@strawberry.type
+class StaleIdeaRow:
+    idea_id: strawberry.ID
+    title: str
+    days_old: int
+
+
+@strawberry.type
+class IdeaFunnel:
+    ideas_created: int
+    ideas_promoted: int
+    promotion_rate: float
+
+
+@strawberry.type
+class EffortProjectRow:
+    project_id: strawberry.ID
+    name: str
+    hours: float
+
+
+@strawberry.type
+class EffortStats:
+    effort_hours_total: float
+    tasks_with_effort_pct: float
+    effort_hours_by_project: List[EffortProjectRow]
+
+
+@strawberry.type
+class Analytics:
+    range: AnalyticsRange
+    range_start: Optional[dt.datetime]
+    range_end: dt.datetime
+    cadence: CadenceStats
+    activity_series: List[ActivityPoint]
+    weekday_heatmap: List[WeekdayBucket]
+    top_projects: List[ProjectInteractionRow]
+    status_counts: List[StatusCount]
+    category_breakdown: List[CategoryRow]
+    backlog: BacklogHealth
+    sleeping_projects: List[SleepingProjectRow]
+    stale_ideas: List[StaleIdeaRow]
+    idea_funnel: IdeaFunnel
+    effort: EffortStats
+
+
+def _to_analytics_gql(r: analytics_mod.AnalyticsResult) -> Analytics:
+    return Analytics(
+        range=r.range,
+        range_start=r.range_start,
+        range_end=r.range_end,
+        cadence=CadenceStats(
+            current_streak=r.cadence.current_streak,
+            longest_streak=r.cadence.longest_streak,
+            active_days_in_range=r.cadence.active_days_in_range,
+            total_activity_events=r.cadence.total_activity_events,
+        ),
+        activity_series=[
+            ActivityPoint(
+                day=p.day,
+                updates=p.updates,
+                completed_tasks=p.completed_tasks,
+                total_events=p.total_events,
+            )
+            for p in r.activity_series
+        ],
+        weekday_heatmap=[
+            WeekdayBucket(weekday=b.weekday, count=b.count) for b in r.weekday_heatmap
+        ],
+        top_projects=[
+            ProjectInteractionRow(
+                project_id=strawberry.ID(str(row.project_id)),
+                name=row.name,
+                status=row.status,
+                interactions=row.interactions,
+                delta_vs_prev=row.delta_vs_prev,
+            )
+            for row in r.top_projects
+        ],
+        status_counts=[
+            StatusCount(status=s.status, count=s.count) for s in r.status_counts
+        ],
+        category_breakdown=[
+            CategoryRow(
+                category_id=strawberry.ID(str(c.category_id)) if c.category_id else None,
+                name=c.name,
+                color=c.color,
+                project_count=c.project_count,
+                interactions=c.interactions,
+            )
+            for c in r.category_breakdown
+        ],
+        backlog=BacklogHealth(
+            overdue_tasks=r.backlog.overdue_tasks,
+            due_soon_tasks=r.backlog.due_soon_tasks,
+            open_tasks=r.backlog.open_tasks,
+            quick_wins=r.backlog.quick_wins,
+            almost_there=r.backlog.almost_there,
+        ),
+        sleeping_projects=[
+            SleepingProjectRow(
+                project_id=strawberry.ID(str(s.project_id)),
+                name=s.name,
+                days_idle=s.days_idle,
+                bucket=s.bucket,
+            )
+            for s in r.sleeping_projects
+        ],
+        stale_ideas=[
+            StaleIdeaRow(
+                idea_id=strawberry.ID(str(s.idea_id)),
+                title=s.title,
+                days_old=s.days_old,
+            )
+            for s in r.stale_ideas
+        ],
+        idea_funnel=IdeaFunnel(
+            ideas_created=r.idea_funnel.ideas_created,
+            ideas_promoted=r.idea_funnel.ideas_promoted,
+            promotion_rate=r.idea_funnel.promotion_rate,
+        ),
+        effort=EffortStats(
+            effort_hours_total=r.effort.effort_hours_total,
+            tasks_with_effort_pct=r.effort.tasks_with_effort_pct,
+            effort_hours_by_project=[
+                EffortProjectRow(
+                    project_id=strawberry.ID(str(e.project_id)),
+                    name=e.name,
+                    hours=e.hours,
+                )
+                for e in r.effort.effort_hours_by_project
+            ],
+        ),
+    )
+
+
 # ---------- Queries ----------
 
 
@@ -226,6 +433,16 @@ class Query:
             categories=[Category.from_model(c) for c in categories],
             last_backup=meta.last_backup if meta else None,
         )
+
+    @strawberry.field
+    def analytics(
+        self,
+        info: Info,
+        range: AnalyticsRange = AnalyticsRange.LAST_30_DAYS,
+    ) -> Analytics:
+        uid = _user_id(info)
+        result = analytics_mod.compute_analytics(uid, range)
+        return _to_analytics_gql(result)
 
 
 # ---------- Mutations ----------
@@ -375,6 +592,7 @@ class Mutation:
                 description=i.description,
                 why=i.why,
                 status="idea",
+                promoted_from_idea_at=timezone.now(),
             )
             i.delete()
         return Project.from_model(p)

@@ -59,6 +59,7 @@ class Project(TimestampedModel):
         related_name="projects",
     )
     last_activity = models.DateTimeField(auto_now_add=True)
+    promoted_from_idea_at = models.DateTimeField(null=True, blank=True, db_index=True)
 
     class Meta:
         ordering = ["-last_activity"]
