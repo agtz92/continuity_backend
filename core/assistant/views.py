@@ -207,24 +207,42 @@ class ChatView(View):
             for kind, payload in buffered:
                 yield _format_sse(kind, payload)
 
-            # Persist the assistant + tool messages.
-            Message.objects.create(
-                conversation=conv,
-                role=MessageRole.ASSISTANT,
-                content=result.assistant_blocks,
-                model=model,
-                stop_reason=result.final_stop_reason,
-                tokens_in=result.total_usage.tokens_in,
-                tokens_out=result.total_usage.tokens_out,
-                cache_read_in=result.total_usage.cache_read_in,
-                cache_creation_in=result.total_usage.cache_creation_in,
-            )
-            for tm in result.tool_messages:
-                Message.objects.create(
-                    conversation=conv,
-                    role=MessageRole.TOOL,
-                    content=tm["content"],
-                )
+            # Persist all turns in chronological order so the next
+            # request can replay the conversation without orphaning
+            # tool_use / tool_result blocks. Usage totals are attached
+            # only to the final assistant turn (the one with end_turn).
+            assistant_indices = [
+                i for i, m in enumerate(result.appended) if m.kind == "assistant"
+            ]
+            final_assistant_idx = assistant_indices[-1] if assistant_indices else None
+            for i, msg in enumerate(result.appended):
+                if msg.kind == "assistant":
+                    is_final = i == final_assistant_idx
+                    Message.objects.create(
+                        conversation=conv,
+                        role=MessageRole.ASSISTANT,
+                        content=msg.content,
+                        model=model,
+                        stop_reason=result.final_stop_reason if is_final else "",
+                        tokens_in=(
+                            result.total_usage.tokens_in if is_final else 0
+                        ),
+                        tokens_out=(
+                            result.total_usage.tokens_out if is_final else 0
+                        ),
+                        cache_read_in=(
+                            result.total_usage.cache_read_in if is_final else 0
+                        ),
+                        cache_creation_in=(
+                            result.total_usage.cache_creation_in if is_final else 0
+                        ),
+                    )
+                else:  # "tool"
+                    Message.objects.create(
+                        conversation=conv,
+                        role=MessageRole.TOOL,
+                        content=msg.content,
+                    )
 
             quotas.record(
                 user_id,

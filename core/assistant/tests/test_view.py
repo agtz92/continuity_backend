@@ -135,7 +135,9 @@ def test_chat_streams_text_and_persists_message(
     # Conversation + messages persisted.
     conv = Conversation.objects.get(user_id=user_a)
     assert Message.objects.filter(conversation=conv, role="user").count() == 1
+    # No tool_use, so exactly one assistant turn (the end_turn text).
     assert Message.objects.filter(conversation=conv, role="assistant").count() == 1
+    assert Message.objects.filter(conversation=conv, role="tool").count() == 0
 
     usage_row = UsageDay.objects.get(user_id=user_a, date=timezone.now().date())
     assert usage_row.messages_sent == 1
@@ -185,6 +187,124 @@ def test_chat_executes_tool_use(http, user_a, make_profile, make_project, fake_a
         proj.get("name") == "Telegram bot"
         for proj in tool_result_payload["output"].get("projects", [])
     )
+
+    # Persistence invariant: the assistant turn carrying tool_use is
+    # stored AND immediately followed by a tool turn carrying matching
+    # tool_result blocks. (Bug fixed: previously only the FINAL
+    # assistant turn was stored, leaving tool_results orphaned and
+    # producing a 400 from Anthropic on the next user message.)
+    conv = Conversation.objects.get(user_id=user_a)
+    msgs = list(Message.objects.filter(conversation=conv).order_by("created"))
+    roles = [m.role for m in msgs]
+    assert roles == ["user", "assistant", "tool", "assistant"], roles
+    tool_use_ids = {
+        b.get("id")
+        for b in msgs[1].content
+        if isinstance(b, dict) and b.get("type") == "tool_use"
+    }
+    tool_result_ids = {
+        b.get("tool_use_id")
+        for b in msgs[2].content
+        if isinstance(b, dict) and b.get("type") == "tool_result"
+    }
+    assert tool_use_ids and tool_use_ids == tool_result_ids
+
+
+@pytest.mark.django_db
+def test_second_turn_after_tool_use_does_not_orphan_tool_results(
+    http, user_a, make_profile, make_project, fake_anthropic
+):
+    """Regression: clicking quick-action chips back-to-back used to hit
+    400 invalid_request_error because the persisted history was
+    missing the assistant tool_use blocks, leaving tool_results
+    orphaned on the second turn.
+    """
+    make_profile(user_a, plan="free")
+    make_project(user_a, name="Telegram bot")
+    token = _make_jwt(user_a)
+
+    # Turn 1: tool use + final reply
+    turns_1 = [
+        {
+            "tool_uses": [
+                {"id": "tu_1", "name": "list_projects", "input": {}}
+            ],
+            "stop_reason": "tool_use",
+        },
+        {"text": "Done.", "stop_reason": "end_turn"},
+    ]
+    # Turn 2: just a text reply — but it'll receive the persisted
+    # history, and that history must round-trip cleanly.
+    turns_2 = [{"text": "Sure.", "stop_reason": "end_turn"}]
+
+    sent_message_lists: list[list[dict]] = []
+
+    class _Recorder:
+        def __init__(self, scripted):
+            from core.assistant.tests.conftest import _SimpleEvent  # noqa: F401
+
+            self._inner = fake_anthropic(scripted)
+            self.messages = self
+
+        def stream(self, **kwargs):
+            sent_message_lists.append(kwargs.get("messages") or [])
+            return self._inner.messages.stream(**kwargs)
+
+    with mock.patch.object(
+        anthropic_client,
+        "_build_anthropic_client",
+        return_value=_Recorder(turns_1),
+    ):
+        r1 = http.post(
+            "/api/assistant/chat/",
+            data=json.dumps({"content": "List projects"}),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {token}",
+        )
+        assert r1.status_code == 200
+        list(r1.streaming_content)  # drain
+
+    conv = Conversation.objects.get(user_id=user_a)
+
+    with mock.patch.object(
+        anthropic_client,
+        "_build_anthropic_client",
+        return_value=_Recorder(turns_2),
+    ):
+        r2 = http.post(
+            "/api/assistant/chat/",
+            data=json.dumps(
+                {"conversation_id": str(conv.id), "content": "Thanks"}
+            ),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {token}",
+        )
+        assert r2.status_code == 200
+        list(r2.streaming_content)
+
+    # The history sent on turn 2 must pair tool_use with tool_result.
+    second_turn_messages = sent_message_lists[-1]
+    for i, msg in enumerate(second_turn_messages):
+        if msg["role"] == "user" and isinstance(msg["content"], list):
+            tool_result_ids = {
+                b.get("tool_use_id")
+                for b in msg["content"]
+                if isinstance(b, dict) and b.get("type") == "tool_result"
+            }
+            if not tool_result_ids:
+                continue
+            # The previous message must be assistant with matching tool_use.
+            assert i > 0, "tool_result with no preceding message"
+            prev = second_turn_messages[i - 1]
+            assert prev["role"] == "assistant"
+            tool_use_ids = {
+                b.get("id")
+                for b in prev["content"]
+                if isinstance(b, dict) and b.get("type") == "tool_use"
+            }
+            assert tool_result_ids.issubset(tool_use_ids), (
+                f"orphan tool_result_ids={tool_result_ids - tool_use_ids}"
+            )
 
 
 @pytest.mark.django_db

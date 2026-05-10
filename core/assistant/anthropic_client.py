@@ -92,9 +92,27 @@ def _build_anthropic_client():
 
 
 @dataclass
+class AppendedMessage:
+    """One message appended to the conversation by `run_turn`.
+
+    `kind` is `"assistant"` for an Anthropic `assistant`-role turn (text
+    and/or tool_use blocks), and `"tool"` for the synthetic `user`-role
+    message carrying tool_result blocks. The view persists these in
+    order, mapping `kind` directly to `Message.role`.
+
+    Pairing invariant: an `assistant` message containing tool_use blocks
+    is ALWAYS immediately followed by a `tool` message whose
+    tool_use_ids match. This is what `build_messages` and Anthropic's
+    API both require.
+    """
+
+    kind: str  # "assistant" | "tool"
+    content: list[dict]
+
+
+@dataclass
 class TurnResult:
-    assistant_blocks: list[dict]
-    tool_messages: list[dict]  # synthetic user messages carrying tool_result
+    appended: list[AppendedMessage]
     final_stop_reason: str
     total_usage: TurnUsage
 
@@ -125,8 +143,7 @@ def run_turn(
     cap = settings.ASSISTANT_MAX_TOOL_ITERATIONS
 
     total = TurnUsage()
-    last_assistant_blocks: list[dict] = []
-    tool_messages: list[dict] = []
+    appended: list[AppendedMessage] = []
     stop_reason = "end_turn"
 
     convo = list(messages)
@@ -181,13 +198,13 @@ def run_turn(
         total.cache_creation_in += usage.cache_creation_in
 
         assistant_blocks = [_to_dict(b) for b in (final.content or [])]
-        last_assistant_blocks = assistant_blocks
         stop_reason = getattr(final, "stop_reason", "") or "end_turn"
 
         # Persist the assistant turn into the running conversation BEFORE
         # we run tools — that's how the protocol expects us to thread
         # tool_result blocks back in.
         convo.append({"role": "assistant", "content": assistant_blocks})
+        appended.append(AppendedMessage(kind="assistant", content=assistant_blocks))
 
         if stop_reason != "tool_use":
             break
@@ -218,11 +235,19 @@ def run_turn(
 
         if not tool_results:
             # Defensive — model said tool_use but emitted no tool_use blocks.
+            # Drop the just-appended assistant turn to keep the persisted
+            # history pair-clean (no orphan tool_use blocks).
+            if appended and appended[-1].kind == "assistant":
+                has_tool_use = any(
+                    b.get("type") == "tool_use" for b in appended[-1].content
+                )
+                if has_tool_use:
+                    appended.pop()
             break
 
         synthetic = {"role": "user", "content": tool_results}
         convo.append(synthetic)
-        tool_messages.append(synthetic)
+        appended.append(AppendedMessage(kind="tool", content=tool_results))
 
     on_event(
         "usage",
@@ -234,8 +259,7 @@ def run_turn(
         },
     )
     return TurnResult(
-        assistant_blocks=last_assistant_blocks,
-        tool_messages=tool_messages,
+        appended=appended,
         final_stop_reason=stop_reason,
         total_usage=total,
     )

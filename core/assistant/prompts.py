@@ -200,6 +200,89 @@ def build_system_blocks(
     ]
 
 
+def _has_tool_use(blocks) -> bool:
+    if not isinstance(blocks, list):
+        return False
+    return any(
+        isinstance(b, dict) and b.get("type") == "tool_use" for b in blocks
+    )
+
+
+def _collected_tool_use_ids(blocks) -> set[str]:
+    if not isinstance(blocks, list):
+        return set()
+    return {
+        b.get("id")
+        for b in blocks
+        if isinstance(b, dict) and b.get("type") == "tool_use" and b.get("id")
+    }
+
+
+def _tool_result_ids(blocks) -> set[str]:
+    if not isinstance(blocks, list):
+        return set()
+    return {
+        b.get("tool_use_id")
+        for b in blocks
+        if isinstance(b, dict)
+        and b.get("type") == "tool_result"
+        and b.get("tool_use_id")
+    }
+
+
+def _trim_to_pair_clean(recent: list) -> list:
+    """Drop leading/trailing rows so tool_use ↔ tool_result pairs are intact.
+
+    Anthropic 400s the request if a `tool_result` block has no matching
+    `tool_use` in the previous message, or vice versa. After slicing
+    history to a fixed window we may have orphaned halves; trim them.
+    """
+    rows = list(recent)
+
+    # Drop leading orphans: any TOOL row at the start (its matching
+    # assistant-tool_use was sliced off), and any assistant row whose
+    # tool_use blocks aren't satisfied by the next row's tool_result.
+    while rows:
+        first = rows[0]
+        if first.role == MessageRole.TOOL:
+            rows.pop(0)
+            continue
+        if first.role == MessageRole.ASSISTANT and _has_tool_use(first.content):
+            tool_ids = _collected_tool_use_ids(first.content)
+            next_row = rows[1] if len(rows) > 1 else None
+            if (
+                next_row is None
+                or next_row.role != MessageRole.TOOL
+                or not tool_ids.issubset(_tool_result_ids(next_row.content))
+            ):
+                rows.pop(0)
+                continue
+        break
+
+    # Drop trailing orphans: an assistant row at the end with tool_use
+    # blocks but no following tool_result row, or a tool row at the end
+    # with no preceding assistant tool_use.
+    while rows:
+        last = rows[-1]
+        if last.role == MessageRole.ASSISTANT and _has_tool_use(last.content):
+            rows.pop()
+            continue
+        if last.role == MessageRole.TOOL:
+            prev = rows[-2] if len(rows) > 1 else None
+            if (
+                prev is None
+                or prev.role != MessageRole.ASSISTANT
+                or not _tool_result_ids(last.content).issubset(
+                    _collected_tool_use_ids(prev.content)
+                )
+            ):
+                rows.pop()
+                continue
+        break
+
+    return rows
+
+
 def build_messages(
     conversation: Conversation,
     new_user_text: str,
@@ -210,7 +293,9 @@ def build_messages(
 
     Older messages are dropped (rolling summary lands in Phase 3). Each
     `Message.content` already holds the Anthropic content-block array
-    verbatim, so reconstruction is a straight pass-through.
+    verbatim, so reconstruction is a straight pass-through — except we
+    trim leading/trailing rows so tool_use ↔ tool_result pairs are
+    always intact (Anthropic 400s otherwise).
     """
     limit = history_limit or settings.ASSISTANT_MAX_HISTORY_MESSAGES
     recent = list(
@@ -218,6 +303,7 @@ def build_messages(
         .order_by("-created")[:limit]
     )
     recent.reverse()
+    recent = _trim_to_pair_clean(recent)
 
     messages = []
     for msg in recent:
