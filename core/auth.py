@@ -104,6 +104,76 @@ def extract_user_id(request) -> Optional[uuid.UUID]:
     return uuid.UUID(sub) if sub else None
 
 
+def authenticate_request(
+    request,
+    *,
+    ip_group: str,
+    ip_rate: str,
+    user_group: str,
+    user_rate: str,
+    method: str = "POST",
+):
+    """Run the standard auth + rate-limit pipeline on `request`.
+
+    Returns `None` on success (with `request.user_id` set), or a JsonResponse
+    to return immediately on rate-limit / auth failure. Reused by the
+    GraphQL view and the assistant SSE view so they share one pipeline.
+    """
+    if is_ratelimited(
+        request=request,
+        group=ip_group,
+        key=_ip_key,
+        rate=ip_rate,
+        method=method,
+        increment=True,
+    ):
+        return JsonResponse(
+            {"errors": [{"message": "Rate limit exceeded"}]}, status=429
+        )
+
+    try:
+        user_id = extract_user_id(request)
+    except JWTAuthError as e:
+        return JsonResponse(
+            {
+                "errors": [
+                    {
+                        "message": str(e),
+                        "extensions": {"code": "UNAUTHENTICATED"},
+                    }
+                ]
+            },
+            status=401,
+        )
+    if user_id is None:
+        return JsonResponse(
+            {
+                "errors": [
+                    {
+                        "message": "Authentication required",
+                        "extensions": {"code": "UNAUTHENTICATED"},
+                    }
+                ]
+            },
+            status=401,
+        )
+    request.user_id = user_id
+
+    if is_ratelimited(
+        request=request,
+        group=user_group,
+        key=_user_key,
+        rate=user_rate,
+        method=method,
+        increment=True,
+    ):
+        return JsonResponse(
+            {"errors": [{"message": "Rate limit exceeded"}]}, status=429
+        )
+
+    return None
+
+
 class JWTAuthGraphQLView(GraphQLView):
     """GraphQL view that requires a valid Supabase JWT and exposes user_id on context."""
 
@@ -111,57 +181,15 @@ class JWTAuthGraphQLView(GraphQLView):
         if request.method == "GET" and settings.DEBUG:
             return super().dispatch(request, *args, **kwargs)
 
-        if is_ratelimited(
-            request=request,
-            group="graphql:ip",
-            key=_ip_key,
-            rate=settings.GRAPHQL_RATE_LIMIT_IP,
-            method="POST",
-            increment=True,
-        ):
-            return JsonResponse(
-                {"errors": [{"message": "Rate limit exceeded"}]}, status=429
-            )
-
-        try:
-            user_id = extract_user_id(request)
-        except JWTAuthError as e:
-            return JsonResponse(
-                {
-                    "errors": [
-                        {
-                            "message": str(e),
-                            "extensions": {"code": "UNAUTHENTICATED"},
-                        }
-                    ]
-                },
-                status=401,
-            )
-        if user_id is None:
-            return JsonResponse(
-                {
-                    "errors": [
-                        {
-                            "message": "Authentication required",
-                            "extensions": {"code": "UNAUTHENTICATED"},
-                        }
-                    ]
-                },
-                status=401,
-            )
-        request.user_id = user_id
-
-        if is_ratelimited(
-            request=request,
-            group="graphql:user",
-            key=_user_key,
-            rate=settings.GRAPHQL_RATE_LIMIT_USER,
-            method="POST",
-            increment=True,
-        ):
-            return JsonResponse(
-                {"errors": [{"message": "Rate limit exceeded"}]}, status=429
-            )
+        early = authenticate_request(
+            request,
+            ip_group="graphql:ip",
+            ip_rate=settings.GRAPHQL_RATE_LIMIT_IP,
+            user_group="graphql:user",
+            user_rate=settings.GRAPHQL_RATE_LIMIT_USER,
+        )
+        if early is not None:
+            return early
 
         return super().dispatch(request, *args, **kwargs)
 

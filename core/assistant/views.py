@@ -1,0 +1,360 @@
+"""HTTP entrypoints for the assistant.
+
+Routes (mounted under `/api/assistant/`):
+
+- POST `/chat/`           — JSON in, Server-Sent-Events out.
+- POST `/cancel/`         — set a cache flag the streaming view checks.
+- GET  `/conversations/`  — list the user's conversations.
+- GET  `/conversations/<id>/messages/` — full history for one conversation.
+- GET  `/usage/`          — current daily / monthly usage snapshot.
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import uuid
+from typing import Any, Iterable
+
+from django.conf import settings
+from django.core.cache import cache
+from django.http import HttpRequest, JsonResponse, StreamingHttpResponse
+from django.utils import timezone
+from django.views import View
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+
+from core.auth import authenticate_request
+
+from . import anthropic_client, prompts, quotas
+from .models import Conversation, Message, MessageRole
+
+logger = logging.getLogger(__name__)
+
+
+def _auth(request: HttpRequest, *, method: str = "POST"):
+    """Run JWT + rate-limit pipeline, scoped to the assistant groups."""
+    return authenticate_request(
+        request,
+        ip_group="assistant:ip",
+        ip_rate=settings.ASSISTANT_RATE_LIMIT_IP,
+        user_group="assistant:user",
+        user_rate=settings.ASSISTANT_RATE_LIMIT_USER,
+        method=method,
+    )
+
+
+def _burst_limited(request: HttpRequest) -> bool:
+    """Second rate-limit pass for short bursts (e.g. 5/10s)."""
+    from django_ratelimit.core import is_ratelimited
+
+    return is_ratelimited(
+        request=request,
+        group="assistant:burst",
+        key=lambda _g, r: f"u:{getattr(r, 'user_id', '')}",
+        rate=settings.ASSISTANT_RATE_LIMIT_BURST,
+        method="POST",
+        increment=True,
+    )
+
+
+def _cancel_key(conv_id: uuid.UUID) -> str:
+    return f"assistant:cancel:{conv_id}"
+
+
+def _format_sse(kind: str, payload: Any) -> bytes:
+    """One SSE frame: `event: <kind>\\ndata: <json>\\n\\n`."""
+    body = json.dumps(payload, separators=(",", ":"))
+    return f"event: {kind}\ndata: {body}\n\n".encode("utf-8")
+
+
+def _json_error(message: str, status: int = 400, **extra) -> JsonResponse:
+    return JsonResponse({"error": message, **extra}, status=status)
+
+
+# ---------- POST /chat/ (SSE) ----------
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class ChatView(View):
+    http_method_names = ["post"]
+
+    def post(self, request: HttpRequest):
+        early = _auth(request)
+        if early is not None:
+            return early
+        if _burst_limited(request):
+            return _json_error("Rate limit exceeded", status=429)
+
+        try:
+            body = json.loads(request.body.decode("utf-8") or "{}")
+        except json.JSONDecodeError:
+            return _json_error("Invalid JSON body")
+
+        content = (body.get("content") or "").strip()
+        max_chars = settings.ASSISTANT_MAX_INPUT_CHARS
+        if not content:
+            return _json_error("Empty content")
+        if len(content) > max_chars:
+            return _json_error(
+                f"Message too long (max {max_chars} chars)", status=413
+            )
+
+        user_id = request.user_id
+
+        try:
+            quota_snapshot = quotas.check(user_id)
+        except quotas.QuotaExceeded as e:
+            return _json_error(
+                "Quota exceeded",
+                status=429,
+                kind=e.kind,
+                reset_at=e.reset_at.isoformat(),
+            )
+
+        conv_id_raw = body.get("conversation_id")
+        if conv_id_raw:
+            try:
+                conv = Conversation.objects.get(
+                    id=conv_id_raw, user_id=user_id, archived=False
+                )
+            except Conversation.DoesNotExist:
+                return _json_error("Conversation not found", status=404)
+        else:
+            conv = Conversation.objects.create(
+                user_id=user_id, title=_derive_title(content)
+            )
+
+        # Persist the user turn upfront so on-disconnect we don't lose it.
+        user_msg = Message.objects.create(
+            conversation=conv,
+            role=MessageRole.USER,
+            content=[{"type": "text", "text": content}],
+        )
+
+        now = timezone.now()
+        plan = quota_snapshot.plan
+
+        try:
+            system_blocks = prompts.build_system_blocks(
+                user_id, plan=plan, now=now
+            )
+        except Exception as e:  # noqa: BLE001
+            logger.exception("Failed to build system blocks")
+            return _json_error(f"Failed to prepare context: {e}", status=500)
+
+        history_messages = prompts.build_messages(conv, content)
+        model = prompts.select_model(plan)
+        max_tokens = settings.ASSISTANT_MAX_TOKENS_OUT
+
+        cancel_key = _cancel_key(conv.id)
+
+        def event_stream() -> Iterable[bytes]:
+            yield _format_sse(
+                "meta",
+                {
+                    "conversation_id": str(conv.id),
+                    "user_message_id": str(user_msg.id),
+                    "model": model,
+                    "plan": plan,
+                    "messages_remaining_today": (
+                        None
+                        if quota_snapshot.daily_message_cap is None
+                        else max(
+                            0,
+                            quota_snapshot.daily_message_cap
+                            - quota_snapshot.messages_sent_today
+                            - 1,
+                        )
+                    ),
+                },
+            )
+
+            buffered: list[tuple[str, dict]] = []
+
+            def on_event(kind: str, payload: dict) -> None:
+                buffered.append((kind, payload))
+
+            try:
+                result = anthropic_client.run_turn(
+                    user_id=user_id,
+                    system_blocks=system_blocks,
+                    messages=history_messages,
+                    model=model,
+                    max_tokens=max_tokens,
+                    on_event=on_event,
+                    is_cancelled=lambda: bool(cache.get(cancel_key)),
+                )
+            except Exception as e:  # noqa: BLE001
+                logger.exception("Assistant run_turn failed")
+                yield _format_sse("error", {"message": str(e)})
+                yield _format_sse("done", {"ok": False})
+                return
+
+            # Flush the buffered events. We collected them above so any
+            # exception thrown before completion still produced an `error`
+            # frame instead of half a stream.
+            for kind, payload in buffered:
+                yield _format_sse(kind, payload)
+
+            # Persist the assistant + tool messages.
+            Message.objects.create(
+                conversation=conv,
+                role=MessageRole.ASSISTANT,
+                content=result.assistant_blocks,
+                model=model,
+                stop_reason=result.final_stop_reason,
+                tokens_in=result.total_usage.tokens_in,
+                tokens_out=result.total_usage.tokens_out,
+                cache_read_in=result.total_usage.cache_read_in,
+                cache_creation_in=result.total_usage.cache_creation_in,
+            )
+            for tm in result.tool_messages:
+                Message.objects.create(
+                    conversation=conv,
+                    role=MessageRole.TOOL,
+                    content=tm["content"],
+                )
+
+            quotas.record(
+                user_id,
+                tokens_in=result.total_usage.tokens_in,
+                tokens_out=result.total_usage.tokens_out,
+                cache_read_in=result.total_usage.cache_read_in,
+            )
+
+            cache.delete(cancel_key)
+            conv.save(update_fields=["updated_at"])
+
+            yield _format_sse(
+                "done",
+                {
+                    "ok": True,
+                    "stop_reason": result.final_stop_reason,
+                    "conversation_id": str(conv.id),
+                },
+            )
+
+        response = StreamingHttpResponse(
+            event_stream(), content_type="text/event-stream"
+        )
+        response["Cache-Control"] = "no-cache"
+        response["X-Accel-Buffering"] = "no"
+        return response
+
+
+# ---------- POST /cancel/ ----------
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class CancelView(View):
+    http_method_names = ["post"]
+
+    def post(self, request: HttpRequest):
+        early = _auth(request)
+        if early is not None:
+            return early
+        try:
+            body = json.loads(request.body.decode("utf-8") or "{}")
+        except json.JSONDecodeError:
+            return _json_error("Invalid JSON")
+        conv_id = body.get("conversation_id")
+        if not conv_id:
+            return _json_error("Missing conversation_id")
+        if not Conversation.objects.filter(
+            id=conv_id, user_id=request.user_id
+        ).exists():
+            return _json_error("Conversation not found", status=404)
+        cache.set(_cancel_key(uuid.UUID(str(conv_id))), 1, 60)
+        return JsonResponse({"ok": True})
+
+
+# ---------- GET /conversations/ ----------
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class ConversationsView(View):
+    http_method_names = ["get"]
+
+    def get(self, request: HttpRequest):
+        early = _auth(request, method="GET")
+        if early is not None:
+            return early
+        rows = Conversation.objects.filter(
+            user_id=request.user_id, archived=False
+        ).order_by("-updated_at")[:50]
+        return JsonResponse(
+            {
+                "conversations": [
+                    {
+                        "id": str(c.id),
+                        "title": c.title,
+                        "updated_at": c.updated_at.isoformat(),
+                    }
+                    for c in rows
+                ]
+            }
+        )
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class ConversationMessagesView(View):
+    http_method_names = ["get"]
+
+    def get(self, request: HttpRequest, conv_id: str):
+        early = _auth(request, method="GET")
+        if early is not None:
+            return early
+        try:
+            conv = Conversation.objects.get(id=conv_id, user_id=request.user_id)
+        except Conversation.DoesNotExist:
+            return _json_error("Not found", status=404)
+        msgs = list(Message.objects.filter(conversation=conv).order_by("created"))
+        return JsonResponse(
+            {
+                "id": str(conv.id),
+                "title": conv.title,
+                "messages": [
+                    {
+                        "id": str(m.id),
+                        "role": m.role,
+                        "content": m.content,
+                        "model": m.model,
+                        "created": m.created.isoformat(),
+                    }
+                    for m in msgs
+                ],
+            }
+        )
+
+
+# ---------- GET /usage/ ----------
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class UsageView(View):
+    http_method_names = ["get"]
+
+    def get(self, request: HttpRequest):
+        early = _auth(request, method="GET")
+        if early is not None:
+            return early
+        snap = quotas.get_usage(request.user_id)
+        return JsonResponse(
+            {
+                "plan": snap.plan,
+                "messages_sent_today": snap.messages_sent_today,
+                "daily_message_cap": snap.daily_message_cap,
+                "tokens_used_month": snap.tokens_used_month,
+                "monthly_token_cap": snap.monthly_token_cap,
+                "reset_at": snap.reset_at.isoformat(),
+            }
+        )
+
+
+# ---------- helpers ----------
+
+
+def _derive_title(content: str) -> str:
+    first_line = content.strip().splitlines()[0] if content.strip() else "Conversation"
+    return first_line[:80]

@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "core",
     "core.notifications.apps.NotificationsConfig",
+    "core.assistant.apps.AssistantConfig",
 ]
 
 MIDDLEWARE = [
@@ -112,3 +113,29 @@ CACHES = {
 
 GRAPHQL_RATE_LIMIT_USER = config("GRAPHQL_RATE_LIMIT_USER", default="120/m")
 GRAPHQL_RATE_LIMIT_IP = config("GRAPHQL_RATE_LIMIT_IP", default="300/m")
+
+# AI assistant
+ANTHROPIC_API_KEY = config("ANTHROPIC_API_KEY", default="")
+ASSISTANT_MODEL_FAST = config(
+    "ASSISTANT_MODEL_FAST", default="claude-haiku-4-5-20251001"
+)
+ASSISTANT_MAX_TOKENS_OUT = config("ASSISTANT_MAX_TOKENS_OUT", default=1024, cast=int)
+ASSISTANT_MAX_TOOL_ITERATIONS = config(
+    "ASSISTANT_MAX_TOOL_ITERATIONS", default=6, cast=int
+)
+ASSISTANT_MAX_INPUT_TOKENS = config(
+    "ASSISTANT_MAX_INPUT_TOKENS", default=8000, cast=int
+)
+ASSISTANT_MAX_HISTORY_MESSAGES = config(
+    "ASSISTANT_MAX_HISTORY_MESSAGES", default=12, cast=int
+)
+ASSISTANT_MAX_INPUT_CHARS = config(
+    "ASSISTANT_MAX_INPUT_CHARS", default=4000, cast=int
+)
+ASSISTANT_RATE_LIMIT_USER = config(
+    "ASSISTANT_RATE_LIMIT_USER", default="30/m"
+)
+ASSISTANT_RATE_LIMIT_BURST = config(
+    "ASSISTANT_RATE_LIMIT_BURST", default="5/10s"
+)
+ASSISTANT_RATE_LIMIT_IP = config("ASSISTANT_RATE_LIMIT_IP", default="60/m")

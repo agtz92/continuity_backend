@@ -6,8 +6,6 @@ import strawberry
 from strawberry.tools import merge_types
 from strawberry.types import Info
 from graphql import GraphQLError
-from django.db import transaction
-from django.utils import timezone
 
 from . import analytics as analytics_mod
 from .analytics import AnalyticsRange as AnalyticsRangeEnum
@@ -21,6 +19,15 @@ from .models import (
     Category as CategoryModel,
 )
 from .notifications.schema import NotificationsQuery, NotificationsMutation
+from .services import (
+    categories as categories_svc,
+    ideas as ideas_svc,
+    notes as notes_svc,
+    projects as projects_svc,
+    tasks as tasks_svc,
+    updates as updates_svc,
+)
+from .services.projects import NotFoundError
 
 
 AnalyticsRange = strawberry.enum(AnalyticsRangeEnum, name="AnalyticsRange")
@@ -35,22 +42,8 @@ def _user_id(info: Info) -> uuid.UUID:
     return user_id
 
 
-def _get_owned(model, pk, uid, label: str):
-    obj = model.objects.filter(pk=pk, user_id=uid).first()
-    if obj is None:
-        raise GraphQLError(
-            f"{label} not found", extensions={"code": "NOT_FOUND"}
-        )
-    return obj
-
-
-def _assert_owned_project(uid, project_id) -> None:
-    if project_id and not ProjectModel.objects.filter(
-        pk=project_id, user_id=uid
-    ).exists():
-        raise GraphQLError(
-            "Project not found", extensions={"code": "NOT_FOUND"}
-        )
+def _not_found(label: str) -> GraphQLError:
+    return GraphQLError(f"{label} not found", extensions={"code": "NOT_FOUND"})
 
 
 @strawberry.type
@@ -488,55 +481,51 @@ class Mutation:
     @strawberry.mutation
     def create_project(self, info: Info, data: ProjectInput) -> Project:
         uid = _user_id(info)
-        category = None
-        if data.category_id:
-            category = CategoryModel.objects.filter(pk=data.category_id, user_id=uid).first()
-        m = ProjectModel.objects.create(
-            user_id=uid,
+        m = projects_svc.create_project(
+            uid,
             name=data.name,
             description=data.description or "",
             why=data.why or "",
             next_step=data.next_step or "",
             status=data.status or "idea",
             priority=data.priority or "medium",
-            category=category,
+            category_id=data.category_id,
         )
         return Project.from_model(m)
 
     @strawberry.mutation
     def update_project(self, info: Info, id: strawberry.ID, data: ProjectInput) -> Project:
         uid = _user_id(info)
-        m = _get_owned(ProjectModel, id, uid, "Project")
-        m.name = data.name
-        m.description = data.description or ""
-        m.why = data.why or ""
-        m.next_step = data.next_step or ""
-        m.status = data.status or m.status
-        m.priority = data.priority or m.priority
-        if data.category_id is None:
-            m.category = None
-        else:
-            m.category = CategoryModel.objects.filter(
-                pk=data.category_id, user_id=uid
-            ).first()
-        m.last_activity = timezone.now()
-        m.save()
+        try:
+            m = projects_svc.update_project(
+                uid,
+                id,
+                name=data.name,
+                description=data.description or "",
+                why=data.why or "",
+                next_step=data.next_step or "",
+                status=data.status,
+                priority=data.priority,
+                category_id=data.category_id,
+                clear_category=data.category_id is None,
+            )
+        except NotFoundError:
+            raise _not_found("Project")
         return Project.from_model(m)
 
     # Project notes (multiple per project)
     @strawberry.mutation
     def create_project_note(self, info: Info, data: ProjectNoteInput) -> ProjectNote:
         uid = _user_id(info)
-        _assert_owned_project(uid, data.project_id)
-        m = ProjectNoteModel.objects.create(
-            user_id=uid,
-            project_id=data.project_id,
-            title=(data.title or "").strip(),
-            body=data.body or "",
-        )
-        ProjectModel.objects.filter(pk=data.project_id, user_id=uid).update(
-            last_activity=timezone.now()
-        )
+        try:
+            m = notes_svc.create_note(
+                uid,
+                project_id=data.project_id,
+                title=data.title or "",
+                body=data.body or "",
+            )
+        except NotFoundError:
+            raise _not_found("Project")
         return ProjectNote.from_model(m)
 
     @strawberry.mutation
@@ -544,88 +533,81 @@ class Mutation:
         self, info: Info, id: strawberry.ID, data: ProjectNoteInput
     ) -> ProjectNote:
         uid = _user_id(info)
-        m = _get_owned(ProjectNoteModel, id, uid, "ProjectNote")
-        m.title = (data.title or "").strip()
-        m.body = data.body or ""
-        m.save(update_fields=["title", "body", "updated_at"])
+        try:
+            m = notes_svc.update_note(
+                uid, id, title=data.title or "", body=data.body or ""
+            )
+        except NotFoundError:
+            raise _not_found("ProjectNote")
         return ProjectNote.from_model(m)
 
     @strawberry.mutation
     def delete_project_note(self, info: Info, id: strawberry.ID) -> bool:
         uid = _user_id(info)
-        ProjectNoteModel.objects.filter(pk=id, user_id=uid).delete()
+        notes_svc.delete_note(uid, id)
         return True
 
     @strawberry.mutation
     def delete_project(self, info: Info, id: strawberry.ID) -> bool:
         uid = _user_id(info)
-        ProjectModel.objects.filter(pk=id, user_id=uid).delete()
+        projects_svc.delete_project(uid, id)
         return True
 
     # Tasks
     @strawberry.mutation
     def create_task(self, info: Info, data: TaskInput) -> Task:
         uid = _user_id(info)
-        _assert_owned_project(uid, data.project_id)
-        m = TaskModel.objects.create(
-            user_id=uid,
-            title=data.title,
-            project_id=data.project_id or None,
-            due_date=data.due_date,
-            done=bool(data.done),
-            effort_hours=data.effort_hours,
-        )
-        if m.project_id:
-            ProjectModel.objects.filter(pk=m.project_id, user_id=uid).update(
-                last_activity=timezone.now()
+        try:
+            m = tasks_svc.create_task(
+                uid,
+                title=data.title,
+                project_id=data.project_id or None,
+                due_date=data.due_date,
+                done=bool(data.done),
+                effort_hours=data.effort_hours,
             )
+        except NotFoundError:
+            raise _not_found("Project")
         return Task.from_model(m)
 
     @strawberry.mutation
     def update_task(self, info: Info, id: strawberry.ID, data: TaskInput) -> Task:
         uid = _user_id(info)
-        _assert_owned_project(uid, data.project_id)
-        m = _get_owned(TaskModel, id, uid, "Task")
-        m.title = data.title
-        m.project_id = data.project_id or None
-        m.due_date = data.due_date
-        m.done = bool(data.done)
-        m.effort_hours = data.effort_hours
-        if m.done and not m.completed_at:
-            m.completed_at = timezone.now()
-        if not m.done:
-            m.completed_at = None
-        m.save()
+        try:
+            m = tasks_svc.update_task(
+                uid,
+                id,
+                title=data.title,
+                project_id=data.project_id or None,
+                due_date=data.due_date,
+                done=bool(data.done),
+                effort_hours=data.effort_hours,
+            )
+        except NotFoundError as e:
+            raise _not_found(str(e).split(" ", 1)[0])
         return Task.from_model(m)
 
     @strawberry.mutation
     def toggle_task(self, info: Info, id: strawberry.ID) -> Task:
         uid = _user_id(info)
-        m = _get_owned(TaskModel, id, uid, "Task")
-        m.done = not m.done
-        m.completed_at = timezone.now() if m.done else None
-        m.save()
-        if m.done and m.project_id:
-            UpdateModel.objects.create(
-                user_id=uid, project_id=m.project_id, note=f"Completed: {m.title}"
-            )
-            ProjectModel.objects.filter(pk=m.project_id, user_id=uid).update(
-                last_activity=timezone.now()
-            )
+        try:
+            m = tasks_svc.toggle_task(uid, id)
+        except NotFoundError:
+            raise _not_found("Task")
         return Task.from_model(m)
 
     @strawberry.mutation
     def delete_task(self, info: Info, id: strawberry.ID) -> bool:
         uid = _user_id(info)
-        TaskModel.objects.filter(pk=id, user_id=uid).delete()
+        tasks_svc.delete_task(uid, id)
         return True
 
     # Ideas
     @strawberry.mutation
     def create_idea(self, info: Info, data: IdeaInput) -> Idea:
         uid = _user_id(info)
-        m = IdeaModel.objects.create(
-            user_id=uid,
+        m = ideas_svc.create_idea(
+            uid,
             title=data.title,
             description=data.description or "",
             why=data.why or "",
@@ -635,90 +617,90 @@ class Mutation:
     @strawberry.mutation
     def update_idea(self, info: Info, id: strawberry.ID, data: IdeaInput) -> Idea:
         uid = _user_id(info)
-        m = _get_owned(IdeaModel, id, uid, "Idea")
-        m.title = data.title
-        m.description = data.description or ""
-        m.why = data.why or ""
-        m.save()
+        try:
+            m = ideas_svc.update_idea(
+                uid,
+                id,
+                title=data.title,
+                description=data.description or "",
+                why=data.why or "",
+            )
+        except NotFoundError:
+            raise _not_found("Idea")
         return Idea.from_model(m)
 
     @strawberry.mutation
     def delete_idea(self, info: Info, id: strawberry.ID) -> bool:
         uid = _user_id(info)
-        IdeaModel.objects.filter(pk=id, user_id=uid).delete()
+        ideas_svc.delete_idea(uid, id)
         return True
 
     @strawberry.mutation
     def promote_idea(self, info: Info, id: strawberry.ID) -> Project:
         uid = _user_id(info)
-        with transaction.atomic():
-            i = _get_owned(IdeaModel, id, uid, "Idea")
-            p = ProjectModel.objects.create(
-                user_id=uid,
-                name=i.title,
-                description=i.description,
-                why=i.why,
-                status="idea",
-                promoted_from_idea_at=timezone.now(),
-            )
-            i.delete()
+        try:
+            p = ideas_svc.promote_idea(uid, id)
+        except NotFoundError:
+            raise _not_found("Idea")
         return Project.from_model(p)
 
     # Updates / activity log
     @strawberry.mutation
     def add_update(self, info: Info, project_id: strawberry.ID, note: str) -> Update:
         uid = _user_id(info)
-        _assert_owned_project(uid, project_id)
-        m = UpdateModel.objects.create(user_id=uid, project_id=project_id, note=note)
-        ProjectModel.objects.filter(pk=project_id, user_id=uid).update(
-            last_activity=timezone.now()
-        )
+        try:
+            m = updates_svc.add_update(uid, project_id=project_id, note=note)
+        except NotFoundError:
+            raise _not_found("Project")
         return Update.from_model(m)
 
     @strawberry.mutation
     def update_update(self, info: Info, id: strawberry.ID, note: str) -> Update:
         uid = _user_id(info)
-        m = _get_owned(UpdateModel, id, uid, "Update")
-        m.note = note
-        m.save()
+        try:
+            m = updates_svc.edit_update(uid, id, note=note)
+        except NotFoundError:
+            raise _not_found("Update")
         return Update.from_model(m)
 
     @strawberry.mutation
     def delete_update(self, info: Info, id: strawberry.ID) -> bool:
         uid = _user_id(info)
-        UpdateModel.objects.filter(pk=id, user_id=uid).delete()
+        updates_svc.delete_update(uid, id)
         return True
 
     # Categories
     @strawberry.mutation
     def create_category(self, info: Info, data: CategoryInput) -> Category:
         uid = _user_id(info)
-        m, _ = CategoryModel.objects.get_or_create(
-            user_id=uid,
-            name=data.name,
-            defaults={"color": data.color or "emerald"},
+        m = categories_svc.create_category(
+            uid, name=data.name, color=data.color or "emerald"
         )
         return Category.from_model(m)
 
     @strawberry.mutation
     def update_category(self, info: Info, id: strawberry.ID, data: CategoryInput) -> Category:
         uid = _user_id(info)
-        m = _get_owned(CategoryModel, id, uid, "Category")
-        m.name = data.name
-        m.color = data.color or m.color
-        m.save()
+        try:
+            m = categories_svc.update_category(
+                uid, id, name=data.name, color=data.color or ""
+            )
+        except NotFoundError:
+            raise _not_found("Category")
         return Category.from_model(m)
 
     @strawberry.mutation
     def delete_category(self, info: Info, id: strawberry.ID) -> bool:
         uid = _user_id(info)
-        CategoryModel.objects.filter(pk=id, user_id=uid).delete()
+        categories_svc.delete_category(uid, id)
         return True
 
     # Backup metadata
     @strawberry.mutation
     def mark_backup(self, info: Info) -> dt.datetime:
         uid = _user_id(info)
+        from django.utils import timezone
+
         now = timezone.now()
         BackupMeta.objects.update_or_create(
             user_id=uid, defaults={"last_backup": now}
