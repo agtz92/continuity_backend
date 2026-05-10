@@ -27,6 +27,7 @@ from django.utils.decorators import method_decorator
 from core.auth import authenticate_request
 
 from . import anthropic_client, prompts, quotas
+from .anthropic_client import AssistantConfigError
 from .models import Conversation, Message, MessageRole
 
 logger = logging.getLogger(__name__)
@@ -185,9 +186,18 @@ class ChatView(View):
                     on_event=on_event,
                     is_cancelled=lambda: bool(cache.get(cancel_key)),
                 )
+            except AssistantConfigError as e:
+                logger.error("Assistant config error: %s", e)
+                yield _format_sse(
+                    "error",
+                    {"message": str(e), "code": "config"},
+                )
+                yield _format_sse("done", {"ok": False})
+                return
             except Exception as e:  # noqa: BLE001
                 logger.exception("Assistant run_turn failed")
-                yield _format_sse("error", {"message": str(e)})
+                msg = _humanize_anthropic_error(e)
+                yield _format_sse("error", {"message": msg})
                 yield _format_sse("done", {"ok": False})
                 return
 
@@ -352,9 +362,69 @@ class UsageView(View):
         )
 
 
+# ---------- GET /healthz/ ----------
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class HealthView(View):
+    """Diagnostic endpoint — verifies the API key is wired without leaking it.
+
+    Reports prefix + length only, plus the configured model name. Useful
+    to debug "is my Render env var actually set?" without ever logging
+    the key. JWT-gated like everything else; admin-only.
+    """
+
+    http_method_names = ["get"]
+
+    def get(self, request: HttpRequest):
+        early = _auth(request, method="GET")
+        if early is not None:
+            return early
+        from .quotas import get_or_create_profile
+
+        profile = get_or_create_profile(request.user_id)
+        if profile.plan != "admin":
+            return _json_error("admin only", status=403)
+
+        from django.conf import settings as dj
+
+        key = (getattr(dj, "ANTHROPIC_API_KEY", "") or "").strip()
+        return JsonResponse(
+            {
+                "model": getattr(dj, "ASSISTANT_MODEL_FAST", ""),
+                "anthropic_key_present": bool(key),
+                "anthropic_key_length": len(key),
+                "anthropic_key_prefix": key[:10] if key else "",
+                "anthropic_key_starts_with_sk_ant": key.startswith("sk-ant-"),
+            }
+        )
+
+
 # ---------- helpers ----------
 
 
 def _derive_title(content: str) -> str:
     first_line = content.strip().splitlines()[0] if content.strip() else "Conversation"
     return first_line[:80]
+
+
+def _humanize_anthropic_error(e: Exception) -> str:
+    """Translate Anthropic SDK errors into actionable messages.
+
+    Anthropic's `AuthenticationError` (HTTP 401) means the key is being
+    sent but rejected — almost always a revoked or wrong key. Surfacing
+    the underlying str makes that visible in the UI instead of an
+    opaque 500.
+    """
+    name = type(e).__name__
+    if name in {"AuthenticationError", "PermissionDeniedError"}:
+        return (
+            "Anthropic rejected the API key (HTTP 401/403). The key may be "
+            "revoked, mis-pasted, or pointing at the wrong workspace. "
+            "Update ANTHROPIC_API_KEY on the server and retry."
+        )
+    if name == "RateLimitError":
+        return "Anthropic rate-limited the request. Try again shortly."
+    if name == "APIConnectionError":
+        return "Could not reach Anthropic. Check the backend's outbound network."
+    return f"{name}: {e}"

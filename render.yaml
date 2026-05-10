@@ -27,5 +27,7 @@ services:
         sync: false
       - key: NOTIFICATIONS_DEFAULT_TIMEZONE
         value: America/Mexico_City
+      - key: ANTHROPIC_API_KEY
+        sync: false
       - key: PYTHON_VERSION
         value: "3.12.4"

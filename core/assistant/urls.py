@@ -14,4 +14,5 @@ urlpatterns = [
         name="conversation_messages",
     ),
     path("usage/", views.UsageView.as_view(), name="usage"),
+    path("healthz/", views.HealthView.as_view(), name="healthz"),
 ]

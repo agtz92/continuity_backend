@@ -61,13 +61,33 @@ def _to_dict(block) -> dict:
     return dict(block)  # type: ignore[arg-type]
 
 
+class AssistantConfigError(Exception):
+    """Surfaces actionable config issues (missing/invalid API key)."""
+
+
 def _build_anthropic_client():
     """Lazy import — avoids forcing the SDK on environments that don't use it."""
     import anthropic  # noqa: WPS433 — deliberately deferred
 
-    api_key = getattr(settings, "ANTHROPIC_API_KEY", "")
+    api_key = getattr(settings, "ANTHROPIC_API_KEY", "") or ""
+    api_key = api_key.strip()
     if not api_key:
-        raise RuntimeError("ANTHROPIC_API_KEY is not set")
+        raise AssistantConfigError(
+            "ANTHROPIC_API_KEY is not set on the server. "
+            "On Render, add it under the service's Environment tab; "
+            "locally, put it in backend/.env and unset any empty shell var."
+        )
+    if not api_key.startswith("sk-ant-"):
+        raise AssistantConfigError(
+            "ANTHROPIC_API_KEY is set but malformed "
+            "(expected to start with 'sk-ant-'). "
+            "Check for stray quotes or whitespace in the value."
+        )
+    logger.info(
+        "Anthropic client built (key prefix=%s, length=%d)",
+        api_key[:10],
+        len(api_key),
+    )
     return anthropic.Anthropic(api_key=api_key)
 
 
