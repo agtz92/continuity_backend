@@ -171,21 +171,25 @@ class ChatView(View):
                 },
             )
 
-            buffered: list[tuple[str, dict]] = []
+            from .anthropic_client import TurnResult as _TurnResult
 
-            def on_event(kind: str, payload: dict) -> None:
-                buffered.append((kind, payload))
-
+            result: _TurnResult | None = None
             try:
-                result = anthropic_client.run_turn(
+                for item in anthropic_client.run_turn_iter(
                     user_id=user_id,
                     system_blocks=system_blocks,
                     messages=history_messages,
                     model=model,
                     max_tokens=max_tokens,
-                    on_event=on_event,
                     is_cancelled=lambda: bool(cache.get(cancel_key)),
-                )
+                ):
+                    if isinstance(item, _TurnResult):
+                        result = item
+                        continue
+                    # Tuple (kind, payload) — forward to browser immediately
+                    # so the user sees text appear as the model writes it.
+                    kind, payload = item
+                    yield _format_sse(kind, payload)
             except AssistantConfigError as e:
                 logger.error("Assistant config error: %s", e)
                 yield _format_sse(
@@ -201,11 +205,11 @@ class ChatView(View):
                 yield _format_sse("done", {"ok": False})
                 return
 
-            # Flush the buffered events. We collected them above so any
-            # exception thrown before completion still produced an `error`
-            # frame instead of half a stream.
-            for kind, payload in buffered:
-                yield _format_sse(kind, payload)
+            if result is None:
+                # Defensive — generator exited without a TurnResult.
+                yield _format_sse("error", {"message": "no result"})
+                yield _format_sse("done", {"ok": False})
+                return
 
             # Persist all turns in chronological order so the next
             # request can replay the conversation without orphaning

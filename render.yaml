@@ -5,7 +5,9 @@ services:
     rootDir: backend
     plan: free
     buildCommand: "./build.sh"
-    startCommand: "gunicorn continuity.wsgi:application"
+    # gthread workers: sync workers buffer SSE responses, gthread doesn't —
+    # the assistant's streaming chat needs deltas to flush as they arrive.
+    startCommand: "gunicorn continuity.wsgi:application --worker-class gthread --workers 2 --threads 4 --timeout 120"
     envVars:
       - key: DJANGO_SECRET_KEY
         generateValue: true

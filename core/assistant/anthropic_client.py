@@ -117,25 +117,28 @@ class TurnResult:
     total_usage: TurnUsage
 
 
-def run_turn(
+def run_turn_iter(
     *,
     user_id: uuid.UUID,
     system_blocks: list[dict],
     messages: list[dict],
     model: str,
     max_tokens: int,
-    on_event: Callable[[str, dict], None],
     is_cancelled: Callable[[], bool] = lambda: False,
     client=None,
-) -> TurnResult:
-    """Run one user-input → end_turn agent loop.
+):
+    """Generator-based agent loop. Yields events AS THEY HAPPEN.
 
-    Loops while `stop_reason == "tool_use"`, executing each tool server-side
-    against `core.assistant.tools`. Hard-capped at
-    settings.ASSISTANT_MAX_TOOL_ITERATIONS to prevent runaway spirals.
+    Each yielded item is either a `(kind: str, payload: dict)` tuple
+    (for events the SSE view forwards to the browser) or a `TurnResult`
+    object (the final yield, exactly one per call). The view distinguishes
+    by `isinstance` — events go on the wire, the result drives DB
+    persistence and quota recording.
 
-    Returns the assistant content blocks, any synthetic tool-result messages
-    appended to `messages`, the final stop reason, and aggregated usage.
+    Yielding text_delta / tool_use_start / tool_result chunks as they
+    arrive (instead of after the whole turn) is what makes the chat
+    feel real-time. Anthropic's SDK already streams; we just stop
+    buffering on top of it.
     """
     cli = client or _build_anthropic_client()
     schemas = tools_pkg.schemas_for_anthropic()
@@ -150,15 +153,12 @@ def run_turn(
 
     while True:
         if is_cancelled():
-            on_event("error", {"message": "cancelled"})
+            yield ("error", {"message": "cancelled"})
             stop_reason = "cancelled"
             break
         iterations += 1
         if iterations > cap:
-            on_event(
-                "error",
-                {"message": f"Tool loop exceeded {cap} iterations"},
-            )
+            yield ("error", {"message": f"Tool loop exceeded {cap} iterations"})
             stop_reason = "tool_loop_cap"
             break
 
@@ -185,7 +185,7 @@ def run_turn(
                         text = getattr(delta, "text", None) or (
                             delta.get("text") if isinstance(delta, dict) else ""
                         )
-                        on_event("text_delta", {"text": text or ""})
+                        yield ("text_delta", {"text": text or ""})
                 # Other events (content_block_start, message_start, etc.) are
                 # ignored at the SSE layer — we forward only what the UI uses.
 
@@ -216,15 +216,9 @@ def run_turn(
             tool_id = block.get("id")
             name = block.get("name")
             args = block.get("input") or {}
-            on_event(
-                "tool_use_start",
-                {"id": tool_id, "name": name, "input": args},
-            )
+            yield ("tool_use_start", {"id": tool_id, "name": name, "input": args})
             result = tools_pkg.call(name, user_id, args)
-            on_event(
-                "tool_result",
-                {"id": tool_id, "name": name, "output": result},
-            )
+            yield ("tool_result", {"id": tool_id, "name": name, "output": result})
             tool_results.append(
                 {
                     "type": "tool_result",
@@ -249,7 +243,7 @@ def run_turn(
         convo.append(synthetic)
         appended.append(AppendedMessage(kind="tool", content=tool_results))
 
-    on_event(
+    yield (
         "usage",
         {
             "tokens_in": total.tokens_in,
@@ -258,7 +252,7 @@ def run_turn(
             "cache_creation_in": total.cache_creation_in,
         },
     )
-    return TurnResult(
+    yield TurnResult(
         appended=appended,
         final_stop_reason=stop_reason,
         total_usage=total,
