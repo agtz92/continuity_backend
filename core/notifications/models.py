@@ -31,6 +31,8 @@ class NotificationSettings(models.Model):
 
     user_id = models.UUIDField(primary_key=True)
     locale = models.CharField(max_length=8, default="en")
+    theme = models.CharField(max_length=10, default="system")
+    palette = models.CharField(max_length=20, default="default")
     timezone = models.CharField(max_length=64, default="America/Mexico_City")
 
     digest_enabled = models.BooleanField(default=True)

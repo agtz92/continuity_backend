@@ -53,6 +53,8 @@ class NotificationLinkType:
 @strawberry.type
 class NotificationSettingsType:
     locale: str
+    theme: str
+    palette: str
     timezone: str
     digest_enabled: bool
     digest_day_of_week: int
@@ -75,6 +77,8 @@ class ChannelLinkRequest:
 @strawberry.input
 class NotificationSettingsInput:
     locale: Optional[str] = None
+    theme: Optional[str] = None
+    palette: Optional[str] = None
     timezone: Optional[str] = None
     digest_enabled: Optional[bool] = None
     digest_day_of_week: Optional[int] = None
@@ -86,12 +90,16 @@ class NotificationSettingsInput:
 
 
 SUPPORTED_LOCALES = {"en", "es"}
+SUPPORTED_THEMES = {"light", "dark", "system"}
+SUPPORTED_PALETTES = {"default", "pink", "business", "neon"}
 
 
 def _to_gql(s: SettingsModel) -> NotificationSettingsType:
     links_qs = NotificationLink.objects.filter(user_id=s.user_id)
     return NotificationSettingsType(
         locale=s.locale,
+        theme=s.theme,
+        palette=s.palette,
         timezone=s.timezone,
         digest_enabled=s.digest_enabled,
         digest_day_of_week=s.digest_day_of_week,
@@ -147,6 +155,20 @@ class NotificationsMutation:
                     extensions={"code": "INVALID_LOCALE"},
                 )
             s.locale = data.locale
+        if data.theme is not None:
+            if data.theme not in SUPPORTED_THEMES:
+                raise GraphQLError(
+                    f"Unsupported theme: {data.theme}",
+                    extensions={"code": "INVALID_THEME"},
+                )
+            s.theme = data.theme
+        if data.palette is not None:
+            if data.palette not in SUPPORTED_PALETTES:
+                raise GraphQLError(
+                    f"Unsupported palette: {data.palette}",
+                    extensions={"code": "INVALID_PALETTE"},
+                )
+            s.palette = data.palette
         if data.timezone is not None:
             s.timezone = data.timezone
         if data.digest_enabled is not None:
