@@ -91,7 +91,20 @@ class NotificationSettingsInput:
 
 SUPPORTED_LOCALES = {"en", "es"}
 SUPPORTED_THEMES = {"light", "dark", "system"}
-SUPPORTED_PALETTES = {"default", "pink", "business", "neon"}
+SUPPORTED_PALETTES = {
+    "default",
+    "pink",
+    "business",
+    "neon",
+    "green",
+    "turquoise",
+    "cute",
+    "midnight",
+    "boho",
+    "complimentary",
+    "sunset",
+    "retro",
+}
 
 
 def _to_gql(s: SettingsModel) -> NotificationSettingsType:
