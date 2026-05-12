@@ -105,7 +105,11 @@ one logical event.
 - The actor (always the row's `user_id`; we don't track who-on-behalf-of-whom).
 - Project notes (`ProjectNote`) — those are a separate first-class
   feature in `core_projectnote`. Adding a note used to write a stub
-  Update row; we dropped that to reduce noise.
+  Update row; we dropped that in slice 2 to reduce feed noise. The
+  frontend still surfaces newly-created `ProjectNote` rows in the
+  "Done today" section alongside `kind=NOTE` activities (see
+  [Frontend integration](#frontend-integration) below) — but they do
+  **not** appear in the main LogView feed.
 - Profile/category mutations.
 - Notification deliveries (those live in `core_notification`).
 
@@ -386,6 +390,48 @@ empty. Good enough for dev rollback; not a faithful round-trip.
   resolves task titles one at a time. With 40 rows on the production
   user this took milliseconds; if a user ever has 50k Updates the
   migration would want a bulk strategy. Not a current concern.
+
+---
+
+## Frontend integration
+
+The frontend reads `Activity` rows from `Dashboard.activities` and
+exposes them in two places.
+
+### `LogView.tsx` — the dedicated feed
+
+Renders every kind with per-type icons and lets the user filter by
+chip group (`All`, `Achievements`, `Notes`, `Changes`, `Deleted`). Only
+`kind=NOTE` rows are editable / deletable from this UI — the backend
+enforces the rule, the UI just hides the affordance for everything else.
+
+### `TodayView.tsx` — the "Done today" rail
+
+This section deliberately mixes three sources to give the user a
+sense of accomplishment for *anything* they did today:
+
+| Source | What shows up | DoneItem.kind | Badge text |
+|---|---|---|---|
+| `Task` with `completedAt` today | Task completions | `task` | **TAREA** / **TASK** |
+| `Activity` with `kind=NOTE` created today | Timeline log entries (from "Log Update" button) | `log` (`source: "activity"`) | **NUEVO LOG** / **NEW LOG** |
+| `ProjectNote` created today | Rich project notes from the Notes section | `log` (`source: "projectNote"`) | **NOTA NUEVA** / **NEW NOTE** |
+
+The two note-shaped sources share the same visual treatment
+(`TrendingUp` icon, `accent-2` color, single chip filter labeled **#
+entradas** / **# entries**) but their per-item badge differs to
+reflect the user's mental model: a "log" is a quick timeline entry, a
+"note" is a richer document attached to the project.
+
+The merge happens in `frontend/src/hooks/useTodayFocus.ts`. The
+`DoneItem.log` variant carries a normalized `{ id, projectId, text }`
+plus a `source` field for telemetry / future per-type styling — the
+backend doesn't see the union, it just serves the raw `Activity` rows
+and `ProjectNote` rows separately through `Dashboard`.
+
+Other `Activity` kinds (`project_created`, `task_completed`,
+`idea_promoted`, etc.) are **not** surfaced in "Done today" — they
+have their own home in `LogView` and the analytics chart. Adding them
+there would over-celebrate trivial actions like renaming a project.
 
 ---
 
