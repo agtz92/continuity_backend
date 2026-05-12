@@ -9,7 +9,7 @@ from typing import Any, Iterable
 import pytest
 from django.utils import timezone
 
-from core.models import Category, Idea, Project, Task, Update, ProjectNote
+from core.models import Category, Idea, Project, Task, ProjectNote
 from core.assistant.models import AccountProfile
 
 

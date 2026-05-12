@@ -10,24 +10,24 @@ from graphql import GraphQLError
 from . import analytics as analytics_mod
 from .analytics import AnalyticsRange as AnalyticsRangeEnum
 from .models import (
+    Activity as ActivityModel,
     Project as ProjectModel,
     ProjectNote as ProjectNoteModel,
     Task as TaskModel,
     Idea as IdeaModel,
-    Update as UpdateModel,
     BackupMeta,
     Category as CategoryModel,
     Profile as ProfileModel,
 )
 from .notifications.schema import NotificationsQuery, NotificationsMutation
 from .services import (
+    activities as activities_svc,
     categories as categories_svc,
     ideas as ideas_svc,
     notes as notes_svc,
     profiles as profiles_svc,
     projects as projects_svc,
     tasks as tasks_svc,
-    updates as updates_svc,
 )
 from .services.projects import NotFoundError
 
@@ -77,6 +77,7 @@ class Project:
     category_id: Optional[strawberry.ID]
     last_activity: dt.datetime
     created: dt.datetime
+    due_date: Optional[dt.datetime] = None
 
     @classmethod
     def from_model(cls, m: ProjectModel) -> "Project":
@@ -91,6 +92,7 @@ class Project:
             category_id=strawberry.ID(str(m.category_id)) if m.category_id else None,
             last_activity=m.last_activity,
             created=m.created,
+            due_date=m.due_date,
         )
 
 
@@ -160,19 +162,33 @@ class Idea:
 
 
 @strawberry.type
-class Update:
+class Activity:
     id: strawberry.ID
-    project_id: strawberry.ID
+    kind: str
+    entity_id: Optional[strawberry.ID]
+    entity_title: str
+    project_id: Optional[strawberry.ID]
+    target_project_id: Optional[strawberry.ID]
     note: str
-    date: dt.datetime
+    previous_value: str
+    new_value: str
+    created: dt.datetime
 
     @classmethod
-    def from_model(cls, m: UpdateModel) -> "Update":
+    def from_model(cls, m: ActivityModel) -> "Activity":
         return cls(
             id=strawberry.ID(str(m.id)),
-            project_id=strawberry.ID(str(m.project_id)),
+            kind=m.kind,
+            entity_id=strawberry.ID(str(m.entity_id)) if m.entity_id else None,
+            entity_title=m.entity_title,
+            project_id=strawberry.ID(str(m.project_id)) if m.project_id else None,
+            target_project_id=strawberry.ID(str(m.target_project_id))
+            if m.target_project_id
+            else None,
             note=m.note,
-            date=m.date,
+            previous_value=m.previous_value,
+            new_value=m.new_value,
+            created=m.created,
         )
 
 
@@ -190,7 +206,7 @@ class Dashboard:
     projects: List[Project]
     tasks: List[Task]
     ideas: List[Idea]
-    updates: List[Update]
+    activities: List[Activity]
     categories: List[Category]
     project_notes: List[ProjectNote]
     last_backup: Optional[dt.datetime]
@@ -208,6 +224,7 @@ class ProjectInput:
     status: Optional[str] = "idea"
     priority: Optional[str] = "medium"
     category_id: Optional[strawberry.ID] = None
+    due_date: Optional[dt.datetime] = None
 
 
 @strawberry.input
@@ -458,7 +475,7 @@ class Query:
         projects = list(ProjectModel.objects.filter(user_id=uid))
         tasks = list(TaskModel.objects.filter(user_id=uid))
         ideas = list(IdeaModel.objects.filter(user_id=uid))
-        updates = list(UpdateModel.objects.filter(user_id=uid))
+        activities = list(ActivityModel.objects.filter(user_id=uid))
         categories = list(CategoryModel.objects.filter(user_id=uid))
         project_notes = list(ProjectNoteModel.objects.filter(user_id=uid))
         meta = BackupMeta.objects.filter(user_id=uid).first()
@@ -466,7 +483,7 @@ class Query:
             projects=[Project.from_model(p) for p in projects],
             tasks=[Task.from_model(t) for t in tasks],
             ideas=[Idea.from_model(i) for i in ideas],
-            updates=[Update.from_model(u) for u in updates],
+            activities=[Activity.from_model(a) for a in activities],
             categories=[Category.from_model(c) for c in categories],
             project_notes=[ProjectNote.from_model(n) for n in project_notes],
             last_backup=meta.last_backup if meta else None,
@@ -487,6 +504,27 @@ class Query:
         uid = _user_id(info)
         return Profile.from_model(profiles_svc.get_profile(uid))
 
+    @strawberry.field
+    def activity(
+        self,
+        info: Info,
+        limit: int = 100,
+        since: Optional[dt.datetime] = None,
+        until: Optional[dt.datetime] = None,
+        project_id: Optional[strawberry.ID] = None,
+        kinds: Optional[List[str]] = None,
+    ) -> List[Activity]:
+        uid = _user_id(info)
+        rows = activities_svc.list_activity(
+            uid,
+            project_id=project_id,
+            kinds=kinds,
+            limit=limit,
+            since=since,
+            until=until,
+        )
+        return [Activity.from_model(m) for m in rows]
+
 
 # ---------- Mutations ----------
 
@@ -506,6 +544,7 @@ class Mutation:
             status=data.status or "idea",
             priority=data.priority or "medium",
             category_id=data.category_id,
+            due_date=data.due_date,
         )
         return Project.from_model(m)
 
@@ -524,6 +563,7 @@ class Mutation:
                 priority=data.priority,
                 category_id=data.category_id,
                 clear_category=data.category_id is None,
+                due_date=data.due_date,
             )
         except NotFoundError:
             raise _not_found("Project")
@@ -660,29 +700,32 @@ class Mutation:
             raise _not_found("Idea")
         return Project.from_model(p)
 
-    # Updates / activity log
+    # Notes (kind=NOTE activities)
     @strawberry.mutation
-    def add_update(self, info: Info, project_id: strawberry.ID, note: str) -> Update:
+    def add_note(self, info: Info, project_id: strawberry.ID, note: str) -> Activity:
         uid = _user_id(info)
         try:
-            m = updates_svc.add_update(uid, project_id=project_id, note=note)
+            m = activities_svc.add_note(uid, project_id=project_id, note=note)
         except NotFoundError:
             raise _not_found("Project")
-        return Update.from_model(m)
+        return Activity.from_model(m)
 
     @strawberry.mutation
-    def update_update(self, info: Info, id: strawberry.ID, note: str) -> Update:
+    def update_note(self, info: Info, id: strawberry.ID, note: str) -> Activity:
         uid = _user_id(info)
         try:
-            m = updates_svc.edit_update(uid, id, note=note)
+            m = activities_svc.update_note(uid, id, note=note)
         except NotFoundError:
-            raise _not_found("Update")
-        return Update.from_model(m)
+            raise _not_found("Note")
+        return Activity.from_model(m)
 
     @strawberry.mutation
-    def delete_update(self, info: Info, id: strawberry.ID) -> bool:
+    def delete_note(self, info: Info, id: strawberry.ID) -> bool:
         uid = _user_id(info)
-        updates_svc.delete_update(uid, id)
+        try:
+            activities_svc.delete_note(uid, id)
+        except NotFoundError:
+            raise _not_found("Note")
         return True
 
     # Categories

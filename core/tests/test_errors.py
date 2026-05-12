@@ -121,11 +121,11 @@ def test_create_task_with_unknown_project_is_not_found(execute_query, user_a):
 
 
 @pytest.mark.django_db
-def test_add_update_to_unknown_project_is_not_found(execute_query, user_a):
+def test_add_note_to_unknown_project_is_not_found(execute_query, user_a):
     import uuid
 
     result = execute_query(
-        "mutation($p: ID!, $n: String!) { addUpdate(projectId: $p, note: $n) { id } }",
+        "mutation($p: ID!, $n: String!) { addNote(projectId: $p, note: $n) { id } }",
         user_id=user_a,
         variable_values={"p": str(uuid.uuid4()), "n": "x"},
     )

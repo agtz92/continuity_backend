@@ -22,7 +22,7 @@ from core.services import notes as notes_svc
 from core.services import projects as projects_svc
 from core.services import search as search_svc
 from core.services import tasks as tasks_svc
-from core.services import updates as updates_svc
+from core.services import activities as activities_svc
 from core.services.analytics import AnalyticsRange, compute_analytics
 from core.services.projects import NotFoundError
 from core.services.summary import get_dashboard_summary
@@ -145,7 +145,9 @@ def _get_project_detail(user_id: uuid.UUID, args: dict) -> dict:
         return {"error": "Project not found"}
 
     tasks = tasks_svc.list_tasks(user_id, project_id=p.id, limit=10)
-    updates = updates_svc.list_updates(user_id, project_id=p.id, limit=5)
+    updates = activities_svc.list_activity(
+        user_id, project_id=p.id, kinds=["note"], limit=5
+    )
     notes = notes_svc.list_notes(user_id, project_id=p.id, limit=10)
 
     return {
@@ -176,7 +178,7 @@ def _get_project_detail(user_id: uuid.UUID, args: dict) -> dict:
             {
                 "id": str(u.id),
                 "note": short_text(u.note),
-                "date": u.date.isoformat(),
+                "date": u.created.isoformat(),
             }
             for u in updates
         ],

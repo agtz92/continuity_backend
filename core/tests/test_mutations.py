@@ -1,7 +1,7 @@
 """Tests for every GraphQL mutation in `core.schema`.
 
 Each mutation has at least one happy-path test. For mutations with
-non-trivial side effects (toggle_task creates an Update, creating a
+non-trivial side effects (toggle_task creates an Activity, creating a
 task touches the project's last_activity, etc.) we verify those side
 effects too.
 """
@@ -12,9 +12,10 @@ from core.models import (
     BackupMeta,
     Category,
     Idea,
+    Activity,
+    ActivityKind,
     Project,
     Task,
-    Update,
 )
 
 
@@ -144,12 +145,13 @@ def test_update_task(execute_query, user_a, task_factory):
 
 
 @pytest.mark.django_db
-def test_toggle_task_creates_update_when_completing(
+def test_toggle_task_logs_task_completed_when_completing(
     execute_query, user_a, project_factory, task_factory
 ):
-    """Toggling a task linked to a project to done writes an activity log entry."""
+    """Toggling a task to done writes an Activity row with kind=task_completed."""
     project = project_factory(user_a)
     task = task_factory(user_a, project=project, title="Important")
+    Activity.objects.all().delete()
 
     result = execute_query(
         TOGGLE_TASK,
@@ -158,18 +160,21 @@ def test_toggle_task_creates_update_when_completing(
     )
     assert result.errors is None
     assert result.data["toggleTask"]["done"] is True
-    # Side effect: an Update row was created.
-    update = Update.objects.filter(user_id=user_a, project=project).first()
-    assert update is not None
-    assert "Important" in update.note
+    row = Activity.objects.filter(
+        user_id=user_a, kind=ActivityKind.TASK_COMPLETED
+    ).first()
+    assert row is not None
+    assert row.entity_title == "Important"
+    assert row.project_id == project.id
 
 
 @pytest.mark.django_db
-def test_toggle_task_no_update_when_uncompleting(
+def test_toggle_task_logs_nothing_when_uncompleting(
     execute_query, user_a, project_factory, task_factory
 ):
     project = project_factory(user_a)
     task = task_factory(user_a, project=project, done=True)
+    Activity.objects.all().delete()
     result = execute_query(
         TOGGLE_TASK,
         user_id=user_a,
@@ -177,8 +182,7 @@ def test_toggle_task_no_update_when_uncompleting(
     )
     assert result.errors is None
     assert result.data["toggleTask"]["done"] is False
-    # No update created when un-completing.
-    assert not Update.objects.filter(user_id=user_a, project=project).exists()
+    assert not Activity.objects.filter(user_id=user_a).exists()
 
 
 @pytest.mark.django_db
@@ -323,33 +327,36 @@ def test_delete_category(execute_query, user_a, category_factory):
     assert not Category.objects.filter(pk=cat.id).exists()
 
 
-# ---------- Updates ----------
+# ---------- Notes ----------
 
-ADD_UPDATE = """
+ADD_NOTE = """
     mutation($projectId: ID!, $note: String!) {
-        addUpdate(projectId: $projectId, note: $note) {
-            id projectId note
+        addNote(projectId: $projectId, note: $note) {
+            id kind projectId note
         }
     }
 """
 
 
 @pytest.mark.django_db
-def test_add_update_bumps_project_last_activity(
+def test_add_note_bumps_project_last_activity(
     execute_query, user_a, project_factory
 ):
     project = project_factory(user_a)
     original = project.last_activity
 
     result = execute_query(
-        ADD_UPDATE,
+        ADD_NOTE,
         user_id=user_a,
         variable_values={"projectId": str(project.id), "note": "Made progress"},
     )
     assert result.errors is None
+    assert result.data["addNote"]["kind"] == "note"
     project.refresh_from_db()
     assert project.last_activity > original
-    assert Update.objects.filter(user_id=user_a, project=project).count() == 1
+    assert Activity.objects.filter(
+        user_id=user_a, kind=ActivityKind.NOTE, project_id=project.id
+    ).count() == 1
 
 
 # ---------- Backup ----------

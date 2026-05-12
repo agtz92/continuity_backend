@@ -5,7 +5,7 @@ import datetime as dt
 import pytest
 from django.utils import timezone
 
-from core.models import Project, Update, Task
+from core.models import Activity, ActivityKind, Project, Task
 
 ANALYTICS_QUERY = """
     query($range: AnalyticsRange) {
@@ -55,8 +55,8 @@ def _shift_last_activity(project: Project, when: dt.datetime):
     Project.objects.filter(pk=project.pk).update(last_activity=when)
 
 
-def _shift_update_date(update: Update, when: dt.datetime):
-    Update.objects.filter(pk=update.pk).update(date=when)
+def _shift_activity_created(activity: Activity, when: dt.datetime):
+    Activity.objects.filter(pk=activity.pk).update(created=when)
 
 
 # ---------- Auth & isolation
@@ -75,8 +75,12 @@ def test_analytics_isolated_per_user(
 ):
     pa = project_factory(user_a, name="A")
     pb = project_factory(user_b, name="B")
-    Update.objects.create(user_id=user_a, project=pa, note="a-note")
-    Update.objects.create(user_id=user_b, project=pb, note="b-note")
+    Activity.objects.create(
+        user_id=user_a, kind=ActivityKind.NOTE, project_id=pa.id, note="a-note"
+    )
+    Activity.objects.create(
+        user_id=user_b, kind=ActivityKind.NOTE, project_id=pb.id, note="b-note"
+    )
     task_factory(user_a, project=pa, title="a-task", done=True,
                  completed_at=timezone.now())
     task_factory(user_b, project=pb, title="b-task", done=True,
@@ -106,7 +110,9 @@ def test_activity_series_fills_empty_days(
     execute_query, user_a, project_factory
 ):
     p = project_factory(user_a)
-    Update.objects.create(user_id=user_a, project=p, note="hello")
+    Activity.objects.create(
+        user_id=user_a, kind=ActivityKind.NOTE, project_id=p.id, note="hello"
+    )
     res = execute_query(
         ANALYTICS_QUERY, user_id=user_a,
         variable_values={"range": "LAST_30_DAYS"},
@@ -115,6 +121,7 @@ def test_activity_series_fills_empty_days(
     series = res.data["analytics"]["activitySeries"]
     # 30-day window inclusive of today: 31 points (start..end).
     assert 30 <= len(series) <= 31
+    # `updates` field in ActivityPoint counts notes (post-unify semantics).
     assert sum(p["updates"] for p in series) == 1
 
 
@@ -157,7 +164,10 @@ def test_top_projects_orders_and_truncates(
     projects = [project_factory(user_a, name=f"P{i}") for i in range(7)]
     for i, p in enumerate(projects):
         for _ in range(i + 1):  # P0=1, P1=2, ..., P6=7
-            Update.objects.create(user_id=user_a, project=p, note="x")
+            Activity.objects.create(
+                user_id=user_a, kind=ActivityKind.NOTE,
+                project_id=p.id, note="x",
+            )
 
     res = execute_query(
         ANALYTICS_QUERY, user_id=user_a,
@@ -175,14 +185,20 @@ def test_top_projects_delta_vs_previous_window(
 ):
     p = project_factory(user_a, name="P")
     now = timezone.now()
-    # 2 updates within last 7 days (current window)
-    u1 = Update.objects.create(user_id=user_a, project=p, note="now1")
-    u2 = Update.objects.create(user_id=user_a, project=p, note="now2")
-    _shift_update_date(u1, now - dt.timedelta(days=1))
-    _shift_update_date(u2, now - dt.timedelta(days=2))
-    # 1 update in previous 7-day window (8-14d ago)
-    u3 = Update.objects.create(user_id=user_a, project=p, note="prev")
-    _shift_update_date(u3, now - dt.timedelta(days=10))
+    # 2 notes within last 7 days (current window)
+    a1 = Activity.objects.create(
+        user_id=user_a, kind=ActivityKind.NOTE, project_id=p.id, note="now1"
+    )
+    a2 = Activity.objects.create(
+        user_id=user_a, kind=ActivityKind.NOTE, project_id=p.id, note="now2"
+    )
+    _shift_activity_created(a1, now - dt.timedelta(days=1))
+    _shift_activity_created(a2, now - dt.timedelta(days=2))
+    # 1 note in previous 7-day window (8-14d ago)
+    a3 = Activity.objects.create(
+        user_id=user_a, kind=ActivityKind.NOTE, project_id=p.id, note="prev"
+    )
+    _shift_activity_created(a3, now - dt.timedelta(days=10))
 
     res = execute_query(
         ANALYTICS_QUERY, user_id=user_a,
@@ -205,11 +221,16 @@ def test_cadence_streak_and_longest(
     today = timezone.now()
     # 3-day streak ending today
     for offset in (0, 1, 2):
-        u = Update.objects.create(user_id=user_a, project=p, note=f"d{offset}")
-        _shift_update_date(u, today - dt.timedelta(days=offset))
+        a = Activity.objects.create(
+            user_id=user_a, kind=ActivityKind.NOTE,
+            project_id=p.id, note=f"d{offset}",
+        )
+        _shift_activity_created(a, today - dt.timedelta(days=offset))
     # an older isolated activity, gap of >1 day → doesn't extend current streak
-    u_old = Update.objects.create(user_id=user_a, project=p, note="old")
-    _shift_update_date(u_old, today - dt.timedelta(days=10))
+    a_old = Activity.objects.create(
+        user_id=user_a, kind=ActivityKind.NOTE, project_id=p.id, note="old"
+    )
+    _shift_activity_created(a_old, today - dt.timedelta(days=10))
 
     res = execute_query(
         ANALYTICS_QUERY, user_id=user_a,

@@ -60,6 +60,7 @@ class Project(TimestampedModel):
     )
     last_activity = models.DateTimeField(auto_now_add=True)
     promoted_from_idea_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    due_date = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-last_activity"]
@@ -88,17 +89,6 @@ class Idea(TimestampedModel):
         ordering = ["-created"]
 
 
-class Update(TimestampedModel):
-    project = models.ForeignKey(
-        Project, on_delete=models.CASCADE, related_name="updates"
-    )
-    note = models.TextField()
-    date = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ["-date"]
-
-
 class ProjectNote(TimestampedModel):
     """One of many free-form notes attached to a project. Distinct from
     `Update` (timeline of activity) and `Project.description/why/next_step`
@@ -125,3 +115,39 @@ class Profile(models.Model):
     user_id = models.UUIDField(primary_key=True)
     avatar = models.CharField(max_length=64, blank=True, default="")
     updated_at = models.DateTimeField(auto_now=True)
+
+
+class ActivityKind(models.TextChoices):
+    NOTE = "note", "Note"
+    PROJECT_CREATED = "project_created", "Project created"
+    PROJECT_DELETED = "project_deleted", "Project deleted"
+    PROJECT_STATUS_CHANGED = "project_status_changed", "Project status changed"
+    PROJECT_DUE_DATE_CHANGED = "project_due_date_changed", "Project due date changed"
+    TASK_CREATED = "task_created", "Task created"
+    TASK_COMPLETED = "task_completed", "Task completed"
+    TASK_DELETED = "task_deleted", "Task deleted"
+    TASK_DUE_DATE_CHANGED = "task_due_date_changed", "Task due date changed"
+    IDEA_CREATED = "idea_created", "Idea created"
+    IDEA_DELETED = "idea_deleted", "Idea deleted"
+    IDEA_PROMOTED = "idea_promoted", "Idea promoted"
+
+
+class Activity(TimestampedModel):
+    kind = models.CharField(
+        max_length=32, choices=ActivityKind.choices, db_index=True
+    )
+    entity_id = models.UUIDField(null=True, blank=True)
+    entity_title = models.CharField(max_length=500, blank=True, default="")
+    project_id = models.UUIDField(null=True, blank=True)
+    target_project_id = models.UUIDField(null=True, blank=True)
+    note = models.TextField(blank=True, default="")
+    previous_value = models.TextField(blank=True, default="")
+    new_value = models.TextField(blank=True, default="")
+
+    class Meta:
+        ordering = ["-created"]
+        indexes = [
+            models.Index(fields=["user_id", "-created"]),
+            models.Index(fields=["user_id", "kind"]),
+            models.Index(fields=["user_id", "project_id"]),
+        ]

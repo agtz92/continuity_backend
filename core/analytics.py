@@ -17,7 +17,7 @@ from django.db.models import Count, F, Q, Sum
 from django.db.models.functions import ExtractIsoWeekDay, TruncDate
 from django.utils import timezone
 
-from .models import Idea, Project, Task, Update
+from .models import Activity, ActivityKind, Idea, Project, Task
 
 # Thresholds — kept in parity with the frontend (useProductivityStats.ts).
 QUICK_WIN_OPEN_TASKS_MAX = 2
@@ -227,35 +227,29 @@ def compute_analytics(user_id: uuid.UUID, rng: AnalyticsRange) -> AnalyticsResul
     prev_start, prev_end = previous_window(start, end)
 
     # Base querysets (user-scoped). Range filters applied per section.
-    updates_qs = Update.objects.filter(user_id=user_id)
+    activity_qs = Activity.objects.filter(user_id=user_id)
     tasks_qs = Task.objects.filter(user_id=user_id)
     tasks_done_qs = tasks_qs.filter(done=True, completed_at__isnull=False)
     projects_qs = Project.objects.filter(user_id=user_id)
     ideas_qs = Idea.objects.filter(user_id=user_id)
 
     if start is not None:
-        ranged_updates = updates_qs.filter(date__gte=start, date__lt=end)
+        ranged_activity = activity_qs.filter(created__gte=start, created__lt=end)
         ranged_tasks_done = tasks_done_qs.filter(
             completed_at__gte=start, completed_at__lt=end
         )
     else:
-        ranged_updates = updates_qs
+        ranged_activity = activity_qs
         ranged_tasks_done = tasks_done_qs
 
-    cadence = _cadence(updates_qs, tasks_done_qs, ranged_updates, ranged_tasks_done, now)
-    activity_series = _activity_series(ranged_updates, ranged_tasks_done, start, end)
-    weekday_heatmap = _weekday_heatmap(ranged_updates, ranged_tasks_done)
+    cadence = _cadence(activity_qs, ranged_activity, now)
+    activity_series = _activity_series(ranged_activity, start, end)
+    weekday_heatmap = _weekday_heatmap(ranged_activity)
     top_projects = _top_projects(
-        ranged_updates,
-        ranged_tasks_done,
-        prev_start,
-        prev_end,
-        updates_qs,
-        tasks_done_qs,
-        projects_qs,
+        ranged_activity, prev_start, prev_end, activity_qs, projects_qs,
     )
     status_counts = _status_counts(projects_qs)
-    category_breakdown = _category_breakdown(projects_qs, ranged_updates, ranged_tasks_done)
+    category_breakdown = _category_breakdown(projects_qs, ranged_activity)
     backlog = _backlog(tasks_qs, projects_qs, now)
     sleeping_projects = _sleeping_projects(projects_qs, now)
     stale_ideas = _stale_ideas(ideas_qs, now)
@@ -283,71 +277,60 @@ def compute_analytics(user_id: uuid.UUID, rng: AnalyticsRange) -> AnalyticsResul
 # ---------- Per-section helpers
 
 
-def _cadence(
-    updates_all,
-    tasks_done_all,
-    ranged_updates,
-    ranged_tasks_done,
-    now: dt.datetime,
-) -> CadenceStats:
+def _cadence(activity_all, ranged_activity, now: dt.datetime) -> CadenceStats:
     # Streaks use the full history; "active days in range" and total events
-    # use the windowed querysets so the user can see how the chosen range
+    # use the windowed queryset so the user can see how the chosen range
     # compares.
-    all_days_updates = updates_all.annotate(d=TruncDate("date")).values_list(
-        "d", flat=True
+    all_days = _activity_day_set(
+        list(activity_all.annotate(d=TruncDate("created")).values_list("d", flat=True))
     )
-    all_days_tasks = tasks_done_all.annotate(d=TruncDate("completed_at")).values_list(
-        "d", flat=True
-    )
-    all_days = _activity_day_set(list(all_days_updates) + list(all_days_tasks))
 
     today = now.date()
     current = compute_streak(all_days, today)
     longest = compute_longest_streak(all_days)
 
-    range_days_updates = ranged_updates.annotate(d=TruncDate("date")).values_list(
-        "d", flat=True
-    )
-    range_days_tasks = ranged_tasks_done.annotate(
-        d=TruncDate("completed_at")
-    ).values_list("d", flat=True)
     range_days = _activity_day_set(
-        list(range_days_updates) + list(range_days_tasks)
+        list(ranged_activity.annotate(d=TruncDate("created")).values_list("d", flat=True))
     )
-
-    total = ranged_updates.count() + ranged_tasks_done.count()
 
     return CadenceStats(
         current_streak=current,
         longest_streak=longest,
         active_days_in_range=len(range_days),
-        total_activity_events=total,
+        total_activity_events=ranged_activity.count(),
     )
 
 
 def _activity_series(
-    ranged_updates,
-    ranged_tasks_done,
+    ranged_activity,
     start: Optional[dt.datetime],
     end: dt.datetime,
 ) -> list[ActivityPoint]:
-    update_counts = {
-        row["d"]: row["c"]
-        for row in ranged_updates.annotate(d=TruncDate("date"))
-        .values("d")
+    # Per-day counts split by kind so the chart can distinguish notes
+    # (writing) from task completions (achievements) while `total_events`
+    # captures everything else (creates/deletes/changes).
+    rows = (
+        ranged_activity.annotate(d=TruncDate("created"))
+        .values("d", "kind")
         .annotate(c=Count("id"))
-    }
-    task_counts = {
-        row["d"]: row["c"]
-        for row in ranged_tasks_done.annotate(d=TruncDate("completed_at"))
-        .values("d")
-        .annotate(c=Count("id"))
-    }
+    )
+    note_counts: dict[dt.date, int] = {}
+    completed_counts: dict[dt.date, int] = {}
+    total_counts: dict[dt.date, int] = {}
+    for r in rows:
+        day = r["d"]
+        kind = r["kind"]
+        count = r["c"]
+        total_counts[day] = total_counts.get(day, 0) + count
+        if kind == ActivityKind.NOTE:
+            note_counts[day] = note_counts.get(day, 0) + count
+        elif kind == ActivityKind.TASK_COMPLETED:
+            completed_counts[day] = completed_counts.get(day, 0) + count
 
     if start is None:
         # ALL_TIME: span from earliest event to today, capped at 365 days
         # to keep payload sane.
-        all_days = sorted(set(update_counts.keys()) | set(task_counts.keys()))
+        all_days = sorted(total_counts.keys())
         if not all_days:
             return []
         first = all_days[0]
@@ -362,26 +345,22 @@ def _activity_series(
     points: list[ActivityPoint] = []
     end_date = end.date()
     while cursor <= end_date:
-        u = update_counts.get(cursor, 0)
-        t = task_counts.get(cursor, 0)
         points.append(
-            ActivityPoint(day=cursor, updates=u, completed_tasks=t, total_events=u + t)
+            ActivityPoint(
+                day=cursor,
+                updates=note_counts.get(cursor, 0),
+                completed_tasks=completed_counts.get(cursor, 0),
+                total_events=total_counts.get(cursor, 0),
+            )
         )
         cursor += dt.timedelta(days=1)
     return points
 
 
-def _weekday_heatmap(ranged_updates, ranged_tasks_done) -> list[WeekdayBucket]:
+def _weekday_heatmap(ranged_activity) -> list[WeekdayBucket]:
     buckets: dict[int, int] = {i: 0 for i in range(1, 8)}
     for row in (
-        ranged_updates.annotate(wd=ExtractIsoWeekDay("date"))
-        .values("wd")
-        .annotate(c=Count("id"))
-    ):
-        if row["wd"] is not None:
-            buckets[int(row["wd"])] += row["c"]
-    for row in (
-        ranged_tasks_done.annotate(wd=ExtractIsoWeekDay("completed_at"))
+        ranged_activity.annotate(wd=ExtractIsoWeekDay("created"))
         .values("wd")
         .annotate(c=Count("id"))
     ):
@@ -391,22 +370,15 @@ def _weekday_heatmap(ranged_updates, ranged_tasks_done) -> list[WeekdayBucket]:
 
 
 def _top_projects(
-    ranged_updates,
-    ranged_tasks_done,
+    ranged_activity,
     prev_start: Optional[dt.datetime],
     prev_end: Optional[dt.datetime],
-    updates_qs,
-    tasks_done_qs,
+    activity_qs,
     projects_qs,
 ) -> list[ProjectInteractionRow]:
     counts: dict[uuid.UUID, int] = {}
     for row in (
-        ranged_updates.values("project_id").annotate(c=Count("id"))
-    ):
-        if row["project_id"]:
-            counts[row["project_id"]] = counts.get(row["project_id"], 0) + row["c"]
-    for row in (
-        ranged_tasks_done.exclude(project_id__isnull=True)
+        ranged_activity.exclude(project_id__isnull=True)
         .values("project_id")
         .annotate(c=Count("id"))
     ):
@@ -424,21 +396,12 @@ def _top_projects(
     # things cheap.
     prev_counts: dict[uuid.UUID, int] = {}
     if prev_start is not None and prev_end is not None and project_ids:
-        prev_updates = updates_qs.filter(
+        prev_rows = activity_qs.filter(
             project_id__in=project_ids,
-            date__gte=prev_start,
-            date__lt=prev_end,
+            created__gte=prev_start,
+            created__lt=prev_end,
         )
-        prev_tasks = tasks_done_qs.filter(
-            project_id__in=project_ids,
-            completed_at__gte=prev_start,
-            completed_at__lt=prev_end,
-        )
-        for row in prev_updates.values("project_id").annotate(c=Count("id")):
-            prev_counts[row["project_id"]] = (
-                prev_counts.get(row["project_id"], 0) + row["c"]
-            )
-        for row in prev_tasks.values("project_id").annotate(c=Count("id")):
+        for row in prev_rows.values("project_id").annotate(c=Count("id")):
             prev_counts[row["project_id"]] = (
                 prev_counts.get(row["project_id"], 0) + row["c"]
             )
@@ -467,24 +430,25 @@ def _status_counts(projects_qs) -> list[StatusCount]:
     return [StatusCount(status=r["status"], count=r["c"]) for r in rows]
 
 
-def _category_breakdown(
-    projects_qs, ranged_updates, ranged_tasks_done
-) -> list[CategoryRow]:
+def _category_breakdown(projects_qs, ranged_activity) -> list[CategoryRow]:
     project_rows = projects_qs.values(
         "category_id", "category__name", "category__color"
     ).annotate(c=Count("id"))
 
+    # Activity has a denormalized `project_id` (no FK), so we join manually
+    # against the project list to map activity counts to categories.
+    project_to_category: dict[uuid.UUID, Optional[uuid.UUID]] = {
+        p["id"]: p["category_id"]
+        for p in projects_qs.values("id", "category_id")
+    }
     interactions: dict[Optional[uuid.UUID], int] = {}
-    for row in ranged_updates.values("project__category_id").annotate(c=Count("id")):
-        interactions[row["project__category_id"]] = (
-            interactions.get(row["project__category_id"], 0) + row["c"]
-        )
-    for row in ranged_tasks_done.values("project__category_id").annotate(
-        c=Count("id")
+    for row in (
+        ranged_activity.exclude(project_id__isnull=True)
+        .values("project_id")
+        .annotate(c=Count("id"))
     ):
-        interactions[row["project__category_id"]] = (
-            interactions.get(row["project__category_id"], 0) + row["c"]
-        )
+        cat = project_to_category.get(row["project_id"])
+        interactions[cat] = interactions.get(cat, 0) + row["c"]
 
     out: list[CategoryRow] = []
     for r in project_rows:

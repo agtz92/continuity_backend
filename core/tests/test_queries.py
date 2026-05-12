@@ -14,7 +14,7 @@ DASHBOARD_QUERY = """
             projects { id name status }
             tasks    { id title done projectId }
             ideas    { id title }
-            updates  { id projectId note }
+            activities { id kind projectId note }
             categories { id name color }
             lastBackup
         }
@@ -32,7 +32,7 @@ def test_dashboard_empty_for_new_user(execute_query, user_a):
     assert dash["projects"] == []
     assert dash["tasks"] == []
     assert dash["ideas"] == []
-    assert dash["updates"] == []
+    assert dash["activities"] == []
     assert dash["categories"] == []
     assert dash["lastBackup"] is None
 

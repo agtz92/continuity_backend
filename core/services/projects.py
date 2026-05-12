@@ -8,12 +8,14 @@ from typing import Optional
 
 from django.utils import timezone
 
-from ..models import Category, Project
+from ..models import ActivityKind, Category, Project
 from ._cache import bump_context_version as _bump_context_version
+from ._common import NotFoundError
+from .activities import iso, log_event
 
 
-class NotFoundError(Exception):
-    """Raised when an entity is missing or owned by another user."""
+# Re-export so existing `from .services.projects import NotFoundError` keeps working.
+__all__ = ["NotFoundError"]
 
 
 def list_projects(
@@ -61,6 +63,7 @@ def create_project(
     status: str = "idea",
     priority: str = "medium",
     category_id: Optional[uuid.UUID] = None,
+    due_date: Optional[dt.datetime] = None,
 ) -> Project:
     category = None
     if category_id:
@@ -74,6 +77,14 @@ def create_project(
         status=status or "idea",
         priority=priority or "medium",
         category=category,
+        due_date=due_date,
+    )
+    log_event(
+        user_id,
+        kind=ActivityKind.PROJECT_CREATED,
+        entity_id=project.id,
+        entity_title=project.name,
+        project_id=project.id,
     )
     _bump_context_version(user_id)
     return project
@@ -91,8 +102,11 @@ def update_project(
     priority: Optional[str] = None,
     category_id: Optional[uuid.UUID] = None,
     clear_category: bool = False,
+    due_date: Optional[dt.datetime] = None,
 ) -> Project:
     project = get_project(user_id, project_id)
+    old_status = project.status
+    old_due_date = project.due_date
     project.name = name
     project.description = description or ""
     project.why = why or ""
@@ -107,14 +121,48 @@ def update_project(
         project.category = Category.objects.filter(
             pk=category_id, user_id=user_id
         ).first()
+    project.due_date = due_date
     project.last_activity = timezone.now()
     project.save()
+    if status and old_status != project.status:
+        log_event(
+            user_id,
+            kind=ActivityKind.PROJECT_STATUS_CHANGED,
+            entity_id=project.id,
+            entity_title=project.name,
+            project_id=project.id,
+            previous_value=old_status,
+            new_value=project.status,
+        )
+    if old_due_date != project.due_date:
+        log_event(
+            user_id,
+            kind=ActivityKind.PROJECT_DUE_DATE_CHANGED,
+            entity_id=project.id,
+            entity_title=project.name,
+            project_id=project.id,
+            previous_value=iso(old_due_date),
+            new_value=iso(project.due_date),
+        )
     _bump_context_version(user_id)
     return project
 
 
 def delete_project(user_id: uuid.UUID, project_id) -> None:
+    project = (
+        Project.objects.filter(pk=project_id, user_id=user_id)
+        .only("id", "name")
+        .first()
+    )
     Project.objects.filter(pk=project_id, user_id=user_id).delete()
+    if project is not None:
+        log_event(
+            user_id,
+            kind=ActivityKind.PROJECT_DELETED,
+            entity_id=project.id,
+            entity_title=project.name,
+            project_id=project.id,
+        )
     _bump_context_version(user_id)
 
 

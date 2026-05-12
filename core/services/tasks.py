@@ -8,8 +8,9 @@ from typing import Optional
 
 from django.utils import timezone
 
-from ..models import Project, Task, Update
+from ..models import ActivityKind, Project, Task
 from ._cache import bump_context_version
+from .activities import iso, log_event
 from .projects import NotFoundError, assert_owned, touch_last_activity
 
 
@@ -61,6 +62,13 @@ def create_task(
         done=bool(done),
         effort_hours=effort_hours,
     )
+    log_event(
+        user_id,
+        kind=ActivityKind.TASK_CREATED,
+        entity_id=task.id,
+        entity_title=task.title,
+        project_id=task.project_id,
+    )
     if task.project_id:
         touch_last_activity(user_id, task.project_id)
     bump_context_version(user_id)
@@ -79,6 +87,7 @@ def update_task(
 ) -> Task:
     assert_owned(user_id, project_id)
     task = get_task(user_id, task_id)
+    old_due_date = task.due_date
     task.title = title
     task.project_id = project_id or None
     task.due_date = due_date
@@ -89,6 +98,16 @@ def update_task(
     if not task.done:
         task.completed_at = None
     task.save()
+    if old_due_date != task.due_date:
+        log_event(
+            user_id,
+            kind=ActivityKind.TASK_DUE_DATE_CHANGED,
+            entity_id=task.id,
+            entity_title=task.title,
+            project_id=task.project_id,
+            previous_value=iso(old_due_date),
+            new_value=iso(task.due_date),
+        )
     bump_context_version(user_id)
     return task
 
@@ -98,17 +117,35 @@ def toggle_task(user_id: uuid.UUID, task_id) -> Task:
     task.done = not task.done
     task.completed_at = timezone.now() if task.done else None
     task.save()
-    if task.done and task.project_id:
-        Update.objects.create(
-            user_id=user_id, project_id=task.project_id, note=f"Completed: {task.title}"
+    if task.done:
+        log_event(
+            user_id,
+            kind=ActivityKind.TASK_COMPLETED,
+            entity_id=task.id,
+            entity_title=task.title,
+            project_id=task.project_id,
         )
-        Project.objects.filter(pk=task.project_id, user_id=user_id).update(
-            last_activity=timezone.now()
-        )
+        if task.project_id:
+            Project.objects.filter(pk=task.project_id, user_id=user_id).update(
+                last_activity=timezone.now()
+            )
     bump_context_version(user_id)
     return task
 
 
 def delete_task(user_id: uuid.UUID, task_id) -> None:
+    task = (
+        Task.objects.filter(pk=task_id, user_id=user_id)
+        .only("id", "title", "project_id")
+        .first()
+    )
     Task.objects.filter(pk=task_id, user_id=user_id).delete()
+    if task is not None:
+        log_event(
+            user_id,
+            kind=ActivityKind.TASK_DELETED,
+            entity_id=task.id,
+            entity_title=task.title,
+            project_id=task.project_id,
+        )
     bump_context_version(user_id)

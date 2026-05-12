@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Project, ProjectNote, Task, Idea, Update, BackupMeta, Category
+from .models import Activity, BackupMeta, Category, Idea, Project, ProjectNote, Task
 
 
 @admin.register(Project)
@@ -25,9 +25,16 @@ class IdeaAdmin(admin.ModelAdmin):
     list_display = ("title", "user_id", "created")
 
 
-@admin.register(Update)
-class UpdateAdmin(admin.ModelAdmin):
-    list_display = ("project", "note", "date")
+@admin.register(Activity)
+class ActivityAdmin(admin.ModelAdmin):
+    list_display = ("kind", "entity_title", "project_id", "user_id", "created")
+    list_filter = ("kind",)
+    search_fields = ("entity_title", "note")
+    readonly_fields = (
+        "id", "user_id", "kind", "entity_id", "entity_title",
+        "project_id", "target_project_id", "note",
+        "previous_value", "new_value", "created",
+    )
 
 
 @admin.register(ProjectNote)

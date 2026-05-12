@@ -8,8 +8,9 @@ from typing import Optional
 from django.db import transaction
 from django.utils import timezone
 
-from ..models import Idea, Project
+from ..models import ActivityKind, Idea, Project
 from ._cache import bump_context_version
+from .activities import log_event
 from .projects import NotFoundError
 
 
@@ -40,6 +41,12 @@ def create_idea(
         description=description or "",
         why=why or "",
     )
+    log_event(
+        user_id,
+        kind=ActivityKind.IDEA_CREATED,
+        entity_id=idea.id,
+        entity_title=idea.title,
+    )
     bump_context_version(user_id)
     return idea
 
@@ -62,7 +69,19 @@ def update_idea(
 
 
 def delete_idea(user_id: uuid.UUID, idea_id) -> None:
+    idea = (
+        Idea.objects.filter(pk=idea_id, user_id=user_id)
+        .only("id", "title")
+        .first()
+    )
     Idea.objects.filter(pk=idea_id, user_id=user_id).delete()
+    if idea is not None:
+        log_event(
+            user_id,
+            kind=ActivityKind.IDEA_DELETED,
+            entity_id=idea.id,
+            entity_title=idea.title,
+        )
     bump_context_version(user_id)
 
 
@@ -77,6 +96,16 @@ def promote_idea(user_id: uuid.UUID, idea_id) -> Project:
             status="idea",
             promoted_from_idea_at=timezone.now(),
         )
+        idea_id_snapshot = idea.id
+        idea_title_snapshot = idea.title
         idea.delete()
+        log_event(
+            user_id,
+            kind=ActivityKind.IDEA_PROMOTED,
+            entity_id=idea_id_snapshot,
+            entity_title=idea_title_snapshot,
+            project_id=project.id,
+            target_project_id=project.id,
+        )
     bump_context_version(user_id)
     return project
