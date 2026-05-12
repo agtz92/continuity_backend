@@ -119,3 +119,9 @@ class ProjectNote(TimestampedModel):
 class BackupMeta(models.Model):
     user_id = models.UUIDField(primary_key=True)
     last_backup = models.DateTimeField(null=True, blank=True)
+
+
+class Profile(models.Model):
+    user_id = models.UUIDField(primary_key=True)
+    avatar = models.CharField(max_length=64, blank=True, default="")
+    updated_at = models.DateTimeField(auto_now=True)

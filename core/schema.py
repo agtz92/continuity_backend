@@ -17,12 +17,14 @@ from .models import (
     Update as UpdateModel,
     BackupMeta,
     Category as CategoryModel,
+    Profile as ProfileModel,
 )
 from .notifications.schema import NotificationsQuery, NotificationsMutation
 from .services import (
     categories as categories_svc,
     ideas as ideas_svc,
     notes as notes_svc,
+    profiles as profiles_svc,
     projects as projects_svc,
     tasks as tasks_svc,
     updates as updates_svc,
@@ -172,6 +174,15 @@ class Update:
             note=m.note,
             date=m.date,
         )
+
+
+@strawberry.type
+class Profile:
+    avatar: Optional[str]
+
+    @classmethod
+    def from_model(cls, m: ProfileModel) -> "Profile":
+        return cls(avatar=m.avatar or None)
 
 
 @strawberry.type
@@ -471,6 +482,11 @@ class Query:
         result = analytics_mod.compute_analytics(uid, range)
         return _to_analytics_gql(result)
 
+    @strawberry.field
+    def profile(self, info: Info) -> Profile:
+        uid = _user_id(info)
+        return Profile.from_model(profiles_svc.get_profile(uid))
+
 
 # ---------- Mutations ----------
 
@@ -706,6 +722,23 @@ class Mutation:
             user_id=uid, defaults={"last_backup": now}
         )
         return now
+
+    # Profile
+    @strawberry.mutation
+    def update_profile(
+        self, info: Info, avatar: Optional[str] = None
+    ) -> Profile:
+        from django.core.exceptions import ValidationError
+
+        uid = _user_id(info)
+        try:
+            m = profiles_svc.set_avatar(uid, avatar)
+        except ValidationError as e:
+            raise GraphQLError(
+                str(e.messages[0] if e.messages else "Invalid input"),
+                extensions={"code": "BAD_INPUT"},
+            )
+        return Profile.from_model(m)
 
 
 CombinedQuery = merge_types("Query", (Query, NotificationsQuery))
