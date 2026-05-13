@@ -45,6 +45,7 @@ class AccountProfile(models.Model):
     plan_renews_at = models.DateTimeField(null=True, blank=True)
     stripe_customer_id = models.CharField(max_length=255, blank=True, default="")
     stripe_subscription_id = models.CharField(max_length=255, blank=True, default="")
+    is_admin = models.BooleanField(default=False, db_index=True)
     context_version = models.IntegerField(default=0)
     created = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

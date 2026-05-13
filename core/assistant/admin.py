@@ -5,8 +5,15 @@ from .models import AccountProfile, Conversation, Message, UsageDay
 
 @admin.register(AccountProfile)
 class AccountProfileAdmin(admin.ModelAdmin):
-    list_display = ("user_id", "plan", "plan_renews_at", "context_version", "updated_at")
-    list_filter = ("plan",)
+    list_display = (
+        "user_id",
+        "plan",
+        "is_admin",
+        "plan_renews_at",
+        "context_version",
+        "updated_at",
+    )
+    list_filter = ("plan", "is_admin")
     search_fields = ("user_id", "stripe_customer_id")
 
 

@@ -10,6 +10,7 @@ ALLOWED_HOSTS = config("DJANGO_ALLOWED_HOSTS", default="*", cast=Csv())
 
 SUPABASE_URL = config("SUPABASE_URL", default="").rstrip("/")
 SUPABASE_JWT_SECRET = config("SUPABASE_JWT_SECRET", default="")  # legacy HS256 fallback
+SUPABASE_SERVICE_ROLE_KEY = config("SUPABASE_SERVICE_ROLE_KEY", default="")  # admin-only
 
 # Notifications
 TELEGRAM_BOT_TOKEN = config("TELEGRAM_BOT_TOKEN", default="")
@@ -33,6 +34,8 @@ INSTALLED_APPS = [
     "core",
     "core.notifications.apps.NotificationsConfig",
     "core.assistant.apps.AssistantConfig",
+    "core.admin_api.apps.AdminApiConfig",
+    "core.cms.apps.CmsConfig",
 ]
 
 MIDDLEWARE = [

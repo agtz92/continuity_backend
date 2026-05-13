@@ -22,6 +22,8 @@ from .models import (
     RoutineOccurrence as RoutineOccurrenceModel,
 )
 from .notifications.schema import NotificationsQuery, NotificationsMutation
+from .admin_api.schema import AdminQuery, AdminMutation
+from .cms.schema_admin import CmsAdminQuery, CmsAdminMutation
 from .services import (
     activities as activities_svc,
     categories as categories_svc,
@@ -992,7 +994,12 @@ class Mutation:
         return Profile.from_model(m)
 
 
-CombinedQuery = merge_types("Query", (Query, NotificationsQuery))
-CombinedMutation = merge_types("Mutation", (Mutation, NotificationsMutation))
+CombinedQuery = merge_types(
+    "Query", (Query, NotificationsQuery, AdminQuery, CmsAdminQuery)
+)
+CombinedMutation = merge_types(
+    "Mutation",
+    (Mutation, NotificationsMutation, AdminMutation, CmsAdminMutation),
+)
 
 schema = strawberry.Schema(query=CombinedQuery, mutation=CombinedMutation)
