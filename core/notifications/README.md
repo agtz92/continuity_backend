@@ -12,9 +12,9 @@ Notification system (Telegram → WhatsApp) that pushes the analytics digest and
 
 Already in this module:
 
-- **Models** ([models.py](models.py)): `NotificationSettings` (1 per user), `NotificationLink` (linked channel), `Notification` (outbox, dedupe on `(user_id, channel, kind, dedupe_key)`).
-- **Providers** ([providers/](providers/)): `NotificationProvider` ABC, `TelegramProvider` (direct HTTP to `api.telegram.org`, no SDK).
-- **Dispatcher** ([dispatcher.py](dispatcher.py)): `enqueue()` UPSERT-idempotent; reusable from any command.
+- **Models** ([models.py](models.py)): `NotificationSettings` (1 per user, holds toggles + schedule per digest type), `NotificationLink` (linked channel), `Notification` (outbox, dedupe on `(user_id, channel, kind, dedupe_key)`). `NotificationKind` values: `weekly_digest`, `daily_digest`, `sleeping_alert`, `due_reminder`, `manual`.
+- **Providers** ([providers/](providers/)): `NotificationProvider` ABC + `InlineButton` TypedDict, `TelegramProvider` (direct HTTP to `api.telegram.org`, no SDK; converts `buttons` into `reply_markup.inline_keyboard`).
+- **Dispatcher** ([dispatcher.py](dispatcher.py)): `enqueue()` UPSERT-idempotent; reusable from any command. Accepts an optional `buttons=[{text,url}, ...]` that is threaded through to the provider — channel-agnostic, graceful degradation for providers that don't render inline keyboards.
 - **Webhook** ([views.py](views.py)): `/api/telegram/webhook/<secret>/` receives `/start <token>` and binds the `chat_id`.
 - **GraphQL** ([schema.py](schema.py)): `notificationSettings` query, `updateNotificationSettings`, `requestChannelLink(TELEGRAM)`, `disconnectChannel(...)` mutations.
 - **Commands**:
@@ -32,22 +32,41 @@ Done:
   - Flags: `--force` (ignore schedule, uses a unique-per-run dedupe key so re-sends are allowed), `--user-id <uuid>`, `--all-verified`.
   - Natural production dedupe: `weekly:{iso_year}-W{iso_week}` → re-running the cron is a no-op.
 
-Pending (the only thing left from Phase 2):
+**Render Cron Job ✅**. Defined in [backend/render.yaml](../../render.yaml) as `continuity-notifications-hourly` (`schedule: "0 * * * *"`, `plan: starter` — cron isn't on Render's free tier). The hourly cron currently runs:
 
-- **Render Cron Job**. Add to `backend/render.yaml`:
-  ```yaml
-    - type: cron
-      name: continuity-notifications-hourly
-      runtime: python
-      rootDir: backend
-      plan: free
-      schedule: "0 * * * *"
-      buildCommand: "./build.sh"
-      startCommand: "python manage.py send_weekly_digest && python manage.py send_sleeping_alerts && python manage.py send_due_reminders"
-      envVars:
-        # same refs as the web service: DATABASE_URL, SUPABASE_*, TELEGRAM_*, NOTIFICATIONS_DEFAULT_TIMEZONE
-  ```
-  The cron runs every hour; the "is it the user's hour?" filter happens inside the command, so a single cron covers any timezone. The `send_sleeping_alerts` / `send_due_reminders` commands don't exist yet — Render will error on those until they ship in Phase 3 (you can run only `send_weekly_digest` for now).
+```yaml
+startCommand: "python manage.py send_weekly_digest && python manage.py send_daily_digest && python manage.py send_due_reminders"
+```
+
+The "is it the user's hour?" filter happens inside each command, so a single cron covers any timezone. When `send_sleeping_alerts` ships in Phase 3, append it to the same `&&` chain.
+
+### Phase 2.5 — Daily pending digest ✅
+
+A per-user "today's pending" snapshot delivered at a user-chosen hour each day. Built on the same outbox/provider/cron infrastructure as the weekly digest.
+
+- **Settings fields** added to `NotificationSettings`: `daily_digest_enabled` (bool, default `False`), `daily_digest_hour` (0-23, default `8`). Migration: `0006_notificationsettings_daily_digest_enabled_and_more`.
+- **Builder** ([builders.py](builders.py)): `build_daily_digest(user_id, today=None) -> str` shares `_daily_context()` and `_render_pending_sections()` with the due-warning builder. The context queries `Task` directly (tasks where `done=False` and `due_date <= end_of_today_local`, split into overdue vs due-today) and pulls today's pending routines via [core/services/routines.py](../services/routines.py) `list_due_in_range(user_id, today, today)`, filtering out ones with a completed `RoutineOccurrence`. Three sections (⏰ overdue, 📌 due today, 🔁 routines today), each lists ALL items — no cap. Closes with a `daily.cta` line ("💪 *Marca tu progreso* a lo largo del día").
+- **Command** ([management/commands/send_daily_digest.py](management/commands/send_daily_digest.py)):
+  - Runs hourly (same cron). Filters by `now_local.hour == setting.daily_digest_hour` in the user's `setting.timezone`.
+  - Natural dedupe: `daily:{YYYY-MM-DD}` (the user's local date) → one delivery per day per user.
+  - `--force` uses a unique `daily:test:{ts}` key so test runs always re-send. Same `--user-id` / `--all-verified` flags as `send_weekly_digest`.
+  - Passes a localized inline button `[{"text": s["daily.openDashboard"], "url": DASHBOARD_URL}]` to `enqueue()` — Telegram renders it as a tappable button below the message.
+- **GraphQL** ([schema.py](schema.py)): `dailyDigestEnabled` and `dailyDigestHour` exposed on both query and `NotificationSettingsInput`.
+- **Frontend**: new "Pendientes diarios" section in `/settings/notifications` (toggle + hour selector). All settings mutations write the response back into the Apollo cache via an `update` callback in [NotificationSettings.tsx](../../../frontend/src/components/notifications/NotificationSettings.tsx) — necessary because `NotificationSettingsType` has no `id` and Apollo otherwise can't auto-merge mutation results into the query cache.
+
+### Phase 2.6 — End-of-day pending warning ✅
+
+A conditional warning that fires at a user-chosen hour **only if items are still open** that day. The same data as the daily digest, framed as a heads-up ("⚠️ Aún tienes pendientes — Quedan *N* items abiertos hoy").
+
+- **Settings fields** in `NotificationSettings`: `due_reminders_enabled` (bool, default `True`), `due_reminder_hour` (0-23, default `19` — 7pm). The legacy `due_reminder_lead_hours` was removed in migration `0007_remove_notificationsettings_due_reminder_lead_hours_and_more` — the original per-task lead-hours design (in the obsolete Phase 3 section below) was rejected because the daily digest already covers per-task awareness; the warning serves a different need.
+- **Builder** ([builders.py](builders.py)): `build_due_warning(user_id, today=None) -> str | None` returns `None` when nothing's pending so the command can skip the send entirely (no outbox row, no Telegram call). When there is pending work, it reuses `_render_pending_sections()` with a warning-flavored intro (`due.title`, `due.lead`, `due.cta`).
+- **Command** ([management/commands/send_due_reminders.py](management/commands/send_due_reminders.py)):
+  - Runs hourly (same cron). Filters by `now_local.hour == setting.due_reminder_hour`.
+  - Dedupe: `due_warning:{YYYY-MM-DD}` → at most one warning per day per user.
+  - Reports `sent`, `skipped_by_schedule`, `skipped_empty` separately so the empty-no-op path is observable.
+  - Same flags as the other digest commands; same inline button.
+- **GraphQL**: `dueReminderHour` replaces `dueReminderLeadHours` on the query and input.
+- **Frontend**: the existing toggle "Aviso de pendientes a fin de día" now pairs with an hour selector instead of a hours-of-lead number input.
 
 ### Phase 1 local activation
 
@@ -65,19 +84,28 @@ Pending (the only thing left from Phase 2):
 
 In production (Render): same envs in the dashboard, `--base-url https://continuity-backend.onrender.com`.
 
-### Trigger the digest manually
+### Trigger a digest manually
 
-Once a user is connected, you can send them the weekly digest at any time:
+Once a user is connected, you can send any of the notifications at any time:
 
 ```powershell
-python manage.py send_weekly_digest --force --user-id <uuid>
+python manage.py send_weekly_digest  --force --user-id <uuid>
+python manage.py send_daily_digest   --force --user-id <uuid>
+python manage.py send_due_reminders  --force --user-id <uuid>
 ```
 
-`--force` ignores the cron schedule (day/hour) and uses a per-run unique `dedupe_key`, so you can run it multiple times and each will deliver. To send to all verified users at once: `--all-verified --force`. Without `--force`, it only sends to users whose configured `(day, hour)` in their local timezone matches now.
+`--force` ignores the cron schedule and uses a per-run unique `dedupe_key`, so each invocation delivers (except `send_due_reminders`, which still skips silently when there's nothing pending — that's a feature, not a schedule skip). To send to all verified users at once: `--all-verified --force`.
 
 ---
 
-## Phase 3 — Sleeping alerts + Due reminders + Manual
+## Phase 3 — Sleeping alerts + Manual
+
+> **Note**: the original Phase 3 design included per-task "due reminders" (one
+> message per task crossing a `due_reminder_lead_hours` threshold). That design
+> was replaced by the end-of-day warning above (Phase 2.6) — the daily digest
+> already gives per-task awareness, so a separate stream of per-task pings was
+> noise. The remaining Phase 3 work is sleeping alerts and manual
+> notifications.
 
 ### Sleeping alerts
 
@@ -102,29 +130,6 @@ for project in Project.objects.filter(user_id=uid).exclude(status__in=["archived
                 dedupe_key=f"sleeping:{project.id}:{t}",
                 body=builders.build_sleeping_alert(project, days_idle=days, threshold=t),
             )
-```
-
-### Due reminders
-
-`management/commands/send_due_reminders.py`:
-
-```python
-for setting in NotificationSettings.objects.filter(due_reminders_enabled=True):
-    cutoff = now + timedelta(hours=setting.due_reminder_lead_hours)
-    tasks = Task.objects.filter(
-        user_id=setting.user_id,
-        done=False,
-        due_date__isnull=False,
-        due_date__lte=cutoff,
-        due_date__gte=now,
-    )
-    for task in tasks:
-        enqueue(
-            user_id=setting.user_id,
-            kind="due_reminder",
-            dedupe_key=f"due:{task.id}",  # one notification per task, ever
-            body=builders.build_due_reminder(task),
-        )
 ```
 
 ### Manual notifications
@@ -234,7 +239,7 @@ Twilio Console steps (1-3 business days):
        )
    ```
    Free-form `body` only works inside the 24h window (after the user messages you).
-6. The **builders** now need to return both Markdown text (for Telegram) and a variables dict (for WhatsApp). Suggested refactor: `build_weekly_digest(user_id) → BuiltMessage(text, variables)`.
+6. The **builders** now need to return both Markdown text (for Telegram) and a variables dict (for WhatsApp). Suggested refactor: `build_weekly_digest(user_id) → BuiltMessage(text, variables)`. The button infrastructure already in place (`enqueue(buttons=...)`, `InlineButton` TypedDict) doesn't need to change — `TwilioWhatsAppProvider.send` will receive `buttons` but ignore them (free-form WhatsApp messages can't render rich keyboards; approved HSM templates with quick-reply buttons can be wired up later as a separate enhancement).
 
 ### Phase 4 verification
 
@@ -289,3 +294,4 @@ The **Twilio sandbox is free** and enough to validate the entire system before i
 - **Provider abstraction**: new platforms (email, push, SMS) are a new class in `providers/`, not a refactor.
 - **Timezones**: cron runs in UTC but scheduling decisions are made in `setting.timezone`. Don't use `timezone.now().hour` to decide; convert first.
 - **Markdown V2**: any dynamic content must go through `md_escape()` before reaching `body`.
+- **Inline buttons live outside the persisted body**: pass them via `enqueue(buttons=[...])`, not inline `[label](url)` syntax. The body stored in the outbox stays plain, providers attach the keyboard at send-time, and WhatsApp (which can't render rich keyboards in free-form messages) degrades cleanly. When you need a CTA, append a short motivating line to `body` and let the button carry the URL.

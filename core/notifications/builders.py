@@ -9,6 +9,7 @@ from __future__ import annotations
 import datetime as dt
 import uuid
 import zoneinfo
+from dataclasses import dataclass
 
 from django.utils import timezone
 
@@ -140,6 +141,52 @@ def build_daily_digest(user_id: uuid.UUID, *, today: dt.date | None = None) -> s
     user's `NotificationSettings.timezone` (the command passes it explicitly
     so the cutoff matches the user's schedule).
     """
+    ctx = _daily_context(user_id, today)
+    s = ctx.strings
+
+    lines: list[str] = []
+    date_str = ctx.today.strftime("%a %d %b")
+    lines.append(f"📋 *{_esc(s['daily.title'])}* — {_esc(date_str)}")
+    lines.append("")
+
+    if not ctx.overdue and not ctx.due_today and not ctx.routines_pending:
+        lines.append(s["daily.empty"])
+        return "\n".join(lines).strip()
+
+    lines.extend(_render_pending_sections(ctx))
+    lines.append(s["daily.cta"])
+    return "\n".join(lines).strip()
+
+
+def build_due_warning(user_id: uuid.UUID, *, today: dt.date | None = None) -> str | None:
+    """End-of-day warning when items are still pending. Returns None when
+    nothing's open so the command can skip the send."""
+    ctx = _daily_context(user_id, today)
+    if not ctx.overdue and not ctx.due_today and not ctx.routines_pending:
+        return None
+    s = ctx.strings
+    total = len(ctx.overdue) + len(ctx.due_today) + len(ctx.routines_pending)
+
+    lines: list[str] = []
+    lines.append(f"⚠️ *{_esc(s['due.title'])}*")
+    lines.append(s["due.lead"].format(count=total))
+    lines.append("")
+    lines.extend(_render_pending_sections(ctx))
+    lines.append(s["due.cta"])
+    return "\n".join(lines).strip()
+
+
+@dataclass
+class _DailyContext:
+    today: dt.date
+    tz: zoneinfo.ZoneInfo
+    strings: dict
+    overdue: list[Task]
+    due_today: list[Task]
+    routines_pending: list["Routine"]
+
+
+def _daily_context(user_id: uuid.UUID, today: dt.date | None) -> _DailyContext:
     setting = (
         NotificationSettings.objects.filter(user_id=user_id)
         .only("locale", "timezone")
@@ -153,7 +200,6 @@ def build_daily_digest(user_id: uuid.UUID, *, today: dt.date | None = None) -> s
         tz = zoneinfo.ZoneInfo("UTC")
     if today is None:
         today = timezone.now().astimezone(tz).date()
-    s = i18n_strings.get(locale)
 
     end_of_today_local = dt.datetime.combine(today, dt.time.max, tzinfo=tz)
     start_of_today_local = dt.datetime.combine(today, dt.time.min, tzinfo=tz)
@@ -171,45 +217,49 @@ def build_daily_digest(user_id: uuid.UUID, *, today: dt.date | None = None) -> s
     overdue = [t for t in open_tasks if t.due_date < start_of_today_local]
     due_today = [t for t in open_tasks if t.due_date >= start_of_today_local]
 
-    routines_pending = _pending_routines_for_day(user_id, today)
+    return _DailyContext(
+        today=today,
+        tz=tz,
+        strings=i18n_strings.get(locale),
+        overdue=overdue,
+        due_today=due_today,
+        routines_pending=_pending_routines_for_day(user_id, today),
+    )
 
+
+def _render_pending_sections(ctx: _DailyContext) -> list[str]:
+    """Shared section rendering for daily digest and due-warning."""
+    s = ctx.strings
+    start_of_today_local = dt.datetime.combine(ctx.today, dt.time.min, tzinfo=ctx.tz)
     lines: list[str] = []
-    date_str = today.strftime("%a %d %b")
-    lines.append(f"📋 *{_esc(s['daily.title'])}* — {_esc(date_str)}")
-    lines.append("")
 
-    if not overdue and not due_today and not routines_pending:
-        lines.append(s["daily.empty"])
-        return "\n".join(lines).strip()
-
-    if overdue:
-        lines.append("⏰ " + s["daily.overdueHeader"].format(count=len(overdue)))
-        for task in overdue:
+    if ctx.overdue:
+        lines.append("⏰ " + s["daily.overdueHeader"].format(count=len(ctx.overdue)))
+        for task in ctx.overdue:
             days_late = (
-                start_of_today_local.date() - task.due_date.astimezone(tz).date()
+                start_of_today_local.date() - task.due_date.astimezone(ctx.tz).date()
             ).days
             suffix = s["daily.rowOverdueSuffix"].format(days=days_late)
             lines.append(_bullet(_daily_task_row(s, task) + suffix))
         lines.append("")
 
-    if due_today:
-        lines.append("📌 " + s["daily.dueTodayHeader"].format(count=len(due_today)))
-        for task in due_today:
+    if ctx.due_today:
+        lines.append("📌 " + s["daily.dueTodayHeader"].format(count=len(ctx.due_today)))
+        for task in ctx.due_today:
             lines.append(_bullet(_daily_task_row(s, task)))
         lines.append("")
 
-    if routines_pending:
+    if ctx.routines_pending:
         lines.append(
-            "🔁 " + s["daily.routinesHeader"].format(count=len(routines_pending))
+            "🔁 " + s["daily.routinesHeader"].format(count=len(ctx.routines_pending))
         )
-        for routine in routines_pending:
+        for routine in ctx.routines_pending:
             lines.append(
                 _bullet(s["daily.routineRow"].format(title=_esc(routine.title)))
             )
         lines.append("")
 
-    lines.append(s["daily.cta"])
-    return "\n".join(lines).strip()
+    return lines
 
 
 def _daily_task_row(s: dict, task: Task) -> str:

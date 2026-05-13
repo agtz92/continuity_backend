@@ -45,7 +45,7 @@ class NotificationSettings(models.Model):
 
     sleeping_alerts_enabled = models.BooleanField(default=True)
     due_reminders_enabled = models.BooleanField(default=True)
-    due_reminder_lead_hours = models.PositiveSmallIntegerField(default=24)
+    due_reminder_hour = models.PositiveSmallIntegerField(default=19)  # 0-23 local
 
     manual_enabled = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)

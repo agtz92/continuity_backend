@@ -29,4 +29,7 @@ STRINGS = {
     "daily.routineRow": "{title}",
     "daily.cta": "💪 *Marca tu progreso* a lo largo del día",
     "daily.openDashboard": "Ver pendientes",
+    "due.title": "Aún tienes pendientes",
+    "due.lead": "Quedan *{count}* items abiertos hoy\\.",
+    "due.cta": "🚀 *Cierra el día fuerte* — no dejes nada al pendiente",
 }

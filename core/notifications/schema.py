@@ -63,7 +63,7 @@ class NotificationSettingsType:
     daily_digest_hour: int
     sleeping_alerts_enabled: bool
     due_reminders_enabled: bool
-    due_reminder_lead_hours: int
+    due_reminder_hour: int
     manual_enabled: bool
     is_admin: bool
     links: List[NotificationLinkType]
@@ -89,7 +89,7 @@ class NotificationSettingsInput:
     daily_digest_hour: Optional[int] = None
     sleeping_alerts_enabled: Optional[bool] = None
     due_reminders_enabled: Optional[bool] = None
-    due_reminder_lead_hours: Optional[int] = None
+    due_reminder_hour: Optional[int] = None
     manual_enabled: Optional[bool] = None
 
 
@@ -125,7 +125,7 @@ def _to_gql(s: SettingsModel) -> NotificationSettingsType:
         daily_digest_hour=s.daily_digest_hour,
         sleeping_alerts_enabled=s.sleeping_alerts_enabled,
         due_reminders_enabled=s.due_reminders_enabled,
-        due_reminder_lead_hours=s.due_reminder_lead_hours,
+        due_reminder_hour=s.due_reminder_hour,
         manual_enabled=s.manual_enabled,
         is_admin=s.is_admin,
         links=[
@@ -204,8 +204,8 @@ class NotificationsMutation:
             s.sleeping_alerts_enabled = data.sleeping_alerts_enabled
         if data.due_reminders_enabled is not None:
             s.due_reminders_enabled = data.due_reminders_enabled
-        if data.due_reminder_lead_hours is not None:
-            s.due_reminder_lead_hours = max(1, min(168, data.due_reminder_lead_hours))
+        if data.due_reminder_hour is not None:
+            s.due_reminder_hour = max(0, min(23, data.due_reminder_hour))
         if data.manual_enabled is not None:
             s.manual_enabled = data.manual_enabled
         s.save()
