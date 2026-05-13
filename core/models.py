@@ -130,6 +130,62 @@ class ActivityKind(models.TextChoices):
     IDEA_CREATED = "idea_created", "Idea created"
     IDEA_DELETED = "idea_deleted", "Idea deleted"
     IDEA_PROMOTED = "idea_promoted", "Idea promoted"
+    ROUTINE_CREATED = "routine_created", "Routine created"
+    ROUTINE_COMPLETED = "routine_completed", "Routine completed"
+    ROUTINE_DELETED = "routine_deleted", "Routine deleted"
+
+
+class RecurrenceType(models.TextChoices):
+    ONCE = "once", "Once"
+    WEEKLY_DAYS = "weekly_days", "Weekly days"
+    EVERY_N = "every_n", "Every N"
+    MONTHLY_DAY = "monthly_day", "Monthly day"
+
+
+class IntervalUnit(models.TextChoices):
+    DAYS = "days", "Days"
+    WEEKS = "weeks", "Weeks"
+    MONTHS = "months", "Months"
+
+
+class Routine(TimestampedModel):
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True, default="")
+    recurrence_type = models.CharField(
+        max_length=20, choices=RecurrenceType.choices
+    )
+    start_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)
+    weekdays = models.JSONField(default=list, blank=True)
+    interval_n = models.PositiveIntegerField(null=True, blank=True)
+    interval_unit = models.CharField(
+        max_length=10, choices=IntervalUnit.choices, blank=True, default=""
+    )
+    monthly_day = models.PositiveSmallIntegerField(null=True, blank=True)
+    archived = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["archived", "-created"]
+        indexes = [models.Index(fields=["user_id", "archived"])]
+
+
+class RoutineOccurrence(TimestampedModel):
+    routine = models.ForeignKey(
+        Routine, on_delete=models.CASCADE, related_name="occurrences"
+    )
+    scheduled_date = models.DateField()
+    completed_at = models.DateTimeField()
+    note = models.TextField(blank=True, default="")
+
+    class Meta:
+        ordering = ["-scheduled_date"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["routine", "scheduled_date"],
+                name="unique_routine_occurrence_per_day",
+            )
+        ]
+        indexes = [models.Index(fields=["user_id", "-scheduled_date"])]
 
 
 class Activity(TimestampedModel):

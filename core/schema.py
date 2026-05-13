@@ -18,6 +18,8 @@ from .models import (
     BackupMeta,
     Category as CategoryModel,
     Profile as ProfileModel,
+    Routine as RoutineModel,
+    RoutineOccurrence as RoutineOccurrenceModel,
 )
 from .notifications.schema import NotificationsQuery, NotificationsMutation
 from .services import (
@@ -27,6 +29,7 @@ from .services import (
     notes as notes_svc,
     profiles as profiles_svc,
     projects as projects_svc,
+    routines as routines_svc,
     tasks as tasks_svc,
 )
 from .services.projects import NotFoundError
@@ -202,6 +205,67 @@ class Profile:
 
 
 @strawberry.type
+class Routine:
+    id: strawberry.ID
+    title: str
+    description: str
+    recurrence_type: str
+    start_date: dt.date
+    end_date: Optional[dt.date]
+    weekdays: List[int]
+    interval_n: Optional[int]
+    interval_unit: Optional[str]
+    monthly_day: Optional[int]
+    archived: bool
+    created: dt.datetime
+
+    @classmethod
+    def from_model(cls, m: RoutineModel) -> "Routine":
+        return cls(
+            id=strawberry.ID(str(m.id)),
+            title=m.title,
+            description=m.description,
+            recurrence_type=m.recurrence_type,
+            start_date=m.start_date,
+            end_date=m.end_date,
+            weekdays=[int(d) for d in (m.weekdays or [])],
+            interval_n=m.interval_n,
+            interval_unit=m.interval_unit or None,
+            monthly_day=m.monthly_day,
+            archived=m.archived,
+            created=m.created,
+        )
+
+
+@strawberry.type
+class RoutineOccurrence:
+    id: strawberry.ID
+    routine_id: strawberry.ID
+    scheduled_date: dt.date
+    completed_at: dt.datetime
+    note: str
+    created: dt.datetime
+
+    @classmethod
+    def from_model(cls, m: RoutineOccurrenceModel) -> "RoutineOccurrence":
+        return cls(
+            id=strawberry.ID(str(m.id)),
+            routine_id=strawberry.ID(str(m.routine_id)),
+            scheduled_date=m.scheduled_date,
+            completed_at=m.completed_at,
+            note=m.note,
+            created=m.created,
+        )
+
+
+@strawberry.type
+class RoutineDueItem:
+    routine_id: strawberry.ID
+    scheduled_date: dt.date
+    occurrence_id: Optional[strawberry.ID]
+
+
+@strawberry.type
 class Dashboard:
     projects: List[Project]
     tasks: List[Task]
@@ -209,6 +273,8 @@ class Dashboard:
     activities: List[Activity]
     categories: List[Category]
     project_notes: List[ProjectNote]
+    routines: List[Routine]
+    routine_occurrences: List[RoutineOccurrence]
     last_backup: Optional[dt.datetime]
 
 
@@ -254,6 +320,19 @@ class IdeaInput:
     title: str
     description: Optional[str] = ""
     why: Optional[str] = ""
+
+
+@strawberry.input
+class RoutineInput:
+    title: str
+    recurrence_type: str
+    start_date: dt.date
+    description: Optional[str] = ""
+    end_date: Optional[dt.date] = None
+    weekdays: Optional[List[int]] = None
+    interval_n: Optional[int] = None
+    interval_unit: Optional[str] = None
+    monthly_day: Optional[int] = None
 
 
 @strawberry.input
@@ -478,6 +557,8 @@ class Query:
         activities = list(ActivityModel.objects.filter(user_id=uid))
         categories = list(CategoryModel.objects.filter(user_id=uid))
         project_notes = list(ProjectNoteModel.objects.filter(user_id=uid))
+        routines = routines_svc.list_routines(uid, include_archived=True)
+        routine_occurrences = routines_svc.list_recent_occurrences(uid, days=90)
         meta = BackupMeta.objects.filter(user_id=uid).first()
         return Dashboard(
             projects=[Project.from_model(p) for p in projects],
@@ -486,8 +567,32 @@ class Query:
             activities=[Activity.from_model(a) for a in activities],
             categories=[Category.from_model(c) for c in categories],
             project_notes=[ProjectNote.from_model(n) for n in project_notes],
+            routines=[Routine.from_model(r) for r in routines],
+            routine_occurrences=[
+                RoutineOccurrence.from_model(o) for o in routine_occurrences
+            ],
             last_backup=meta.last_backup if meta else None,
         )
+
+    @strawberry.field(name="routinesDue")
+    def routines_due(
+        self,
+        info: Info,
+        from_date: dt.date,
+        to_date: dt.date,
+    ) -> List[RoutineDueItem]:
+        uid = _user_id(info)
+        items = routines_svc.list_due_in_range(uid, from_date, to_date)
+        return [
+            RoutineDueItem(
+                routine_id=strawberry.ID(str(it["routine_id"])),
+                scheduled_date=it["scheduled_date"],
+                occurrence_id=strawberry.ID(str(it["occurrence_id"]))
+                if it["occurrence_id"]
+                else None,
+            )
+            for it in items
+        ]
 
     @strawberry.field
     def analytics(
@@ -752,6 +857,104 @@ class Mutation:
     def delete_category(self, info: Info, id: strawberry.ID) -> bool:
         uid = _user_id(info)
         categories_svc.delete_category(uid, id)
+        return True
+
+    # Routines
+    @strawberry.mutation
+    def create_routine(self, info: Info, data: RoutineInput) -> Routine:
+        from django.core.exceptions import ValidationError
+
+        uid = _user_id(info)
+        try:
+            m = routines_svc.create_routine(
+                uid,
+                title=data.title,
+                description=data.description or "",
+                recurrence_type=data.recurrence_type,
+                start_date=data.start_date,
+                end_date=data.end_date,
+                weekdays=list(data.weekdays) if data.weekdays is not None else None,
+                interval_n=data.interval_n,
+                interval_unit=data.interval_unit or None,
+                monthly_day=data.monthly_day,
+            )
+        except ValidationError as e:
+            raise GraphQLError(
+                str(e.messages[0] if e.messages else "Invalid input"),
+                extensions={"code": "BAD_INPUT"},
+            )
+        return Routine.from_model(m)
+
+    @strawberry.mutation
+    def update_routine(
+        self, info: Info, id: strawberry.ID, data: RoutineInput
+    ) -> Routine:
+        from django.core.exceptions import ValidationError
+
+        uid = _user_id(info)
+        try:
+            m = routines_svc.update_routine(
+                uid,
+                id,
+                title=data.title,
+                description=data.description or "",
+                recurrence_type=data.recurrence_type,
+                start_date=data.start_date,
+                end_date=data.end_date,
+                weekdays=list(data.weekdays) if data.weekdays is not None else None,
+                interval_n=data.interval_n,
+                interval_unit=data.interval_unit or None,
+                monthly_day=data.monthly_day,
+            )
+        except NotFoundError:
+            raise _not_found("Routine")
+        except ValidationError as e:
+            raise GraphQLError(
+                str(e.messages[0] if e.messages else "Invalid input"),
+                extensions={"code": "BAD_INPUT"},
+            )
+        return Routine.from_model(m)
+
+    @strawberry.mutation
+    def archive_routine(
+        self, info: Info, id: strawberry.ID, archived: bool
+    ) -> Routine:
+        uid = _user_id(info)
+        try:
+            m = routines_svc.archive_routine(uid, id, archived=archived)
+        except NotFoundError:
+            raise _not_found("Routine")
+        return Routine.from_model(m)
+
+    @strawberry.mutation
+    def delete_routine(self, info: Info, id: strawberry.ID) -> bool:
+        uid = _user_id(info)
+        routines_svc.delete_routine(uid, id)
+        return True
+
+    @strawberry.mutation(name="completeRoutineOccurrence")
+    def complete_routine_occurrence(
+        self,
+        info: Info,
+        routine_id: strawberry.ID,
+        scheduled_date: dt.date,
+        note: Optional[str] = "",
+    ) -> RoutineOccurrence:
+        uid = _user_id(info)
+        try:
+            m = routines_svc.complete_occurrence(
+                uid, routine_id, scheduled_date=scheduled_date, note=note or ""
+            )
+        except NotFoundError:
+            raise _not_found("Routine")
+        return RoutineOccurrence.from_model(m)
+
+    @strawberry.mutation(name="uncompleteRoutineOccurrence")
+    def uncomplete_routine_occurrence(
+        self, info: Info, id: strawberry.ID
+    ) -> bool:
+        uid = _user_id(info)
+        routines_svc.uncomplete_occurrence(uid, id)
         return True
 
     # Backup metadata
