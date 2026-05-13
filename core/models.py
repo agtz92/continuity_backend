@@ -162,6 +162,7 @@ class Routine(TimestampedModel):
         max_length=10, choices=IntervalUnit.choices, blank=True, default=""
     )
     monthly_day = models.PositiveSmallIntegerField(null=True, blank=True)
+    effort_hours = models.FloatField(null=True, blank=True)
     archived = models.BooleanField(default=False)
 
     class Meta:

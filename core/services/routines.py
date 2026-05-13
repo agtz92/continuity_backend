@@ -116,6 +116,7 @@ def create_routine(
     interval_n: Optional[int] = None,
     interval_unit: Optional[str] = None,
     monthly_day: Optional[int] = None,
+    effort_hours: Optional[float] = None,
 ) -> Routine:
     _validate_rule(
         recurrence_type=recurrence_type,
@@ -142,6 +143,7 @@ def create_routine(
         recurrence_type=recurrence_type,
         start_date=start_date,
         end_date=end_date,
+        effort_hours=effort_hours,
         **cleaned,
     )
     log_event(
@@ -167,6 +169,7 @@ def update_routine(
     interval_n: Optional[int] = None,
     interval_unit: Optional[str] = None,
     monthly_day: Optional[int] = None,
+    effort_hours: Optional[float] = None,
 ) -> Routine:
     routine = get_routine(user_id, routine_id)
     _validate_rule(
@@ -196,6 +199,7 @@ def update_routine(
     routine.interval_n = cleaned["interval_n"]
     routine.interval_unit = cleaned["interval_unit"]
     routine.monthly_day = cleaned["monthly_day"]
+    routine.effort_hours = effort_hours
     routine.save()
     bump_context_version(user_id)
     return routine

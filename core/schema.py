@@ -216,6 +216,7 @@ class Routine:
     interval_n: Optional[int]
     interval_unit: Optional[str]
     monthly_day: Optional[int]
+    effort_hours: Optional[float]
     archived: bool
     created: dt.datetime
 
@@ -232,6 +233,7 @@ class Routine:
             interval_n=m.interval_n,
             interval_unit=m.interval_unit or None,
             monthly_day=m.monthly_day,
+            effort_hours=m.effort_hours,
             archived=m.archived,
             created=m.created,
         )
@@ -333,6 +335,7 @@ class RoutineInput:
     interval_n: Optional[int] = None
     interval_unit: Optional[str] = None
     monthly_day: Optional[int] = None
+    effort_hours: Optional[float] = None
 
 
 @strawberry.input
@@ -877,6 +880,7 @@ class Mutation:
                 interval_n=data.interval_n,
                 interval_unit=data.interval_unit or None,
                 monthly_day=data.monthly_day,
+                effort_hours=data.effort_hours,
             )
         except ValidationError as e:
             raise GraphQLError(
@@ -905,6 +909,7 @@ class Mutation:
                 interval_n=data.interval_n,
                 interval_unit=data.interval_unit or None,
                 monthly_day=data.monthly_day,
+                effort_hours=data.effort_hours,
             )
         except NotFoundError:
             raise _not_found("Routine")
