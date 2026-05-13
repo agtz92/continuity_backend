@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
+from typing import Optional, Sequence
 
 import requests
 from django.conf import settings
 
-from .base import DeliveryResult, NotificationProvider, ProviderError
+from .base import DeliveryResult, InlineButton, NotificationProvider, ProviderError
 
 log = logging.getLogger(__name__)
 
@@ -25,16 +25,28 @@ class TelegramProvider(NotificationProvider):
     def _api(self, method: str) -> str:
         return f"{_API_BASE}/bot{self.token}/{method}"
 
-    def send(self, external_id: str, body: str, *, kind: Optional[str] = None) -> DeliveryResult:
+    def send(
+        self,
+        external_id: str,
+        body: str,
+        *,
+        kind: Optional[str] = None,
+        buttons: Optional[Sequence[InlineButton]] = None,
+    ) -> DeliveryResult:
+        payload: dict = {
+            "chat_id": external_id,
+            "text": body,
+            "parse_mode": "MarkdownV2",
+            "disable_web_page_preview": True,
+        }
+        if buttons:
+            payload["reply_markup"] = {
+                "inline_keyboard": [[{"text": b["text"], "url": b["url"]}] for b in buttons]
+            }
         try:
             r = requests.post(
                 self._api("sendMessage"),
-                json={
-                    "chat_id": external_id,
-                    "text": body,
-                    "parse_mode": "MarkdownV2",
-                    "disable_web_page_preview": True,
-                },
+                json=payload,
                 timeout=_DEFAULT_TIMEOUT,
             )
         except requests.RequestException as e:

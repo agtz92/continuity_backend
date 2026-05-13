@@ -9,6 +9,7 @@ class Channel(models.TextChoices):
 
 class NotificationKind(models.TextChoices):
     WEEKLY_DIGEST = "weekly_digest", "Weekly digest"
+    DAILY_DIGEST = "daily_digest", "Daily pending tasks"
     SLEEPING_ALERT = "sleeping_alert", "Sleeping project alert"
     DUE_REMINDER = "due_reminder", "Due-date reminder"
     MANUAL = "manual", "Manual / admin"
@@ -38,6 +39,9 @@ class NotificationSettings(models.Model):
     digest_enabled = models.BooleanField(default=True)
     digest_day_of_week = models.PositiveSmallIntegerField(default=0)  # 0=Mon
     digest_hour = models.PositiveSmallIntegerField(default=8)  # 0-23 local
+
+    daily_digest_enabled = models.BooleanField(default=False)
+    daily_digest_hour = models.PositiveSmallIntegerField(default=8)  # 0-23 local
 
     sleeping_alerts_enabled = models.BooleanField(default=True)
     due_reminders_enabled = models.BooleanField(default=True)

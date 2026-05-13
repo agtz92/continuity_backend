@@ -6,10 +6,16 @@ from the user's `NotificationSettings.locale` (defaults to English).
 
 from __future__ import annotations
 
+import datetime as dt
 import uuid
+import zoneinfo
+
+from django.utils import timezone
 
 from core import analytics
 from core.analytics import AnalyticsRange
+from core.models import Routine, Task
+from core.services import routines as routines_service
 
 from . import i18n as i18n_strings
 from .models import NotificationSettings
@@ -125,3 +131,109 @@ def build_weekly_digest(user_id: uuid.UUID) -> str:
     lines.append(f"[{_esc(s['weekly.openDashboard'])}]({DASHBOARD_URL})")
 
     return "\n".join(lines).strip()
+
+
+def build_daily_digest(user_id: uuid.UUID, *, today: dt.date | None = None) -> str:
+    """Render the daily pending-tasks-and-routines digest for `user_id`.
+
+    `today` is the user's local date; if omitted we resolve it from the
+    user's `NotificationSettings.timezone` (the command passes it explicitly
+    so the cutoff matches the user's schedule).
+    """
+    setting = (
+        NotificationSettings.objects.filter(user_id=user_id)
+        .only("locale", "timezone")
+        .first()
+    )
+    locale = (setting.locale if setting else "en") or "en"
+    tz_name = (setting.timezone if setting else "UTC") or "UTC"
+    try:
+        tz = zoneinfo.ZoneInfo(tz_name)
+    except zoneinfo.ZoneInfoNotFoundError:
+        tz = zoneinfo.ZoneInfo("UTC")
+    if today is None:
+        today = timezone.now().astimezone(tz).date()
+    s = i18n_strings.get(locale)
+
+    end_of_today_local = dt.datetime.combine(today, dt.time.max, tzinfo=tz)
+    start_of_today_local = dt.datetime.combine(today, dt.time.min, tzinfo=tz)
+
+    open_tasks = list(
+        Task.objects.filter(
+            user_id=user_id,
+            done=False,
+            due_date__isnull=False,
+            due_date__lte=end_of_today_local,
+        )
+        .select_related("project")
+        .order_by("due_date")
+    )
+    overdue = [t for t in open_tasks if t.due_date < start_of_today_local]
+    due_today = [t for t in open_tasks if t.due_date >= start_of_today_local]
+
+    routines_pending = _pending_routines_for_day(user_id, today)
+
+    lines: list[str] = []
+    date_str = today.strftime("%a %d %b")
+    lines.append(f"📋 *{_esc(s['daily.title'])}* — {_esc(date_str)}")
+    lines.append("")
+
+    if not overdue and not due_today and not routines_pending:
+        lines.append(s["daily.empty"])
+        return "\n".join(lines).strip()
+
+    if overdue:
+        lines.append("⏰ " + s["daily.overdueHeader"].format(count=len(overdue)))
+        for task in overdue:
+            days_late = (
+                start_of_today_local.date() - task.due_date.astimezone(tz).date()
+            ).days
+            suffix = s["daily.rowOverdueSuffix"].format(days=days_late)
+            lines.append(_bullet(_daily_task_row(s, task) + suffix))
+        lines.append("")
+
+    if due_today:
+        lines.append("📌 " + s["daily.dueTodayHeader"].format(count=len(due_today)))
+        for task in due_today:
+            lines.append(_bullet(_daily_task_row(s, task)))
+        lines.append("")
+
+    if routines_pending:
+        lines.append(
+            "🔁 " + s["daily.routinesHeader"].format(count=len(routines_pending))
+        )
+        for routine in routines_pending:
+            lines.append(
+                _bullet(s["daily.routineRow"].format(title=_esc(routine.title)))
+            )
+        lines.append("")
+
+    lines.append(s["daily.cta"])
+    return "\n".join(lines).strip()
+
+
+def _daily_task_row(s: dict, task: Task) -> str:
+    project_name = task.project.name if task.project_id else ""
+    if project_name:
+        return s["daily.rowWithProject"].format(
+            title=_esc(task.title), project=_esc(project_name)
+        )
+    return s["daily.rowNoProject"].format(title=_esc(task.title))
+
+
+def _pending_routines_for_day(user_id: uuid.UUID, day: dt.date) -> list[Routine]:
+    """Routines scheduled for `day` that don't have a completed occurrence yet."""
+    items = routines_service.list_due_in_range(user_id, day, day)
+    pending_ids = [
+        item["routine_id"] for item in items if item["occurrence_id"] is None
+    ]
+    if not pending_ids:
+        return []
+    by_id = {
+        r.id: r
+        for r in Routine.objects.filter(user_id=user_id, id__in=pending_ids).only(
+            "id", "title"
+        )
+    }
+    # Preserve list_due_in_range's deterministic ordering.
+    return [by_id[rid] for rid in pending_ids if rid in by_id]

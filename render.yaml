@@ -33,3 +33,33 @@ services:
         sync: false
       - key: PYTHON_VERSION
         value: "3.12.4"
+
+  - type: cron
+    name: continuity-notifications-hourly
+    runtime: python
+    rootDir: backend
+    plan: starter
+    schedule: "0 * * * *"
+    buildCommand: "./build.sh"
+    startCommand: "python manage.py send_weekly_digest && python manage.py send_daily_digest"
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        sync: false
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_BOT_USERNAME
+        sync: false
+      - key: TELEGRAM_WEBHOOK_SECRET
+        sync: false
+      - key: NOTIFICATIONS_DEFAULT_TIMEZONE
+        value: America/Mexico_City
+      - key: PYTHON_VERSION
+        value: "3.12.4"

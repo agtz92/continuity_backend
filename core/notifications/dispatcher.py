@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Iterable, List
+from typing import Iterable, List, Optional, Sequence
 import uuid as _uuid
 
 from django.db import IntegrityError, transaction
@@ -25,7 +25,7 @@ from .models import (
     NotificationStatus,
 )
 from .providers import get_provider
-from .providers.base import ProviderError
+from .providers.base import InlineButton, ProviderError
 
 log = logging.getLogger(__name__)
 
@@ -55,12 +55,15 @@ def enqueue(
     dedupe_key: str,
     body: str,
     channels: Iterable[str] = (),
+    buttons: Optional[Sequence[InlineButton]] = None,
 ) -> EnqueueResult:
     """Create (or reuse) outbox rows and attempt delivery.
 
     - If `channels` is empty, fan out to every verified link the user has.
     - If a row already exists with status=SENT, it's a no-op (skipped).
     - Otherwise we attempt delivery and update the row to SENT or FAILED.
+    - `buttons` (optional) render as a Telegram inline keyboard; other channels
+      degrade gracefully (the persisted `body` is unchanged either way).
     """
     if kind not in NotificationKind.values:
         raise ValueError(f"Unknown kind: {kind}")
@@ -87,7 +90,7 @@ def enqueue(
             continue
 
         enq += 1
-        ok = _attempt_send(notif, link)
+        ok = _attempt_send(notif, link, buttons=buttons)
         if ok:
             sent += 1
         else:
@@ -121,7 +124,12 @@ def _upsert_notification(
         )
 
 
-def _attempt_send(notif: Notification, link: NotificationLink) -> bool:
+def _attempt_send(
+    notif: Notification,
+    link: NotificationLink,
+    *,
+    buttons: Optional[Sequence[InlineButton]] = None,
+) -> bool:
     notif.attempts = (notif.attempts or 0) + 1
     try:
         provider = get_provider(notif.channel)
@@ -131,7 +139,7 @@ def _attempt_send(notif: Notification, link: NotificationLink) -> bool:
         notif.save(update_fields=["status", "error", "attempts"])
         return False
 
-    result = provider.send(link.external_id, notif.body, kind=notif.kind)
+    result = provider.send(link.external_id, notif.body, kind=notif.kind, buttons=buttons)
     if result.success:
         notif.status = NotificationStatus.SENT
         notif.external_message_id = result.external_message_id
