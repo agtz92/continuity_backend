@@ -13,6 +13,7 @@ import datetime as dt
 import enum
 import secrets
 import uuid
+import zoneinfo
 from typing import List, Optional
 
 import strawberry
@@ -109,6 +110,7 @@ SUPPORTED_PALETTES = {
     "sunset",
     "retro",
 }
+SUPPORTED_TIMEZONES = zoneinfo.available_timezones()
 
 
 def _to_gql(s: SettingsModel) -> NotificationSettingsType:
@@ -189,6 +191,11 @@ class NotificationsMutation:
                 )
             s.palette = data.palette
         if data.timezone is not None:
+            if data.timezone not in SUPPORTED_TIMEZONES:
+                raise GraphQLError(
+                    f"Unsupported timezone: {data.timezone}",
+                    extensions={"code": "INVALID_TIMEZONE"},
+                )
             s.timezone = data.timezone
         if data.digest_enabled is not None:
             s.digest_enabled = data.digest_enabled
