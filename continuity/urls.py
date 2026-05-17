@@ -23,11 +23,6 @@ urlpatterns = [
     path("api/", include("core.notifications.urls")),
     path("api/assistant/", include("core.assistant.urls")),
     path(
-        "api/google/oauth/start",
-        google_tasks_views.oauth_start,
-        name="google-oauth-start",
-    ),
-    path(
         "api/google/oauth/callback",
         google_tasks_views.oauth_callback,
         name="google-oauth-callback",

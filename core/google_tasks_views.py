@@ -1,14 +1,9 @@
-"""Django views for the Google Tasks plugin OAuth dance.
+"""Django view for the Google Tasks plugin OAuth callback.
 
-GraphQL handles everything user-facing (list, import, disconnect). These two
-endpoints exist only because Google's OAuth flow redirects through the
-browser, which can't be modeled as a GraphQL mutation:
-
-  GET /api/google/oauth/start    -> requires a logged-in Continuity user;
-                                    redirects them to Google for consent.
-  GET /api/google/oauth/callback -> Google redirects here with ?code & ?state;
-                                    we swap the code for tokens and bounce
-                                    the user back to the frontend.
+The authorization URL is built via GraphQL mutation (``googleTasksAuthUrl``)
+so the JWT travels in the Authorization header. The callback below is hit by
+Google's redirect — a server-to-browser redirect with no auth header — so it
+relies on the HMAC-signed ``state`` parameter for user identity.
 """
 
 from __future__ import annotations
@@ -17,40 +12,13 @@ import logging
 import urllib.parse
 
 from django.conf import settings
-from django.http import HttpResponseBadRequest, HttpResponseRedirect, JsonResponse
+from django.http import HttpResponseBadRequest, HttpResponseRedirect
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET
 
-from .auth import authenticate_request
 from .services import google_tasks as gt_svc
 
 logger = logging.getLogger(__name__)
-
-
-@csrf_exempt
-@require_GET
-def oauth_start(request):
-    early = authenticate_request(
-        request,
-        ip_group="google_oauth:ip",
-        ip_rate=settings.GRAPHQL_RATE_LIMIT_IP,
-        user_group="google_oauth:user",
-        user_rate=settings.GRAPHQL_RATE_LIMIT_USER,
-        method="GET",
-    )
-    if early is not None:
-        return early
-
-    return_to = request.GET.get("return") or "/settings/plugins/google-tasks"
-    if not return_to.startswith("/"):
-        # Avoid open redirects — only allow same-origin paths.
-        return_to = "/settings/plugins/google-tasks"
-
-    try:
-        url = gt_svc.build_authorization_url(request.user_id, return_to)
-    except gt_svc.GoogleTasksError as e:
-        return JsonResponse({"error": str(e)}, status=500)
-    return HttpResponseRedirect(url)
 
 
 @csrf_exempt

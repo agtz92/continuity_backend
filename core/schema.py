@@ -1052,6 +1052,22 @@ class Mutation:
 
     # Google Tasks plugin
     @strawberry.mutation
+    def google_tasks_auth_url(self, info: Info, return_to: str) -> str:
+        """Return a URL to Google's OAuth consent screen.
+
+        We do this as a GraphQL mutation (rather than a redirect endpoint)
+        because browser top-level navigations can't carry the Authorization
+        bearer token. The signed ``state`` embeds the user_id so the callback
+        knows who is connecting without needing a session.
+        """
+        uid = _user_id(info)
+        safe_return = return_to if return_to.startswith("/") else "/settings/plugins/google-tasks"
+        try:
+            return google_tasks_svc.build_authorization_url(uid, safe_return)
+        except google_tasks_svc.GoogleTasksError as e:
+            raise GraphQLError(str(e), extensions={"code": "GOOGLE_TASKS_ERROR"})
+
+    @strawberry.mutation
     def import_google_tasks(
         self, info: Info, mappings: List[GoogleTasksImportMapping]
     ) -> GoogleTasksImportResult:
