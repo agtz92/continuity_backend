@@ -12,6 +12,14 @@ SUPABASE_URL = config("SUPABASE_URL", default="").rstrip("/")
 SUPABASE_JWT_SECRET = config("SUPABASE_JWT_SECRET", default="")  # legacy HS256 fallback
 SUPABASE_SERVICE_ROLE_KEY = config("SUPABASE_SERVICE_ROLE_KEY", default="")  # admin-only
 
+# Google Tasks (plugin: importa tareas desde Google Tasks)
+GOOGLE_OAUTH_CLIENT_ID = config("GOOGLE_OAUTH_CLIENT_ID", default="")
+GOOGLE_OAUTH_CLIENT_SECRET = config("GOOGLE_OAUTH_CLIENT_SECRET", default="")
+GOOGLE_OAUTH_REDIRECT_URI = config("GOOGLE_OAUTH_REDIRECT_URI", default="")
+GOOGLE_OAUTH_FRONTEND_BASE_URL = config(
+    "GOOGLE_OAUTH_FRONTEND_BASE_URL", default="http://localhost:3000"
+)
+
 # Notifications
 TELEGRAM_BOT_TOKEN = config("TELEGRAM_BOT_TOKEN", default="")
 TELEGRAM_BOT_USERNAME = config("TELEGRAM_BOT_USERNAME", default="")

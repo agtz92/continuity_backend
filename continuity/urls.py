@@ -6,6 +6,7 @@ from django.views.decorators.csrf import csrf_exempt
 from core.schema import schema
 from core.auth import JWTAuthGraphQLView
 from core.cms.views import PublicGraphQLView, public_schema
+from core import google_tasks_views
 
 
 def healthcheck(_request):
@@ -21,6 +22,16 @@ urlpatterns = [
     ),
     path("api/", include("core.notifications.urls")),
     path("api/assistant/", include("core.assistant.urls")),
+    path(
+        "api/google/oauth/start",
+        google_tasks_views.oauth_start,
+        name="google-oauth-start",
+    ),
+    path(
+        "api/google/oauth/callback",
+        google_tasks_views.oauth_callback,
+        name="google-oauth-callback",
+    ),
     path("healthz", healthcheck),
     path("", healthcheck),
 ]

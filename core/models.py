@@ -1,5 +1,6 @@
 import uuid
 from django.db import models
+from django.db.models import Q
 
 
 class ProjectStatus(models.TextChoices):
@@ -75,9 +76,19 @@ class Task(TimestampedModel):
     done = models.BooleanField(default=False)
     completed_at = models.DateTimeField(null=True, blank=True)
     effort_hours = models.FloatField(null=True, blank=True)
+    google_task_id = models.CharField(
+        max_length=128, null=True, blank=True, db_index=True
+    )
 
     class Meta:
         ordering = ["done", "due_date", "-created"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user_id", "google_task_id"],
+                condition=Q(google_task_id__isnull=False),
+                name="uniq_user_google_task",
+            ),
+        ]
 
 
 class Idea(TimestampedModel):
@@ -114,6 +125,17 @@ class BackupMeta(models.Model):
 class Profile(models.Model):
     user_id = models.UUIDField(primary_key=True)
     avatar = models.CharField(max_length=64, blank=True, default="")
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+class GoogleOAuthCredential(models.Model):
+    user_id = models.UUIDField(primary_key=True)
+    refresh_token = models.TextField()
+    access_token = models.TextField(blank=True, default="")
+    token_expiry = models.DateTimeField(null=True, blank=True)
+    scopes = models.TextField(blank=True, default="")
+    email = models.CharField(max_length=320, blank=True, default="")
+    created = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
 

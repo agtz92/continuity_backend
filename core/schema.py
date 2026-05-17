@@ -27,6 +27,7 @@ from .cms.schema_admin import CmsAdminQuery, CmsAdminMutation
 from .services import (
     activities as activities_svc,
     categories as categories_svc,
+    google_tasks as google_tasks_svc,
     ideas as ideas_svc,
     notes as notes_svc,
     profiles as profiles_svc,
@@ -346,6 +347,36 @@ class ImportPayload:
     mode: str = "merge"  # "merge" | "replace"
 
 
+# ---------- Google Tasks plugin ----------
+
+
+@strawberry.type
+class GoogleTasksConnection:
+    connected: bool
+    email: Optional[str] = None
+    connected_at: Optional[dt.datetime] = None
+
+
+@strawberry.type
+class GoogleTaskList:
+    id: str
+    title: str
+
+
+@strawberry.input
+class GoogleTasksImportMapping:
+    google_list_id: str
+    project_id: Optional[strawberry.ID] = None
+    new_project_name: Optional[str] = None
+
+
+@strawberry.type
+class GoogleTasksImportResult:
+    imported: int
+    skipped: int
+    created_projects: List[str]
+
+
 # ---------- Analytics types ----------
 
 
@@ -634,6 +665,32 @@ class Query:
             until=until,
         )
         return [Activity.from_model(m) for m in rows]
+
+    @strawberry.field
+    def google_tasks_connection(self, info: Info) -> GoogleTasksConnection:
+        uid = _user_id(info)
+        status = google_tasks_svc.get_connection_status(uid)
+        if status is None:
+            return GoogleTasksConnection(connected=False)
+        return GoogleTasksConnection(
+            connected=True,
+            email=status["email"] or None,
+            connected_at=status["connected_at"],
+        )
+
+    @strawberry.field
+    def google_task_lists(self, info: Info) -> List[GoogleTaskList]:
+        uid = _user_id(info)
+        try:
+            items = google_tasks_svc.list_task_lists(uid)
+        except google_tasks_svc.NotConnectedError:
+            raise GraphQLError(
+                "Google Tasks is not connected",
+                extensions={"code": "NOT_CONNECTED"},
+            )
+        except google_tasks_svc.GoogleTasksError as e:
+            raise GraphQLError(str(e), extensions={"code": "GOOGLE_TASKS_ERROR"})
+        return [GoogleTaskList(id=it["id"], title=it["title"]) for it in items]
 
 
 # ---------- Mutations ----------
@@ -992,6 +1049,43 @@ class Mutation:
                 extensions={"code": "BAD_INPUT"},
             )
         return Profile.from_model(m)
+
+    # Google Tasks plugin
+    @strawberry.mutation
+    def import_google_tasks(
+        self, info: Info, mappings: List[GoogleTasksImportMapping]
+    ) -> GoogleTasksImportResult:
+        uid = _user_id(info)
+        try:
+            result = google_tasks_svc.import_tasks(
+                uid,
+                [
+                    {
+                        "google_list_id": m.google_list_id,
+                        "project_id": str(m.project_id) if m.project_id else None,
+                        "new_project_name": m.new_project_name,
+                    }
+                    for m in mappings
+                ],
+            )
+        except google_tasks_svc.NotConnectedError:
+            raise GraphQLError(
+                "Google Tasks is not connected",
+                extensions={"code": "NOT_CONNECTED"},
+            )
+        except google_tasks_svc.GoogleTasksError as e:
+            raise GraphQLError(str(e), extensions={"code": "GOOGLE_TASKS_ERROR"})
+        return GoogleTasksImportResult(
+            imported=result["imported"],
+            skipped=result["skipped"],
+            created_projects=result["created_projects"],
+        )
+
+    @strawberry.mutation
+    def disconnect_google_tasks(self, info: Info) -> bool:
+        uid = _user_id(info)
+        google_tasks_svc.disconnect(uid)
+        return True
 
 
 CombinedQuery = merge_types(
