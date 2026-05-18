@@ -132,3 +132,170 @@ def test_unknown_node_drops_to_children():
     )
     html = render_tiptap(doc)
     assert html == "<p>kept</p>"
+
+
+def test_image_with_caption_emits_figure():
+    doc = _doc(
+        {
+            "type": "image",
+            "attrs": {
+                "src": "https://cdn.example.com/x.png",
+                "alt": "x",
+                "caption": "A picture",
+                "width": 320,
+            },
+        }
+    )
+    html = render_tiptap(doc)
+    assert "<figure" in html
+    assert '<img src="https://cdn.example.com/x.png" alt="x" width="320"/>' in html
+    assert "<figcaption>A picture</figcaption>" in html
+
+
+def test_video_youtube_emits_safe_iframe():
+    doc = _doc(
+        {
+            "type": "video",
+            "attrs": {
+                "src": "https://www.youtube.com/embed/abc123",
+                "provider": "youtube",
+            },
+        }
+    )
+    html = render_tiptap(doc)
+    assert "<iframe" in html
+    assert 'src="https://www.youtube.com/embed/abc123"' in html
+    assert "allowfullscreen" in html
+
+
+def test_video_youtube_rejects_non_whitelisted_host():
+    doc = _doc(
+        {
+            "type": "video",
+            "attrs": {
+                "src": "https://evil.com/embed/xyz",
+                "provider": "youtube",
+            },
+        }
+    )
+    html = render_tiptap(doc)
+    assert html == ""
+
+
+def test_video_file_uses_video_tag():
+    doc = _doc(
+        {
+            "type": "video",
+            "attrs": {
+                "src": "https://cdn.example.com/clip.mp4",
+                "provider": "file",
+                "caption": "Demo",
+            },
+        }
+    )
+    html = render_tiptap(doc)
+    assert "<video" in html
+    assert 'src="https://cdn.example.com/clip.mp4"' in html
+    assert "controls" in html
+    assert "<figcaption>Demo</figcaption>" in html
+
+
+def test_paragraph_alignment():
+    doc = _doc(
+        {
+            "type": "paragraph",
+            "attrs": {"textAlign": "center"},
+            "content": [_text("centered")],
+        }
+    )
+    html = render_tiptap(doc)
+    assert html == '<p style="text-align:center">centered</p>'
+
+
+def test_paragraph_alignment_left_no_style():
+    doc = _doc(
+        {
+            "type": "paragraph",
+            "attrs": {"textAlign": "left"},
+            "content": [_text("default")],
+        }
+    )
+    html = render_tiptap(doc)
+    assert html == "<p>default</p>"
+
+
+def test_highlight_mark():
+    doc = _doc(
+        {
+            "type": "paragraph",
+            "content": [
+                _text("hi", {"type": "highlight", "attrs": {"color": "#ffff00"}})
+            ],
+        }
+    )
+    html = render_tiptap(doc)
+    assert '<mark style="background-color:#ffff00">hi</mark>' in html
+
+
+def test_textstyle_color_mark_rejects_invalid():
+    doc = _doc(
+        {
+            "type": "paragraph",
+            "content": [
+                _text(
+                    "hi",
+                    {"type": "textStyle", "attrs": {"color": "javascript:alert(1)"}},
+                )
+            ],
+        }
+    )
+    html = render_tiptap(doc)
+    assert "<span" not in html
+    assert "javascript" not in html
+    assert "hi" in html
+
+
+def test_table_renders_rows_and_cells():
+    doc = _doc(
+        {
+            "type": "table",
+            "content": [
+                {
+                    "type": "tableRow",
+                    "content": [
+                        {
+                            "type": "tableHeader",
+                            "content": [
+                                {"type": "paragraph", "content": [_text("h")]}
+                            ],
+                        },
+                    ],
+                },
+                {
+                    "type": "tableRow",
+                    "content": [
+                        {
+                            "type": "tableCell",
+                            "content": [
+                                {"type": "paragraph", "content": [_text("c")]}
+                            ],
+                        },
+                    ],
+                },
+            ],
+        }
+    )
+    html = render_tiptap(doc)
+    assert "<table>" in html
+    assert "<th>" in html and "<td>" in html
+
+
+def test_underline_mark():
+    doc = _doc(
+        {
+            "type": "paragraph",
+            "content": [_text("hi", {"type": "underline"})],
+        }
+    )
+    html = render_tiptap(doc)
+    assert html == "<p><u>hi</u></p>"

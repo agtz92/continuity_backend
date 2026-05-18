@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import BlogPost, MediaAsset, Page
+from .models import BlogPost, HelpCategory, HelpResource, MediaAsset, Page
 
 
 @admin.register(BlogPost)
@@ -35,3 +35,19 @@ class MediaAssetAdmin(admin.ModelAdmin):
         "uploaded_by_user_id",
         "created_at",
     )
+
+
+@admin.register(HelpCategory)
+class HelpCategoryAdmin(admin.ModelAdmin):
+    list_display = ("name", "slug", "order", "locale", "updated_at")
+    list_filter = ("locale",)
+    search_fields = ("name", "slug")
+    readonly_fields = ("id", "created_at", "updated_at")
+
+
+@admin.register(HelpResource)
+class HelpResourceAdmin(admin.ModelAdmin):
+    list_display = ("title", "slug", "category", "status", "locale", "published_at", "updated_at")
+    list_filter = ("status", "locale", "category")
+    search_fields = ("title", "slug", "tags")
+    readonly_fields = ("id", "created_at", "updated_at")

@@ -105,3 +105,62 @@ class MediaAsset(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover - admin display
         return f"{self.original_filename or self.storage_path}"
+
+
+class HelpCategory(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    slug = models.SlugField(max_length=80, unique=True, db_index=True)
+    name = models.CharField(max_length=120)
+    description = models.TextField(blank=True, default="")
+    icon = models.CharField(max_length=40, blank=True, default="")
+    order = models.IntegerField(default=0)
+    locale = models.CharField(max_length=8, default="es", db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["order", "name"]
+        verbose_name = "Help category"
+        verbose_name_plural = "Help categories"
+
+    def __str__(self) -> str:  # pragma: no cover - admin display
+        return f"{self.name} ({self.slug})"
+
+
+class HelpResource(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    slug = models.SlugField(max_length=160, unique=True, db_index=True)
+    title = models.CharField(max_length=255)
+    excerpt = models.TextField(blank=True, default="")
+    content_json = models.JSONField(default=dict, blank=True)
+    content_html = models.TextField(blank=True, default="")
+    cover_image_url = models.URLField(blank=True, default="")
+    category = models.ForeignKey(
+        HelpCategory,
+        on_delete=models.PROTECT,
+        related_name="resources",
+    )
+    status = models.CharField(
+        max_length=16,
+        choices=PostStatus.choices,
+        default=PostStatus.DRAFT,
+        db_index=True,
+    )
+    published_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    author_user_id = models.UUIDField()
+    tags = models.JSONField(default=list, blank=True)
+    seo_title = models.CharField(max_length=255, blank=True, default="")
+    seo_description = models.CharField(max_length=320, blank=True, default="")
+    locale = models.CharField(max_length=8, default="es", db_index=True)
+    order = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["category__order", "order", "-published_at"]
+        indexes = [
+            models.Index(fields=["status", "locale", "category"]),
+        ]
+
+    def __str__(self) -> str:  # pragma: no cover - admin display
+        return f"{self.title} ({self.slug})"

@@ -14,7 +14,7 @@ import strawberry
 from graphql import GraphQLError
 from strawberry.types import Info
 
-from .models import BlogPost, Page, PostStatus
+from .models import BlogPost, HelpCategory, HelpResource, Page, PostStatus
 
 
 @strawberry.type
@@ -61,6 +61,76 @@ class PublicBlogPostPage:
     page: int
     per_page: int
     has_next: bool
+
+
+@strawberry.type
+class PublicHelpCategory:
+    id: strawberry.ID
+    slug: str
+    name: str
+    description: str
+    icon: str
+    order: int
+    locale: str
+    resource_count: int
+
+
+@strawberry.type
+class PublicHelpResource:
+    id: strawberry.ID
+    slug: str
+    title: str
+    excerpt: str
+    content_html: str
+    cover_image_url: str
+    published_at: Optional[dt.datetime]
+    tags: list[str]
+    seo_title: str
+    seo_description: str
+    locale: str
+    category_slug: str
+    category_name: str
+
+
+@strawberry.type
+class PublicHelpResourcePage:
+    resources: list[PublicHelpResource]
+    page: int
+    per_page: int
+    has_next: bool
+
+
+def _to_public_help_category(m: HelpCategory, count: int | None = None) -> PublicHelpCategory:
+    return PublicHelpCategory(
+        id=strawberry.ID(str(m.id)),
+        slug=m.slug,
+        name=m.name,
+        description=m.description,
+        icon=m.icon,
+        order=m.order,
+        locale=m.locale,
+        resource_count=count if count is not None else m.resources.filter(
+            status=PostStatus.PUBLISHED
+        ).count(),
+    )
+
+
+def _to_public_help_resource(m: HelpResource) -> PublicHelpResource:
+    return PublicHelpResource(
+        id=strawberry.ID(str(m.id)),
+        slug=m.slug,
+        title=m.title,
+        excerpt=m.excerpt,
+        content_html=m.content_html,
+        cover_image_url=m.cover_image_url,
+        published_at=m.published_at,
+        tags=list(m.tags or []),
+        seo_title=m.seo_title,
+        seo_description=m.seo_description,
+        locale=m.locale,
+        category_slug=m.category.slug,
+        category_name=m.category.name,
+    )
 
 
 def _to_public_post(m: BlogPost) -> PublicBlogPost:
@@ -164,3 +234,61 @@ class CmsPublicQuery:
             PublicNavLink(path=p.path, title=p.title, nav_order=p.nav_order)
             for p in qs
         ]
+
+    @strawberry.field(name="publicHelpCategories")
+    def public_help_categories(
+        self, info: Info, locale: Optional[str] = None
+    ) -> list[PublicHelpCategory]:
+        qs = HelpCategory.objects.all().order_by("order", "name")
+        if locale:
+            qs = qs.filter(locale=locale)
+        # Only return categories that have at least one published resource.
+        result: list[PublicHelpCategory] = []
+        for cat in qs:
+            count = cat.resources.filter(status=PostStatus.PUBLISHED).count()
+            if count > 0:
+                result.append(_to_public_help_category(cat, count))
+        return result
+
+    @strawberry.field(name="publicHelpResources")
+    def public_help_resources(
+        self,
+        info: Info,
+        locale: Optional[str] = None,
+        category_slug: Optional[str] = None,
+        page: int = 1,
+        per_page: int = 20,
+    ) -> PublicHelpResourcePage:
+        per_page = max(1, min(per_page, 50))
+        page = max(1, page)
+        offset = (page - 1) * per_page
+
+        qs = HelpResource.objects.select_related("category").filter(
+            status=PostStatus.PUBLISHED
+        ).order_by("category__order", "order", "-published_at")
+        if locale:
+            qs = qs.filter(locale=locale)
+        if category_slug:
+            qs = qs.filter(category__slug=category_slug)
+
+        items = list(qs[offset : offset + per_page + 1])
+        has_next = len(items) > per_page
+        items = items[:per_page]
+        return PublicHelpResourcePage(
+            resources=[_to_public_help_resource(m) for m in items],
+            page=page,
+            per_page=per_page,
+            has_next=has_next,
+        )
+
+    @strawberry.field(name="publicHelpResource")
+    def public_help_resource(
+        self, info: Info, slug: str, locale: Optional[str] = None
+    ) -> Optional[PublicHelpResource]:
+        qs = HelpResource.objects.select_related("category").filter(
+            slug=slug, status=PostStatus.PUBLISHED
+        )
+        if locale:
+            qs = qs.filter(locale=locale)
+        m = qs.first()
+        return _to_public_help_resource(m) if m else None

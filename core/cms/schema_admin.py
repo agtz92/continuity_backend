@@ -20,7 +20,7 @@ from strawberry.types import Info
 from core.admin_api.audit import record as audit_record
 from core.admin_api.permissions import _admin_user_id
 
-from .models import BlogPost, MediaAsset, Page, PostStatus
+from .models import BlogPost, HelpCategory, HelpResource, MediaAsset, Page, PostStatus
 from .rendering import render_tiptap
 
 
@@ -157,6 +157,96 @@ class AdminMediaAssetPage:
     has_next: bool
 
 
+@strawberry.type
+class AdminHelpCategory:
+    id: strawberry.ID
+    slug: str
+    name: str
+    description: str
+    icon: str
+    order: int
+    locale: str
+    created_at: dt.datetime
+    updated_at: dt.datetime
+    resource_count: int
+
+    @classmethod
+    def from_model(cls, m: HelpCategory, resource_count: int | None = None) -> "AdminHelpCategory":
+        return cls(
+            id=strawberry.ID(str(m.id)),
+            slug=m.slug,
+            name=m.name,
+            description=m.description,
+            icon=m.icon,
+            order=m.order,
+            locale=m.locale,
+            created_at=m.created_at,
+            updated_at=m.updated_at,
+            resource_count=(
+                resource_count
+                if resource_count is not None
+                else m.resources.count()
+            ),
+        )
+
+
+@strawberry.type
+class AdminHelpResource:
+    id: strawberry.ID
+    slug: str
+    title: str
+    excerpt: str
+    content_json: strawberry.scalars.JSON
+    content_html: str
+    cover_image_url: str
+    category_id: strawberry.ID
+    category_slug: str
+    category_name: str
+    status: str
+    published_at: Optional[dt.datetime]
+    author_user_id: strawberry.ID
+    tags: list[str]
+    seo_title: str
+    seo_description: str
+    locale: str
+    order: int
+    created_at: dt.datetime
+    updated_at: dt.datetime
+
+    @classmethod
+    def from_model(cls, m: HelpResource) -> "AdminHelpResource":
+        return cls(
+            id=strawberry.ID(str(m.id)),
+            slug=m.slug,
+            title=m.title,
+            excerpt=m.excerpt,
+            content_json=m.content_json or {},
+            content_html=m.content_html,
+            cover_image_url=m.cover_image_url,
+            category_id=strawberry.ID(str(m.category_id)),
+            category_slug=m.category.slug,
+            category_name=m.category.name,
+            status=m.status,
+            published_at=m.published_at,
+            author_user_id=strawberry.ID(str(m.author_user_id)),
+            tags=list(m.tags or []),
+            seo_title=m.seo_title,
+            seo_description=m.seo_description,
+            locale=m.locale,
+            order=m.order,
+            created_at=m.created_at,
+            updated_at=m.updated_at,
+        )
+
+
+@strawberry.type
+class AdminHelpResourcePage:
+    resources: list[AdminHelpResource]
+    page: int
+    per_page: int
+    has_next: bool
+
+
 # ---------- Inputs ----------
 
 
@@ -196,6 +286,31 @@ class MediaRegisterInput:
     size_bytes: Optional[int] = 0
     width: Optional[int] = None
     height: Optional[int] = None
+
+
+@strawberry.input
+class HelpCategoryInput:
+    name: str
+    slug: str
+    description: Optional[str] = ""
+    icon: Optional[str] = ""
+    order: Optional[int] = 0
+    locale: Optional[str] = "es"
+
+
+@strawberry.input
+class HelpResourceInput:
+    title: str
+    slug: str
+    category_id: strawberry.ID
+    excerpt: Optional[str] = ""
+    content_json: Optional[strawberry.scalars.JSON] = None
+    cover_image_url: Optional[str] = ""
+    tags: Optional[list[str]] = None
+    seo_title: Optional[str] = ""
+    seo_description: Optional[str] = ""
+    locale: Optional[str] = "es"
+    order: Optional[int] = 0
 
 
 # ---------- Helpers ----------
@@ -315,6 +430,75 @@ class CmsAdminQuery:
             per_page=per_page,
             has_next=has_next,
         )
+
+    @strawberry.field(name="adminHelpCategories")
+    def admin_help_categories(
+        self, info: Info, locale: Optional[str] = None
+    ) -> list[AdminHelpCategory]:
+        _admin_user_id(info)
+        qs = HelpCategory.objects.all()
+        if locale:
+            qs = qs.filter(locale=locale)
+        return [AdminHelpCategory.from_model(m) for m in qs]
+
+    @strawberry.field(name="adminHelpCategory")
+    def admin_help_category(self, info: Info, id: strawberry.ID) -> AdminHelpCategory:
+        _admin_user_id(info)
+        try:
+            m = HelpCategory.objects.get(id=uuid.UUID(str(id)))
+        except (HelpCategory.DoesNotExist, ValueError):
+            raise GraphQLError("Category not found", extensions={"code": "NOT_FOUND"})
+        return AdminHelpCategory.from_model(m)
+
+    @strawberry.field(name="adminHelpResources")
+    def admin_help_resources(
+        self,
+        info: Info,
+        page: int = 1,
+        per_page: int = 25,
+        status: Optional[str] = None,
+        locale: Optional[str] = None,
+        category_id: Optional[strawberry.ID] = None,
+        search: Optional[str] = None,
+    ) -> AdminHelpResourcePage:
+        _admin_user_id(info)
+        per_page = max(1, min(per_page, 100))
+        page = max(1, page)
+        offset = (page - 1) * per_page
+
+        qs = HelpResource.objects.select_related("category").all()
+        if status:
+            qs = qs.filter(status=status.lower())
+        if locale:
+            qs = qs.filter(locale=locale)
+        if category_id:
+            try:
+                qs = qs.filter(category_id=uuid.UUID(str(category_id)))
+            except ValueError:
+                raise GraphQLError("Invalid categoryId", extensions={"code": "BAD_INPUT"})
+        if search:
+            qs = qs.filter(title__icontains=search)
+
+        items = list(qs[offset : offset + per_page + 1])
+        has_next = len(items) > per_page
+        items = items[:per_page]
+        return AdminHelpResourcePage(
+            resources=[AdminHelpResource.from_model(m) for m in items],
+            page=page,
+            per_page=per_page,
+            has_next=has_next,
+        )
+
+    @strawberry.field(name="adminHelpResource")
+    def admin_help_resource(self, info: Info, id: strawberry.ID) -> AdminHelpResource:
+        _admin_user_id(info)
+        try:
+            m = HelpResource.objects.select_related("category").get(
+                id=uuid.UUID(str(id))
+            )
+        except (HelpResource.DoesNotExist, ValueError):
+            raise GraphQLError("Resource not found", extensions={"code": "NOT_FOUND"})
+        return AdminHelpResource.from_model(m)
 
 
 # ---------- Mutation ----------
@@ -621,5 +805,248 @@ class CmsAdminMutation:
             target_type="media_asset",
             target_id=id,
             payload={"storage_path": path},
+        )
+        return True
+
+    # ---- Help categories ----
+
+    @strawberry.mutation(name="adminHelpCategoryCreate")
+    def create_help_category(
+        self, info: Info, data: HelpCategoryInput
+    ) -> AdminHelpCategory:
+        actor = _admin_user_id(info)
+        slug = (data.slug or "").strip()
+        if not slug:
+            raise GraphQLError("Slug is required", extensions={"code": "BAD_INPUT"})
+        if HelpCategory.objects.filter(slug=slug).exists():
+            raise GraphQLError(
+                f"Slug '{slug}' is already in use",
+                extensions={"code": "BAD_INPUT"},
+            )
+        cat = HelpCategory.objects.create(
+            slug=slug,
+            name=data.name,
+            description=data.description or "",
+            icon=data.icon or "",
+            order=data.order or 0,
+            locale=data.locale or "es",
+        )
+        audit_record(
+            actor_user_id=actor,
+            action="help_category.create",
+            target_type="help_category",
+            target_id=cat.id,
+            payload={"slug": cat.slug, "name": cat.name},
+        )
+        return AdminHelpCategory.from_model(cat, resource_count=0)
+
+    @strawberry.mutation(name="adminHelpCategoryUpdate")
+    def update_help_category(
+        self, info: Info, id: strawberry.ID, data: HelpCategoryInput
+    ) -> AdminHelpCategory:
+        actor = _admin_user_id(info)
+        try:
+            cat = HelpCategory.objects.get(id=uuid.UUID(str(id)))
+        except (HelpCategory.DoesNotExist, ValueError):
+            raise GraphQLError("Category not found", extensions={"code": "NOT_FOUND"})
+        slug = (data.slug or "").strip()
+        if slug and slug != cat.slug:
+            if HelpCategory.objects.filter(slug=slug).exclude(pk=cat.pk).exists():
+                raise GraphQLError(
+                    f"Slug '{slug}' is already in use",
+                    extensions={"code": "BAD_INPUT"},
+                )
+            cat.slug = slug
+        before = {"name": cat.name, "slug": cat.slug}
+        cat.name = data.name
+        if data.description is not None:
+            cat.description = data.description
+        if data.icon is not None:
+            cat.icon = data.icon
+        if data.order is not None:
+            cat.order = data.order
+        if data.locale:
+            cat.locale = data.locale
+        cat.save()
+        audit_record(
+            actor_user_id=actor,
+            action="help_category.update",
+            target_type="help_category",
+            target_id=cat.id,
+            payload={"before": before, "after": {"name": cat.name, "slug": cat.slug}},
+        )
+        return AdminHelpCategory.from_model(cat)
+
+    @strawberry.mutation(name="adminHelpCategoryDelete")
+    def delete_help_category(self, info: Info, id: strawberry.ID) -> bool:
+        actor = _admin_user_id(info)
+        try:
+            cat = HelpCategory.objects.get(id=uuid.UUID(str(id)))
+        except (HelpCategory.DoesNotExist, ValueError):
+            raise GraphQLError("Category not found", extensions={"code": "NOT_FOUND"})
+        if cat.resources.exists():
+            raise GraphQLError(
+                "Cannot delete a category that contains resources",
+                extensions={"code": "BAD_INPUT"},
+            )
+        slug = cat.slug
+        cat.delete()
+        audit_record(
+            actor_user_id=actor,
+            action="help_category.delete",
+            target_type="help_category",
+            target_id=id,
+            payload={"slug": slug},
+        )
+        return True
+
+    # ---- Help resources ----
+
+    @strawberry.mutation(name="adminHelpResourceCreate")
+    def create_help_resource(
+        self, info: Info, data: HelpResourceInput
+    ) -> AdminHelpResource:
+        actor = _admin_user_id(info)
+        slug = (data.slug or "").strip()
+        if not slug:
+            raise GraphQLError("Slug is required", extensions={"code": "BAD_INPUT"})
+        if HelpResource.objects.filter(slug=slug).exists():
+            raise GraphQLError(
+                f"Slug '{slug}' is already in use",
+                extensions={"code": "BAD_INPUT"},
+            )
+        try:
+            category = HelpCategory.objects.get(id=uuid.UUID(str(data.category_id)))
+        except (HelpCategory.DoesNotExist, ValueError):
+            raise GraphQLError("Category not found", extensions={"code": "BAD_INPUT"})
+        content_json = data.content_json or {}
+        resource = HelpResource.objects.create(
+            slug=slug,
+            title=data.title,
+            excerpt=data.excerpt or "",
+            content_json=content_json,
+            content_html=render_tiptap(content_json),
+            cover_image_url=data.cover_image_url or "",
+            category=category,
+            tags=list(data.tags or []),
+            seo_title=data.seo_title or "",
+            seo_description=data.seo_description or "",
+            locale=data.locale or "es",
+            order=data.order or 0,
+            author_user_id=actor,
+        )
+        audit_record(
+            actor_user_id=actor,
+            action="help_resource.create",
+            target_type="help_resource",
+            target_id=resource.id,
+            payload={"slug": resource.slug, "title": resource.title},
+        )
+        return AdminHelpResource.from_model(resource)
+
+    @strawberry.mutation(name="adminHelpResourceUpdate")
+    def update_help_resource(
+        self, info: Info, id: strawberry.ID, data: HelpResourceInput
+    ) -> AdminHelpResource:
+        actor = _admin_user_id(info)
+        try:
+            resource = HelpResource.objects.select_related("category").get(
+                id=uuid.UUID(str(id))
+            )
+        except (HelpResource.DoesNotExist, ValueError):
+            raise GraphQLError("Resource not found", extensions={"code": "NOT_FOUND"})
+
+        slug = (data.slug or "").strip()
+        if slug and slug != resource.slug:
+            if HelpResource.objects.filter(slug=slug).exclude(pk=resource.pk).exists():
+                raise GraphQLError(
+                    f"Slug '{slug}' is already in use",
+                    extensions={"code": "BAD_INPUT"},
+                )
+            resource.slug = slug
+
+        if data.category_id and str(data.category_id) != str(resource.category_id):
+            try:
+                new_cat = HelpCategory.objects.get(
+                    id=uuid.UUID(str(data.category_id))
+                )
+            except (HelpCategory.DoesNotExist, ValueError):
+                raise GraphQLError(
+                    "Category not found", extensions={"code": "BAD_INPUT"}
+                )
+            resource.category = new_cat
+
+        before = {"title": resource.title, "slug": resource.slug}
+        resource.title = data.title
+        resource.excerpt = data.excerpt or ""
+        if data.content_json is not None:
+            resource.content_json = data.content_json
+            resource.content_html = render_tiptap(data.content_json)
+        if data.cover_image_url is not None:
+            resource.cover_image_url = data.cover_image_url
+        if data.tags is not None:
+            resource.tags = list(data.tags)
+        if data.seo_title is not None:
+            resource.seo_title = data.seo_title
+        if data.seo_description is not None:
+            resource.seo_description = data.seo_description
+        if data.locale:
+            resource.locale = data.locale
+        if data.order is not None:
+            resource.order = data.order
+        resource.save()
+
+        audit_record(
+            actor_user_id=actor,
+            action="help_resource.update",
+            target_type="help_resource",
+            target_id=resource.id,
+            payload={"before": before, "after": {"title": resource.title, "slug": resource.slug}},
+        )
+        return AdminHelpResource.from_model(resource)
+
+    @strawberry.mutation(name="adminHelpResourcePublish")
+    def publish_help_resource(
+        self, info: Info, id: strawberry.ID, published: bool
+    ) -> AdminHelpResource:
+        actor = _admin_user_id(info)
+        try:
+            resource = HelpResource.objects.select_related("category").get(
+                id=uuid.UUID(str(id))
+            )
+        except (HelpResource.DoesNotExist, ValueError):
+            raise GraphQLError("Resource not found", extensions={"code": "NOT_FOUND"})
+        before_status = resource.status
+        if published:
+            resource.status = PostStatus.PUBLISHED
+            if not resource.published_at:
+                resource.published_at = timezone.now()
+        else:
+            resource.status = PostStatus.DRAFT
+        resource.save(update_fields=["status", "published_at", "updated_at"])
+        audit_record(
+            actor_user_id=actor,
+            action="help_resource.publish" if published else "help_resource.unpublish",
+            target_type="help_resource",
+            target_id=resource.id,
+            payload={"before": before_status, "after": resource.status},
+        )
+        return AdminHelpResource.from_model(resource)
+
+    @strawberry.mutation(name="adminHelpResourceDelete")
+    def delete_help_resource(self, info: Info, id: strawberry.ID) -> bool:
+        actor = _admin_user_id(info)
+        try:
+            resource = HelpResource.objects.get(id=uuid.UUID(str(id)))
+        except (HelpResource.DoesNotExist, ValueError):
+            raise GraphQLError("Resource not found", extensions={"code": "NOT_FOUND"})
+        slug = resource.slug
+        resource.delete()
+        audit_record(
+            actor_user_id=actor,
+            action="help_resource.delete",
+            target_type="help_resource",
+            target_id=id,
+            payload={"slug": slug},
         )
         return True
