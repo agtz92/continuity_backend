@@ -7,6 +7,7 @@ import uuid
 from dataclasses import dataclass
 from typing import Optional
 
+from django.conf import settings
 from django.db import transaction
 from django.db.models import F, Sum
 from django.utils import timezone
@@ -92,6 +93,22 @@ def check(user_id: uuid.UUID) -> UsageSnapshot:
     return snap
 
 
+def deep_allowed(user_id: uuid.UUID) -> bool:
+    """True if the user still has room under the daily Sonnet (deep) cap.
+
+    The cap applies to every plan, admin included — it's a cost guard, not
+    a feature gate. A cap of 0 (or less) disables deep mode entirely.
+    """
+    cap = getattr(settings, "ASSISTANT_DEEP_DAILY_CAP", 10)
+    if cap is None or cap <= 0:
+        return False
+    today = UsageDay.objects.filter(
+        user_id=user_id, date=timezone.now().date()
+    ).first()
+    used = today.deep_messages if today else 0
+    return used < cap
+
+
 def record(
     user_id: uuid.UUID,
     *,
@@ -99,6 +116,7 @@ def record(
     tokens_out: int,
     cache_read_in: int,
     counts_message: bool = True,
+    deep: bool = False,
 ) -> None:
     """Append usage counters for today. Idempotent under concurrent calls thanks to F() expressions."""
     today = timezone.now().date()
@@ -111,4 +129,5 @@ def record(
             tokens_in=F("tokens_in") + max(0, int(tokens_in)),
             tokens_out=F("tokens_out") + max(0, int(tokens_out)),
             cache_read_in=F("cache_read_in") + max(0, int(cache_read_in)),
+            deep_messages=F("deep_messages") + (1 if deep else 0),
         )

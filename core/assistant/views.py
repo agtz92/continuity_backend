@@ -145,7 +145,16 @@ class ChatView(View):
             return _json_error(f"Failed to prepare context: {e}", status=500)
 
         history_messages = prompts.build_messages(conv, content)
-        model = prompts.select_model(plan)
+        # `deep_mode` is an explicit, per-message opt-in to the costlier
+        # Sonnet model. It only has an effect for the admin plan (see
+        # select_model); for everyone else this flag is a no-op. Even for
+        # admin it's bounded by a daily cap — once that's hit we silently
+        # fall back to Haiku so a user can't route every chat through Sonnet.
+        deep_mode = bool(body.get("deep_mode"))
+        if deep_mode and plan == "admin" and not quotas.deep_allowed(user_id):
+            deep_mode = False
+        model = prompts.select_model(plan, deep_mode=deep_mode)
+        used_deep = plan == "admin" and deep_mode
         max_tokens = (
             settings.ASSISTANT_MAX_TOKENS_OUT_WRITE
             if plan in ("pro", "admin")
@@ -258,6 +267,7 @@ class ChatView(View):
                 tokens_in=result.total_usage.tokens_in,
                 tokens_out=result.total_usage.tokens_out,
                 cache_read_in=result.total_usage.cache_read_in,
+                deep=used_deep,
             )
 
             cache.delete(cancel_key)

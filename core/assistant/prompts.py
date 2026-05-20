@@ -399,12 +399,13 @@ def build_messages(
 
 
 def select_model(plan: str, *, deep_mode: bool = False) -> str:
-    """Pick the model by tier.
+    """Pick the model.
 
-    The write tier (pro/admin) uses the deeper model — it does the harder
-    reasoning (structuring projects, prioritizing dates). The free read-only
-    tier uses the fast model.
+    Sonnet (the deeper, costlier model) is reserved for the admin plan AND
+    only when `deep_mode` is explicitly requested for that message. Every
+    other case — free, pro, and admin without deep_mode — uses the fast
+    Haiku model to keep cost down.
     """
-    if _is_write_tier(plan) or deep_mode:
+    if plan == "admin" and deep_mode:
         return settings.ASSISTANT_MODEL_DEEP
     return settings.ASSISTANT_MODEL_FAST

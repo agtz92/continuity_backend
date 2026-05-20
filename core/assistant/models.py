@@ -105,6 +105,9 @@ class UsageDay(models.Model):
     tokens_out = models.IntegerField(default=0)
     cache_read_in = models.IntegerField(default=0)
     cost_usd_cents = models.IntegerField(default=0)
+    # Count of messages that actually used the deep model (Sonnet). Drives
+    # the per-day Sonnet cap — see core.assistant.quotas.deep_allowed.
+    deep_messages = models.IntegerField(default=0)
 
     class Meta:
         constraints = [

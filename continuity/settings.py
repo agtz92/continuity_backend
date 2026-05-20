@@ -133,6 +133,12 @@ ASSISTANT_MODEL_FAST = config(
 ASSISTANT_MODEL_DEEP = config(
     "ASSISTANT_MODEL_DEEP", default="claude-sonnet-4-6"
 )
+# Max messages per user per day that may use the deep model (Sonnet).
+# Once hit, deep-mode requests silently fall back to Haiku. 0 disables
+# deep mode entirely.
+ASSISTANT_DEEP_DAILY_CAP = config(
+    "ASSISTANT_DEEP_DAILY_CAP", default=10, cast=int
+)
 ASSISTANT_MAX_TOKENS_OUT = config("ASSISTANT_MAX_TOKENS_OUT", default=1024, cast=int)
 # The write tier emits long brainstorming plans plus many tool calls in a
 # single turn; 1024 tokens truncates that mid-tool-use. Give it more room.
