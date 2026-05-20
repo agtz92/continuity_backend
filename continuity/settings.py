@@ -130,9 +130,23 @@ ANTHROPIC_API_KEY = config("ANTHROPIC_API_KEY", default="")
 ASSISTANT_MODEL_FAST = config(
     "ASSISTANT_MODEL_FAST", default="claude-haiku-4-5-20251001"
 )
+ASSISTANT_MODEL_DEEP = config(
+    "ASSISTANT_MODEL_DEEP", default="claude-sonnet-4-6"
+)
 ASSISTANT_MAX_TOKENS_OUT = config("ASSISTANT_MAX_TOKENS_OUT", default=1024, cast=int)
+# The write tier emits long brainstorming plans plus many tool calls in a
+# single turn; 1024 tokens truncates that mid-tool-use. Give it more room.
+ASSISTANT_MAX_TOKENS_OUT_WRITE = config(
+    "ASSISTANT_MAX_TOKENS_OUT_WRITE", default=4096, cast=int
+)
 ASSISTANT_MAX_TOOL_ITERATIONS = config(
     "ASSISTANT_MAX_TOOL_ITERATIONS", default=6, cast=int
+)
+# The write tier (pro/admin) chains more tools — brainstorming a project
+# means create_project followed by many create_task calls — so it needs a
+# higher ceiling than the read-only tier.
+ASSISTANT_MAX_TOOL_ITERATIONS_WRITE = config(
+    "ASSISTANT_MAX_TOOL_ITERATIONS_WRITE", default=16, cast=int
 )
 ASSISTANT_MAX_INPUT_TOKENS = config(
     "ASSISTANT_MAX_INPUT_TOKENS", default=8000, cast=int

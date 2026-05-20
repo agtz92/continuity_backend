@@ -62,6 +62,7 @@ def verify_supabase_jwt(token: str) -> dict:
                 signing_key,
                 algorithms=["ES256", "RS256", "EdDSA"],
                 audience="authenticated",
+                leeway=30,
                 options={"require": ["exp", "sub"]},
             )
         except jwt.ExpiredSignatureError as e:
@@ -78,6 +79,7 @@ def verify_supabase_jwt(token: str) -> dict:
                 settings.SUPABASE_JWT_SECRET,
                 algorithms=["HS256"],
                 audience="authenticated",
+                leeway=30,
                 options={"require": ["exp", "sub"]},
             )
         except jwt.ExpiredSignatureError as e:

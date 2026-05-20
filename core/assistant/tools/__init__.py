@@ -89,8 +89,18 @@ def all_tools() -> list[Tool]:
     return list(_REGISTRY.values())
 
 
-def schemas_for_anthropic() -> list[dict]:
-    """The list passed as `tools=` to the Anthropic SDK."""
+# Plan tiers, lowest to highest. A tool with `plan_required="pro"` is
+# available to "pro" and "admin" but not "free" — this is what separates
+# the read-only tier from the read-write tier.
+_PLAN_RANK = {"free": 0, "pro": 1, "admin": 2}
+
+
+def _plan_allows(user_plan: str, required: str) -> bool:
+    return _PLAN_RANK.get(user_plan, 0) >= _PLAN_RANK.get(required, 0)
+
+
+def schemas_for_anthropic(plan: str = "free") -> list[dict]:
+    """The list passed as `tools=` to the Anthropic SDK, filtered by plan."""
     return [
         {
             "name": t.name,
@@ -98,14 +108,23 @@ def schemas_for_anthropic() -> list[dict]:
             "input_schema": t.input_schema,
         }
         for t in _REGISTRY.values()
+        if _plan_allows(plan, t.plan_required)
     ]
 
 
-def call(name: str, user_id: uuid.UUID, args: dict) -> dict:
-    """Dispatch a tool by name. Unknown names return an error payload."""
+def call(name: str, user_id: uuid.UUID, args: dict, plan: str = "free") -> dict:
+    """Dispatch a tool by name. Unknown names or insufficient plan return
+    an error payload — never raises, the model apologizes to the user."""
     t = _REGISTRY.get(name)
     if t is None:
         return {"error": f"Unknown tool: {name}"}
+    if not _plan_allows(plan, t.plan_required):
+        return {
+            "error": (
+                f"Tool '{name}' is not available on the '{plan}' plan "
+                f"(requires '{t.plan_required}')."
+            )
+        }
     return t.handler(user_id, args)
 
 
@@ -172,5 +191,7 @@ def days_between(when: dt.datetime | None, *, now: dt.datetime) -> int | None:
     return max(0, int((now - when).total_seconds() // 86400))
 
 
-# Importing the read module triggers tool registration via the @tool decorator.
+# Importing the tool modules triggers registration via the @tool decorator.
 from . import read  # noqa: E402, F401
+from . import routines  # noqa: E402, F401
+from . import write  # noqa: E402, F401

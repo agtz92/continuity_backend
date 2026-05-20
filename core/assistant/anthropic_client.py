@@ -124,6 +124,7 @@ def run_turn_iter(
     messages: list[dict],
     model: str,
     max_tokens: int,
+    plan: str = "free",
     is_cancelled: Callable[[], bool] = lambda: False,
     client=None,
 ):
@@ -141,9 +142,13 @@ def run_turn_iter(
     buffering on top of it.
     """
     cli = client or _build_anthropic_client()
-    schemas = tools_pkg.schemas_for_anthropic()
+    schemas = tools_pkg.schemas_for_anthropic(plan)
     iterations = 0
-    cap = settings.ASSISTANT_MAX_TOOL_ITERATIONS
+    cap = (
+        settings.ASSISTANT_MAX_TOOL_ITERATIONS_WRITE
+        if plan in ("pro", "admin")
+        else settings.ASSISTANT_MAX_TOOL_ITERATIONS
+    )
 
     total = TurnUsage()
     appended: list[AppendedMessage] = []
@@ -207,6 +212,23 @@ def run_turn_iter(
         appended.append(AppendedMessage(kind="assistant", content=assistant_blocks))
 
         if stop_reason != "tool_use":
+            # A normal finish (end_turn) carries no tool_use blocks. If
+            # there ARE tool_use blocks here the turn was truncated
+            # mid-tool-use (typically stop_reason == "max_tokens"): the
+            # blocks can't be executed, and persisting them would orphan a
+            # tool_use and 400 every later request. Drop the unusable turn.
+            if any(b.get("type") == "tool_use" for b in assistant_blocks):
+                appended.pop()
+                convo.pop()
+                yield (
+                    "error",
+                    {
+                        "message": (
+                            "The response was cut off before its actions "
+                            "could run — try again, or ask for a smaller step."
+                        )
+                    },
+                )
             break
 
         tool_results: list[dict] = []
@@ -217,7 +239,7 @@ def run_turn_iter(
             name = block.get("name")
             args = block.get("input") or {}
             yield ("tool_use_start", {"id": tool_id, "name": name, "input": args})
-            result = tools_pkg.call(name, user_id, args)
+            result = tools_pkg.call(name, user_id, args, plan)
             yield ("tool_result", {"id": tool_id, "name": name, "output": result})
             tool_results.append(
                 {

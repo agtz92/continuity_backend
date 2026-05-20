@@ -146,7 +146,11 @@ class ChatView(View):
 
         history_messages = prompts.build_messages(conv, content)
         model = prompts.select_model(plan)
-        max_tokens = settings.ASSISTANT_MAX_TOKENS_OUT
+        max_tokens = (
+            settings.ASSISTANT_MAX_TOKENS_OUT_WRITE
+            if plan in ("pro", "admin")
+            else settings.ASSISTANT_MAX_TOKENS_OUT
+        )
 
         cancel_key = _cancel_key(conv.id)
 
@@ -181,6 +185,7 @@ class ChatView(View):
                     messages=history_messages,
                     model=model,
                     max_tokens=max_tokens,
+                    plan=plan,
                     is_cancelled=lambda: bool(cache.get(cancel_key)),
                 ):
                     if isinstance(item, _TurnResult):
