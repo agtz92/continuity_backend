@@ -414,11 +414,12 @@ def _delete_task(user_id: uuid.UUID, args: dict) -> dict:
 @tool(
     name="create_routine",
     description=(
-        "Create a routine — a recurring (or one-off) activity NOT tied to a "
-        "project. Required: title, recurrence_type, start_date. The "
-        "recurrence_type drives which extra fields apply: weekly_days needs "
-        "`weekdays`; every_n needs `interval_n` + `interval_unit`; "
-        "monthly_day needs `monthly_day`; once needs nothing more."
+        "Create a routine — a recurring (or one-off) activity. Required: "
+        "title, recurrence_type, start_date. Optionally link it to a project "
+        "with `project_id` (omit for a standalone routine). The recurrence_type "
+        "drives which extra fields apply: weekly_days needs `weekdays`; every_n "
+        "needs `interval_n` + `interval_unit`; monthly_day needs `monthly_day`; "
+        "once needs nothing more."
     ),
     plan_required="pro",
     input_schema={
@@ -426,6 +427,11 @@ def _delete_task(user_id: uuid.UUID, args: dict) -> dict:
         "properties": {
             "title": {"type": "string", "minLength": 1, "maxLength": 255},
             "description": {"type": "string"},
+            "project_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Link the routine to a project (optional).",
+            },
             **_ROUTINE_RULE_PROPS,
         },
         "required": ["title", "recurrence_type", "start_date"],
@@ -433,24 +439,29 @@ def _delete_task(user_id: uuid.UUID, args: dict) -> dict:
     },
 )
 def _create_routine(user_id: uuid.UUID, args: dict) -> dict:
-    r = routines_svc.create_routine(
-        user_id,
-        title=args["title"],
-        description=args.get("description", ""),
-        recurrence_type=args["recurrence_type"],
-        start_date=_parse_date(args["start_date"]),
-        end_date=_parse_date(args.get("end_date")),
-        weekdays=args.get("weekdays"),
-        interval_n=args.get("interval_n"),
-        interval_unit=args.get("interval_unit"),
-        monthly_day=args.get("monthly_day"),
-        effort_hours=args.get("effort_hours"),
-    )
+    try:
+        r = routines_svc.create_routine(
+            user_id,
+            title=args["title"],
+            description=args.get("description", ""),
+            recurrence_type=args["recurrence_type"],
+            start_date=_parse_date(args["start_date"]),
+            end_date=_parse_date(args.get("end_date")),
+            weekdays=args.get("weekdays"),
+            interval_n=args.get("interval_n"),
+            interval_unit=args.get("interval_unit"),
+            monthly_day=args.get("monthly_day"),
+            effort_hours=args.get("effort_hours"),
+            project_id=args.get("project_id"),
+        )
+    except NotFoundError:
+        return {"error": "Project not found"}
     return {
         "ok": True,
         "id": str(r.id),
         "title": r.title,
         "recurrence_type": r.recurrence_type,
+        "project_id": str(r.project_id) if r.project_id else None,
     }
 
 
@@ -459,7 +470,9 @@ def _create_routine(user_id: uuid.UUID, args: dict) -> dict:
     description=(
         "Update a routine. `id` is required; omitted fields keep their "
         "current value. If you change `recurrence_type`, also pass the "
-        "fields the new type needs. Use `clear_end_date` to unset the end."
+        "fields the new type needs. Use `clear_end_date` to unset the end "
+        "date. Use `project_id` to link/change the project, or "
+        "`clear_project` to unlink it."
     ),
     plan_required="pro",
     input_schema={
@@ -468,6 +481,15 @@ def _create_routine(user_id: uuid.UUID, args: dict) -> dict:
             "id": {"type": "string", "format": "uuid"},
             "title": {"type": "string", "minLength": 1, "maxLength": 255},
             "description": {"type": "string"},
+            "project_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Link to a project (optional).",
+            },
+            "clear_project": {
+                "type": "boolean",
+                "description": "Set true to remove the project association.",
+            },
             "clear_end_date": {"type": "boolean"},
             **_ROUTINE_RULE_PROPS,
         },
@@ -494,35 +516,44 @@ def _update_routine(user_id: uuid.UUID, args: dict) -> dict:
         else r.start_date
     )
 
-    updated = routines_svc.update_routine(
-        user_id,
-        r.id,
-        title=args.get("title", r.title),
-        description=args.get("description", r.description),
-        recurrence_type=args.get("recurrence_type") or r.recurrence_type,
-        start_date=start_date,
-        end_date=end_date,
-        weekdays=args["weekdays"] if "weekdays" in args else r.weekdays,
-        interval_n=args["interval_n"] if "interval_n" in args else r.interval_n,
-        interval_unit=(
-            args["interval_unit"]
-            if "interval_unit" in args
-            else r.interval_unit
-        ),
-        monthly_day=(
-            args["monthly_day"] if "monthly_day" in args else r.monthly_day
-        ),
-        effort_hours=(
-            args["effort_hours"]
-            if "effort_hours" in args
-            else r.effort_hours
-        ),
+    project_id = None if args.get("clear_project") else (
+        args.get("project_id") or r.project_id
     )
+
+    try:
+        updated = routines_svc.update_routine(
+            user_id,
+            r.id,
+            title=args.get("title", r.title),
+            description=args.get("description", r.description),
+            recurrence_type=args.get("recurrence_type") or r.recurrence_type,
+            start_date=start_date,
+            end_date=end_date,
+            weekdays=args["weekdays"] if "weekdays" in args else r.weekdays,
+            interval_n=args["interval_n"] if "interval_n" in args else r.interval_n,
+            interval_unit=(
+                args["interval_unit"]
+                if "interval_unit" in args
+                else r.interval_unit
+            ),
+            monthly_day=(
+                args["monthly_day"] if "monthly_day" in args else r.monthly_day
+            ),
+            effort_hours=(
+                args["effort_hours"]
+                if "effort_hours" in args
+                else r.effort_hours
+            ),
+            project_id=project_id,
+        )
+    except NotFoundError:
+        return {"error": "Project not found"}
     return {
         "ok": True,
         "id": str(updated.id),
         "title": updated.title,
         "recurrence_type": updated.recurrence_type,
+        "project_id": str(updated.project_id) if updated.project_id else None,
     }
 
 
@@ -759,6 +790,92 @@ def _delete_project_update(user_id: uuid.UUID, args: dict) -> dict:
     except NotFoundError:
         return {"error": "Update not found"}
     return {"ok": True, "deleted": "project_update"}
+
+
+# ================= Task Blockers =================
+
+
+@tool(
+    name="add_task_blocker",
+    description=(
+        "Mark a task as blocked. Provide either `blocking_task_id` (another "
+        "task the user must complete first) OR `external_description` (a "
+        "free-text external dependency like 'waiting on client approval') — "
+        "but not both. Returns the new blocker's id. Circular dependencies "
+        "are rejected automatically."
+    ),
+    plan_required="pro",
+    input_schema={
+        "type": "object",
+        "properties": {
+            "blocked_task_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The task that is being blocked.",
+            },
+            "blocking_task_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The task that must be completed first (mutually exclusive with external_description).",
+            },
+            "external_description": {
+                "type": "string",
+                "maxLength": 500,
+                "description": "Free-text external blocker (mutually exclusive with blocking_task_id).",
+            },
+        },
+        "required": ["blocked_task_id"],
+        "additionalProperties": False,
+    },
+)
+def _add_task_blocker(user_id: uuid.UUID, args: dict) -> dict:
+    has_task = bool(args.get("blocking_task_id"))
+    has_ext = bool((args.get("external_description") or "").strip())
+    if has_task == has_ext:
+        return {
+            "error": "Provide exactly one of blocking_task_id or external_description."
+        }
+    try:
+        b = tasks_svc.add_task_blocker(
+            user_id,
+            args["blocked_task_id"],
+            blocking_task_id=args.get("blocking_task_id"),
+            external_description=args.get("external_description", ""),
+        )
+    except NotFoundError:
+        return {"error": "Task not found"}
+    except ValueError as exc:
+        return {"error": str(exc)}
+    return {"ok": True, "id": str(b.id)}
+
+
+@tool(
+    name="remove_task_blocker",
+    description=(
+        "Remove a blocker from a task. `id` is the blocker record's id "
+        "(returned by add_task_blocker or visible in list_tasks output). "
+        "Use when the user resolves a blocker manually."
+    ),
+    plan_required="pro",
+    input_schema={
+        "type": "object",
+        "properties": {
+            "id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The blocker record id to remove.",
+            },
+        },
+        "required": ["id"],
+        "additionalProperties": False,
+    },
+)
+def _remove_task_blocker(user_id: uuid.UUID, args: dict) -> dict:
+    try:
+        tasks_svc.remove_task_blocker(user_id, args["id"])
+    except NotFoundError:
+        return {"error": "Blocker not found"}
+    return {"ok": True, "removed": "task_blocker"}
 
 
 # ================= Ideas =================

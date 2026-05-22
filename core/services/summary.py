@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from django.db.models import Count, Q
 from django.utils import timezone
 
-from ..models import Category, Idea, Project, Task
+from ..models import Category, Idea, Project, Task, TaskBlocker
 
 
 @dataclass
@@ -21,6 +21,7 @@ class DashboardSummary:
     open_tasks: int
     overdue_tasks: int
     due_soon_tasks: int
+    blocked_tasks: int
     open_ideas: int
     categories: int
     last_activity: dt.datetime | None
@@ -66,6 +67,12 @@ def get_dashboard_summary(user_id: uuid.UUID) -> DashboardSummary:
         .first()
     )
 
+    blocked_tasks = (
+        Task.objects.filter(user_id=user_id, done=False, blockers__isnull=False)
+        .distinct()
+        .count()
+    )
+
     return DashboardSummary(
         active_projects=project_counts["active"] or 0,
         sleeping_projects=project_counts["sleeping"] or 0,
@@ -74,6 +81,7 @@ def get_dashboard_summary(user_id: uuid.UUID) -> DashboardSummary:
         open_tasks=task_counts["open"] or 0,
         overdue_tasks=task_counts["overdue"] or 0,
         due_soon_tasks=task_counts["due_soon"] or 0,
+        blocked_tasks=blocked_tasks,
         open_ideas=Idea.objects.filter(user_id=user_id).count(),
         categories=Category.objects.filter(user_id=user_id).count(),
         last_activity=last,

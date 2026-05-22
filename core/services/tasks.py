@@ -22,7 +22,7 @@ def list_tasks(
     due_within_days: Optional[int] = None,
     limit: int = 50,
 ) -> list[Task]:
-    qs = Task.objects.filter(user_id=user_id)
+    qs = Task.objects.filter(user_id=user_id).prefetch_related("blockers")
     if project_id is not None:
         qs = qs.filter(project_id=project_id)
     if done is not None:

@@ -171,6 +171,7 @@ def _get_project_detail(user_id: uuid.UUID, args: dict) -> dict:
                 "done": t.done,
                 "due_date": t.due_date.isoformat() if t.due_date else None,
                 "effort_hours": t.effort_hours,
+                "blocked": not t.done and t.blockers.exists(),
             }
             for t in tasks
         ],
@@ -221,6 +222,16 @@ def _list_tasks(user_id: uuid.UUID, args: dict) -> dict:
         due_within_days=args.get("due_within_days"),
         limit=int(args.get("limit") or 20),
     )
+
+    def _blocker_summaries(task) -> list[dict]:
+        result = []
+        for b in task.blockers.all():
+            if b.blocking_task_id:
+                result.append({"id": str(b.id), "type": "task", "blocking_task_id": str(b.blocking_task_id)})
+            else:
+                result.append({"id": str(b.id), "type": "external", "description": b.external_description})
+        return result
+
     return {
         "tasks": [
             {
@@ -230,6 +241,7 @@ def _list_tasks(user_id: uuid.UUID, args: dict) -> dict:
                 "done": t.done,
                 "due_date": t.due_date.isoformat() if t.due_date else None,
                 "effort_hours": t.effort_hours,
+                "blockers": _blocker_summaries(t),
             }
             for t in rows
         ],
