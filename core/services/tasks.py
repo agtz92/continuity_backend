@@ -8,7 +8,7 @@ from typing import Optional
 
 from django.utils import timezone
 
-from ..models import ActivityKind, Project, Task
+from ..models import ActivityKind, Project, Task, TaskBlocker
 from ._cache import bump_context_version
 from .activities import iso, log_event
 from .projects import NotFoundError, assert_owned, touch_last_activity
@@ -118,6 +118,8 @@ def toggle_task(user_id: uuid.UUID, task_id) -> Task:
     task.completed_at = timezone.now() if task.done else None
     task.save()
     if task.done:
+        # Auto-remove blockers where this task was the blocking dependency
+        TaskBlocker.objects.filter(blocking_task_id=task.id).delete()
         log_event(
             user_id,
             kind=ActivityKind.TASK_COMPLETED,
@@ -131,6 +133,59 @@ def toggle_task(user_id: uuid.UUID, task_id) -> Task:
             )
     bump_context_version(user_id)
     return task
+
+
+def _detect_cycle(user_id: uuid.UUID, start_id, end_id) -> bool:
+    """Return True if making start_id block end_id would create a cycle."""
+    visited: set = set()
+    queue = [str(end_id)]
+    while queue:
+        current = queue.pop()
+        if current == str(start_id):
+            return True
+        if current in visited:
+            continue
+        visited.add(current)
+        downstream = list(
+            TaskBlocker.objects.filter(
+                blocking_task_id=current,
+            ).values_list("blocked_task_id", flat=True)
+        )
+        queue.extend(str(d) for d in downstream)
+    return False
+
+
+def add_task_blocker(
+    user_id: uuid.UUID,
+    blocked_task_id,
+    *,
+    blocking_task_id=None,
+    external_description: str = "",
+) -> TaskBlocker:
+    has_task = bool(blocking_task_id)
+    has_ext = bool(external_description.strip())
+    if has_task == has_ext:
+        raise ValueError("Provide exactly one of blocking_task_id or external_description")
+    blocked_task = get_task(user_id, blocked_task_id)
+    if has_task:
+        get_task(user_id, blocking_task_id)
+        if str(blocking_task_id) == str(blocked_task_id):
+            raise ValueError("A task cannot block itself")
+        if _detect_cycle(user_id, blocking_task_id, blocked_task_id):
+            raise ValueError("Adding this blocker would create a circular dependency")
+    blocker = TaskBlocker.objects.create(
+        user_id=user_id,
+        blocked_task=blocked_task,
+        blocking_task_id=blocking_task_id or None,
+        external_description=external_description.strip(),
+    )
+    bump_context_version(user_id)
+    return blocker
+
+
+def remove_task_blocker(user_id: uuid.UUID, blocker_id) -> None:
+    TaskBlocker.objects.filter(pk=blocker_id, user_id=user_id).delete()
+    bump_context_version(user_id)
 
 
 def delete_task(user_id: uuid.UUID, task_id) -> None:

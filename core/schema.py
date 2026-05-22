@@ -14,6 +14,7 @@ from .models import (
     Project as ProjectModel,
     ProjectNote as ProjectNoteModel,
     Task as TaskModel,
+    TaskBlocker as TaskBlockerModel,
     Idea as IdeaModel,
     BackupMeta,
     Category as CategoryModel,
@@ -124,6 +125,25 @@ class ProjectNote:
 
 
 @strawberry.type
+class TaskBlocker:
+    id: strawberry.ID
+    blocked_task_id: strawberry.ID
+    blocking_task_id: Optional[strawberry.ID]
+    external_description: str
+    created: dt.datetime
+
+    @classmethod
+    def from_model(cls, m: TaskBlockerModel) -> "TaskBlocker":
+        return cls(
+            id=strawberry.ID(str(m.id)),
+            blocked_task_id=strawberry.ID(str(m.blocked_task_id)),
+            blocking_task_id=strawberry.ID(str(m.blocking_task_id)) if m.blocking_task_id else None,
+            external_description=m.external_description,
+            created=m.created,
+        )
+
+
+@strawberry.type
 class Task:
     id: strawberry.ID
     title: str
@@ -133,9 +153,10 @@ class Task:
     completed_at: Optional[dt.datetime]
     created: dt.datetime
     effort_hours: Optional[float] = None
+    blockers: List["TaskBlocker"] = strawberry.field(default_factory=list)
 
     @classmethod
-    def from_model(cls, m: TaskModel) -> "Task":
+    def from_model(cls, m: TaskModel, blockers: Optional[List["TaskBlocker"]] = None) -> "Task":
         return cls(
             id=strawberry.ID(str(m.id)),
             title=m.title,
@@ -145,6 +166,7 @@ class Task:
             completed_at=m.completed_at,
             created=m.created,
             effort_hours=m.effort_hours,
+            blockers=blockers or [],
         )
 
 
@@ -222,6 +244,7 @@ class Routine:
     effort_hours: Optional[float]
     archived: bool
     created: dt.datetime
+    project_id: Optional[strawberry.ID] = None
 
     @classmethod
     def from_model(cls, m: RoutineModel) -> "Routine":
@@ -239,6 +262,7 @@ class Routine:
             effort_hours=m.effort_hours,
             archived=m.archived,
             created=m.created,
+            project_id=strawberry.ID(str(m.project_id)) if m.project_id else None,
         )
 
 
@@ -339,6 +363,14 @@ class RoutineInput:
     interval_unit: Optional[str] = None
     monthly_day: Optional[int] = None
     effort_hours: Optional[float] = None
+    project_id: Optional[strawberry.ID] = None
+
+
+@strawberry.input
+class TaskBlockerInput:
+    blocked_task_id: strawberry.ID
+    blocking_task_id: Optional[strawberry.ID] = None
+    external_description: Optional[str] = ""
 
 
 @strawberry.input
@@ -596,9 +628,18 @@ class Query:
         routines = routines_svc.list_routines(uid, include_archived=True)
         routine_occurrences = routines_svc.list_recent_occurrences(uid, days=90)
         meta = BackupMeta.objects.filter(user_id=uid).first()
+        blocker_map: dict = {}
+        for b in TaskBlockerModel.objects.filter(user_id=uid):
+            blocker_map.setdefault(b.blocked_task_id, []).append(b)
         return Dashboard(
             projects=[Project.from_model(p) for p in projects],
-            tasks=[Task.from_model(t) for t in tasks],
+            tasks=[
+                Task.from_model(
+                    t,
+                    blockers=[TaskBlocker.from_model(b) for b in blocker_map.get(t.id, [])],
+                )
+                for t in tasks
+            ],
             ideas=[Idea.from_model(i) for i in ideas],
             activities=[Activity.from_model(a) for a in activities],
             categories=[Category.from_model(c) for c in categories],
@@ -940,6 +981,7 @@ class Mutation:
                 interval_unit=data.interval_unit or None,
                 monthly_day=data.monthly_day,
                 effort_hours=data.effort_hours,
+                project_id=data.project_id or None,
             )
         except ValidationError as e:
             raise GraphQLError(
@@ -969,6 +1011,7 @@ class Mutation:
                 interval_unit=data.interval_unit or None,
                 monthly_day=data.monthly_day,
                 effort_hours=data.effort_hours,
+                project_id=data.project_id or None,
             )
         except NotFoundError:
             raise _not_found("Routine")
@@ -1101,6 +1144,27 @@ class Mutation:
     def disconnect_google_tasks(self, info: Info) -> bool:
         uid = _user_id(info)
         google_tasks_svc.disconnect(uid)
+        return True
+
+    # Task blockers
+    @strawberry.mutation(name="addTaskBlocker")
+    def add_task_blocker(self, info: Info, data: TaskBlockerInput) -> TaskBlocker:
+        uid = _user_id(info)
+        try:
+            m = tasks_svc.add_task_blocker(
+                uid,
+                data.blocked_task_id,
+                blocking_task_id=data.blocking_task_id or None,
+                external_description=data.external_description or "",
+            )
+        except (NotFoundError, ValueError) as e:
+            raise GraphQLError(str(e), extensions={"code": "BAD_INPUT"})
+        return TaskBlocker.from_model(m)
+
+    @strawberry.mutation(name="removeTaskBlocker")
+    def remove_task_blocker(self, info: Info, id: strawberry.ID) -> bool:
+        uid = _user_id(info)
+        tasks_svc.remove_task_blocker(uid, id)
         return True
 
 

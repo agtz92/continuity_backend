@@ -186,10 +186,39 @@ class Routine(TimestampedModel):
     monthly_day = models.PositiveSmallIntegerField(null=True, blank=True)
     effort_hours = models.FloatField(null=True, blank=True)
     archived = models.BooleanField(default=False)
+    project = models.ForeignKey(
+        Project,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="routines",
+    )
 
     class Meta:
         ordering = ["archived", "-created"]
         indexes = [models.Index(fields=["user_id", "archived"])]
+
+
+class TaskBlocker(TimestampedModel):
+    """A blocker on a task. Exactly one of blocking_task or external_description
+    is non-null — enforced at the service layer."""
+
+    blocked_task = models.ForeignKey(
+        Task,
+        on_delete=models.CASCADE,
+        related_name="blockers",
+    )
+    blocking_task = models.ForeignKey(
+        Task,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="blocking",
+    )
+    external_description = models.CharField(max_length=500, blank=True, default="")
+
+    class Meta:
+        ordering = ["created"]
 
 
 class RoutineOccurrence(TimestampedModel):

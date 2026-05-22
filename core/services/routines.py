@@ -26,6 +26,7 @@ from ..models import (
 from ._cache import bump_context_version
 from ._common import NotFoundError
 from .activities import log_event
+from .projects import assert_owned
 
 
 WEEKDAY_MIN = 0
@@ -117,7 +118,9 @@ def create_routine(
     interval_unit: Optional[str] = None,
     monthly_day: Optional[int] = None,
     effort_hours: Optional[float] = None,
+    project_id: Optional[uuid.UUID] = None,
 ) -> Routine:
+    assert_owned(user_id, project_id)
     _validate_rule(
         recurrence_type=recurrence_type,
         start_date=start_date,
@@ -144,6 +147,7 @@ def create_routine(
         start_date=start_date,
         end_date=end_date,
         effort_hours=effort_hours,
+        project_id=project_id or None,
         **cleaned,
     )
     log_event(
@@ -170,7 +174,9 @@ def update_routine(
     interval_unit: Optional[str] = None,
     monthly_day: Optional[int] = None,
     effort_hours: Optional[float] = None,
+    project_id: Optional[uuid.UUID] = None,
 ) -> Routine:
+    assert_owned(user_id, project_id)
     routine = get_routine(user_id, routine_id)
     _validate_rule(
         recurrence_type=recurrence_type,
@@ -200,6 +206,7 @@ def update_routine(
     routine.interval_unit = cleaned["interval_unit"]
     routine.monthly_day = cleaned["monthly_day"]
     routine.effort_hours = effort_hours
+    routine.project_id = project_id or None
     routine.save()
     bump_context_version(user_id)
     return routine
