@@ -9,6 +9,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from ..models import ActivityKind, Idea, Project
+from ..quotas import check_entity_quota
 from ._cache import bump_context_version
 from .activities import log_event
 from .projects import NotFoundError
@@ -35,6 +36,7 @@ def create_idea(
     description: str = "",
     why: str = "",
 ) -> Idea:
+    check_entity_quota(user_id, "ideas")
     idea = Idea.objects.create(
         user_id=user_id,
         title=title,
@@ -86,6 +88,7 @@ def delete_idea(user_id: uuid.UUID, idea_id) -> None:
 
 
 def promote_idea(user_id: uuid.UUID, idea_id) -> Project:
+    check_entity_quota(user_id, "projects")
     with transaction.atomic():
         idea = get_idea(user_id, idea_id)
         project = Project.objects.create(

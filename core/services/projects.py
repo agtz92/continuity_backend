@@ -9,6 +9,7 @@ from typing import Optional
 from django.utils import timezone
 
 from ..models import ActivityKind, Category, Project
+from ..quotas import check_entity_quota
 from ._cache import bump_context_version as _bump_context_version
 from ._common import NotFoundError
 from .activities import iso, log_event
@@ -65,6 +66,7 @@ def create_project(
     category_id: Optional[uuid.UUID] = None,
     due_date: Optional[dt.datetime] = None,
 ) -> Project:
+    check_entity_quota(user_id, "projects")
     category = None
     if category_id:
         category = Category.objects.filter(pk=category_id, user_id=user_id).first()

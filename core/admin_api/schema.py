@@ -71,6 +71,7 @@ class AdminUserSummary:
     email: str
     plan: str
     is_admin: bool
+    is_billing_exempt: bool
     created_at: Optional[dt.datetime]
     last_sign_in_at: Optional[dt.datetime]
     counts: UserCounts
@@ -117,6 +118,7 @@ class AdminUserDetail:
     email: str
     plan: str
     is_admin: bool
+    is_billing_exempt: bool
     plan_renews_at: Optional[dt.datetime]
     stripe_customer_id: str
     stripe_subscription_id: str
@@ -299,6 +301,7 @@ def _build_summary(
         email=s_user.email,
         plan=(profile.plan if profile else Plan.FREE.value),
         is_admin=bool(profile.is_admin) if profile else False,
+        is_billing_exempt=bool(profile.is_billing_exempt) if profile else False,
         created_at=_parse_dt(s_user.created_at),
         last_sign_in_at=_parse_dt(s_user.last_sign_in_at),
         counts=counts,
@@ -469,6 +472,7 @@ class AdminQuery:
             email=s_user.email,
             plan=(profile.plan if profile else Plan.FREE.value),
             is_admin=bool(profile.is_admin) if profile else False,
+            is_billing_exempt=bool(profile.is_billing_exempt) if profile else False,
             plan_renews_at=(profile.plan_renews_at if profile else None),
             stripe_customer_id=(profile.stripe_customer_id if profile else ""),
             stripe_subscription_id=(
@@ -719,6 +723,7 @@ class AdminMutation:
             email=email,
             plan=profile.plan,
             is_admin=profile.is_admin,
+            is_billing_exempt=profile.is_billing_exempt,
             created_at=_parse_dt(s_user.created_at) if s_user else None,
             last_sign_in_at=_parse_dt(s_user.last_sign_in_at) if s_user else None,
             counts=counts,
@@ -821,6 +826,59 @@ class AdminMutation:
             email=email,
             plan=profile.plan,
             is_admin=profile.is_admin,
+            is_billing_exempt=profile.is_billing_exempt,
+            created_at=_parse_dt(s_user.created_at) if s_user else None,
+            last_sign_in_at=_parse_dt(s_user.last_sign_in_at) if s_user else None,
+            counts=counts,
+            last_activity=last_activity,
+        )
+
+    @strawberry.mutation(name="adminSetUserIsBillingExempt")
+    def admin_set_user_is_billing_exempt(
+        self, info: Info, user_id: strawberry.ID, is_billing_exempt: bool
+    ) -> AdminUserSummary:
+        actor = _admin_user_id(info)
+        try:
+            uid = uuid.UUID(str(user_id))
+        except ValueError:
+            raise GraphQLError("Invalid user_id", extensions={"code": "BAD_INPUT"})
+
+        profile, created = AccountProfile.objects.get_or_create(user_id=uid)
+        before = profile.is_billing_exempt
+        profile.is_billing_exempt = is_billing_exempt
+        profile.save(update_fields=["is_billing_exempt", "updated_at"])
+
+        audit_record(
+            actor_user_id=actor,
+            action="user.set_is_billing_exempt",
+            target_type="user",
+            target_id=uid,
+            payload={
+                "before": before if not created else None,
+                "after": is_billing_exempt,
+                "created_profile": created,
+            },
+        )
+
+        try:
+            s_user = supabase_get_user(uid)
+        except SupabaseAdminError:
+            s_user = None
+        email = s_user.email if s_user else ""
+        counts = _build_counts_for(uid)
+        last_activity = (
+            ActivityModel.objects.filter(user_id=uid)
+            .order_by("-created")
+            .values_list("created", flat=True)
+            .first()
+        )
+
+        return AdminUserSummary(
+            user_id=strawberry.ID(str(uid)),
+            email=email,
+            plan=profile.plan,
+            is_admin=profile.is_admin,
+            is_billing_exempt=profile.is_billing_exempt,
             created_at=_parse_dt(s_user.created_at) if s_user else None,
             last_sign_in_at=_parse_dt(s_user.last_sign_in_at) if s_user else None,
             counts=counts,

@@ -22,6 +22,7 @@ urlpatterns = [
     ),
     path("api/", include("core.notifications.urls")),
     path("api/assistant/", include("core.assistant.urls")),
+    path("api/billing/", include("core.billing.urls")),
     path(
         "api/google/oauth/callback",
         google_tasks_views.oauth_callback,

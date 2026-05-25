@@ -16,9 +16,19 @@ from .models import AccountProfile, Plan, UsageDay
 
 
 PLAN_QUOTAS = {
-    Plan.FREE.value: {"daily_messages": 20, "monthly_tokens": 200_000},
-    Plan.PRO.value: {"daily_messages": 300, "monthly_tokens": 5_000_000},
+    Plan.FREE.value: {"daily_messages": 15, "monthly_tokens": 100_000},
+    Plan.PRO.value: {"daily_messages": 200, "monthly_tokens": 3_000_000},
+    Plan.STUDIO.value: {"daily_messages": 600, "monthly_tokens": 15_000_000},
     Plan.ADMIN.value: {"daily_messages": None, "monthly_tokens": None},
+}
+
+# Daily cap for the deep (Sonnet) model, per plan. A cap of 0 disables
+# deep mode entirely for that plan.
+DEEP_DAILY_CAP_BY_PLAN = {
+    Plan.FREE.value: 0,
+    Plan.PRO.value: 5,
+    Plan.STUDIO.value: 25,
+    Plan.ADMIN.value: 100,
 }
 
 
@@ -96,10 +106,10 @@ def check(user_id: uuid.UUID) -> UsageSnapshot:
 def deep_allowed(user_id: uuid.UUID) -> bool:
     """True if the user still has room under the daily Sonnet (deep) cap.
 
-    The cap applies to every plan, admin included — it's a cost guard, not
-    a feature gate. A cap of 0 (or less) disables deep mode entirely.
+    Cap depends on plan: Free=0 (disabled), Pro=5, Studio=25, Admin=100.
     """
-    cap = getattr(settings, "ASSISTANT_DEEP_DAILY_CAP", 10)
+    profile = get_or_create_profile(user_id)
+    cap = DEEP_DAILY_CAP_BY_PLAN.get(profile.plan, 0)
     if cap is None or cap <= 0:
         return False
     today = UsageDay.objects.filter(

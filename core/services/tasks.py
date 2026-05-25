@@ -9,6 +9,7 @@ from typing import Optional
 from django.utils import timezone
 
 from ..models import ActivityKind, Project, Task, TaskBlocker
+from ..quotas import check_entity_quota
 from ._cache import bump_context_version
 from .activities import iso, log_event
 from .projects import NotFoundError, assert_owned, touch_last_activity
@@ -54,6 +55,9 @@ def create_task(
     effort_hours: Optional[float] = None,
 ) -> Task:
     assert_owned(user_id, project_id)
+    check_entity_quota(user_id, "tasks_total")
+    if project_id:
+        check_entity_quota(user_id, "tasks_per_project", project_id=project_id)
     task = Task.objects.create(
         user_id=user_id,
         title=title,

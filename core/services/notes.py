@@ -6,6 +6,7 @@ import uuid
 from typing import Optional
 
 from ..models import ProjectNote
+from ..quotas import check_entity_quota
 from .projects import NotFoundError, assert_owned, touch_last_activity
 
 
@@ -39,6 +40,7 @@ def create_note(
     body: str = "",
 ) -> ProjectNote:
     assert_owned(user_id, project_id)
+    check_entity_quota(user_id, "notes_per_project", project_id=project_id)
     clean_title = (title or "").strip()
     clean_body = body or ""
     note = ProjectNote.objects.create(

@@ -387,6 +387,9 @@ class UsageView(View):
         if early is not None:
             return early
         snap = quotas.get_usage(request.user_id)
+        profile = quotas.get_or_create_profile(request.user_id)
+        from core.billing.plans import period_for_price
+
         return JsonResponse(
             {
                 "plan": snap.plan,
@@ -395,6 +398,16 @@ class UsageView(View):
                 "tokens_used_month": snap.tokens_used_month,
                 "monthly_token_cap": snap.monthly_token_cap,
                 "reset_at": snap.reset_at.isoformat(),
+                "is_billing_exempt": profile.is_billing_exempt,
+                "has_subscription": bool(profile.stripe_subscription_id),
+                "plan_renews_at": (
+                    profile.plan_renews_at.isoformat()
+                    if profile.plan_renews_at
+                    else None
+                ),
+                "had_retention_offer": profile.had_retention_offer,
+                "subscription_period": period_for_price(profile.stripe_price_id),
+                "cancel_at_period_end": profile.cancel_at_period_end,
             }
         )
 

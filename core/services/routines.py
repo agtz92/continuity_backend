@@ -23,6 +23,7 @@ from ..models import (
     Routine,
     RoutineOccurrence,
 )
+from ..quotas import check_entity_quota
 from ._cache import bump_context_version
 from ._common import NotFoundError
 from .activities import log_event
@@ -121,6 +122,7 @@ def create_routine(
     project_id: Optional[uuid.UUID] = None,
 ) -> Routine:
     assert_owned(user_id, project_id)
+    check_entity_quota(user_id, "routines")
     _validate_rule(
         recurrence_type=recurrence_type,
         start_date=start_date,

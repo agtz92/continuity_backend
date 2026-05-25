@@ -92,7 +92,7 @@ def all_tools() -> list[Tool]:
 # Plan tiers, lowest to highest. A tool with `plan_required="pro"` is
 # available to "pro" and "admin" but not "free" — this is what separates
 # the read-only tier from the read-write tier.
-_PLAN_RANK = {"free": 0, "pro": 1, "admin": 2}
+_PLAN_RANK = {"free": 0, "pro": 1, "studio": 2, "admin": 3}
 
 
 def _plan_allows(user_plan: str, required: str) -> bool:

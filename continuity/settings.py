@@ -44,6 +44,8 @@ INSTALLED_APPS = [
     "core.assistant.apps.AssistantConfig",
     "core.admin_api.apps.AdminApiConfig",
     "core.cms.apps.CmsConfig",
+    "core.billing.apps.BillingConfig",
+    "core.announcements.apps.AnnouncementsConfig",
 ]
 
 MIDDLEWARE = [
@@ -170,3 +172,21 @@ ASSISTANT_RATE_LIMIT_BURST = config(
     "ASSISTANT_RATE_LIMIT_BURST", default="5/10s"
 )
 ASSISTANT_RATE_LIMIT_IP = config("ASSISTANT_RATE_LIMIT_IP", default="60/m")
+
+# Stripe billing
+STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY", default="")
+STRIPE_WEBHOOK_SECRET = config("STRIPE_WEBHOOK_SECRET", default="")
+STRIPE_PRICE_PRO_MONTHLY = config("STRIPE_PRICE_PRO_MONTHLY", default="")
+STRIPE_PRICE_PRO_ANNUAL = config("STRIPE_PRICE_PRO_ANNUAL", default="")
+STRIPE_PRICE_STUDIO_MONTHLY = config("STRIPE_PRICE_STUDIO_MONTHLY", default="")
+STRIPE_PRICE_STUDIO_ANNUAL = config("STRIPE_PRICE_STUDIO_ANNUAL", default="")
+# Where success/cancel/portal redirects send the user back.
+BILLING_FRONTEND_BASE_URL = config(
+    "BILLING_FRONTEND_BASE_URL", default="http://localhost:3000"
+)
+# Retention coupons (Stripe Dashboard → Products → Coupons). The cancellation
+# flow maps the user's reason to one of these. Leave empty to disable the
+# offer step for that bracket.
+STRIPE_COUPON_RETENTION_30_3M = config("STRIPE_COUPON_RETENTION_30_3M", default="")
+STRIPE_COUPON_RETENTION_25_3M = config("STRIPE_COUPON_RETENTION_25_3M", default="")
+STRIPE_COUPON_RETENTION_20_3M = config("STRIPE_COUPON_RETENTION_20_3M", default="")

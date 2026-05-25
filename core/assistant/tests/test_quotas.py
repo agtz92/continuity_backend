@@ -16,8 +16,8 @@ def test_free_plan_default(user_a, make_profile):
     make_profile(user_a, "free")
     snap = quotas.check(user_a)
     assert snap.plan == "free"
-    assert snap.daily_message_cap == 20
-    assert snap.monthly_token_cap == 200_000
+    assert snap.daily_message_cap == 15
+    assert snap.monthly_token_cap == 100_000
     assert snap.messages_sent_today == 0
 
 
@@ -33,7 +33,7 @@ def test_admin_plan_uncapped(user_a, make_profile):
 def test_check_raises_when_daily_cap_hit(user_a, make_profile):
     make_profile(user_a, "free")
     UsageDay.objects.create(
-        user_id=user_a, date=timezone.now().date(), messages_sent=20
+        user_id=user_a, date=timezone.now().date(), messages_sent=15
     )
     with pytest.raises(quotas.QuotaExceeded) as exc:
         quotas.check(user_a)
@@ -48,8 +48,8 @@ def test_check_raises_when_monthly_cap_hit(user_a, make_profile):
         user_id=user_a,
         date=today,
         messages_sent=1,
-        tokens_in=150_000,
-        tokens_out=60_000,
+        tokens_in=80_000,
+        tokens_out=30_000,
     )
     with pytest.raises(quotas.QuotaExceeded) as exc:
         quotas.check(user_a)

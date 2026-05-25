@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 
 from ..models import Category
+from ..quotas import check_entity_quota
 from ._cache import bump_context_version
 from .projects import NotFoundError
 
@@ -23,6 +24,9 @@ def get_category(user_id: uuid.UUID, category_id) -> Category:
 def create_category(
     user_id: uuid.UUID, *, name: str, color: str = "emerald"
 ) -> Category:
+    existing = Category.objects.filter(user_id=user_id, name=name).first()
+    if existing is None:
+        check_entity_quota(user_id, "categories")
     category, _ = Category.objects.get_or_create(
         user_id=user_id,
         name=name,

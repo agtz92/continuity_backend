@@ -25,6 +25,12 @@ from .models import (
 from .notifications.schema import NotificationsQuery, NotificationsMutation
 from .admin_api.schema import AdminQuery, AdminMutation
 from .cms.schema_admin import CmsAdminQuery, CmsAdminMutation
+from .billing.schema import BillingMutation
+from .announcements.schema import (
+    AdminAnnouncementsMutation,
+    AdminAnnouncementsQuery,
+    NotificationsQuery as InAppNotificationsQuery,
+)
 from .services import (
     activities as activities_svc,
     categories as categories_svc,
@@ -37,6 +43,7 @@ from .services import (
     tasks as tasks_svc,
 )
 from .services.projects import NotFoundError
+from .quotas import EntityQuotaExceeded
 
 
 AnalyticsRange = strawberry.enum(AnalyticsRangeEnum, name="AnalyticsRange")
@@ -53,6 +60,19 @@ def _user_id(info: Info) -> uuid.UUID:
 
 def _not_found(label: str) -> GraphQLError:
     return GraphQLError(f"{label} not found", extensions={"code": "NOT_FOUND"})
+
+
+def _quota_error(e: EntityQuotaExceeded) -> GraphQLError:
+    return GraphQLError(
+        str(e),
+        extensions={
+            "code": "QUOTA_EXCEEDED",
+            "kind": e.kind,
+            "current": e.current,
+            "cap": e.cap,
+            "plan": e.plan,
+        },
+    )
 
 
 @strawberry.type
@@ -743,17 +763,20 @@ class Mutation:
     @strawberry.mutation
     def create_project(self, info: Info, data: ProjectInput) -> Project:
         uid = _user_id(info)
-        m = projects_svc.create_project(
-            uid,
-            name=data.name,
-            description=data.description or "",
-            why=data.why or "",
-            next_step=data.next_step or "",
-            status=data.status or "idea",
-            priority=data.priority or "medium",
-            category_id=data.category_id,
-            due_date=data.due_date,
-        )
+        try:
+            m = projects_svc.create_project(
+                uid,
+                name=data.name,
+                description=data.description or "",
+                why=data.why or "",
+                next_step=data.next_step or "",
+                status=data.status or "idea",
+                priority=data.priority or "medium",
+                category_id=data.category_id,
+                due_date=data.due_date,
+            )
+        except EntityQuotaExceeded as e:
+            raise _quota_error(e)
         return Project.from_model(m)
 
     @strawberry.mutation
@@ -790,6 +813,8 @@ class Mutation:
             )
         except NotFoundError:
             raise _not_found("Project")
+        except EntityQuotaExceeded as e:
+            raise _quota_error(e)
         return ProjectNote.from_model(m)
 
     @strawberry.mutation
@@ -832,6 +857,8 @@ class Mutation:
             )
         except NotFoundError:
             raise _not_found("Project")
+        except EntityQuotaExceeded as e:
+            raise _quota_error(e)
         return Task.from_model(m)
 
     @strawberry.mutation
@@ -870,12 +897,15 @@ class Mutation:
     @strawberry.mutation
     def create_idea(self, info: Info, data: IdeaInput) -> Idea:
         uid = _user_id(info)
-        m = ideas_svc.create_idea(
-            uid,
-            title=data.title,
-            description=data.description or "",
-            why=data.why or "",
-        )
+        try:
+            m = ideas_svc.create_idea(
+                uid,
+                title=data.title,
+                description=data.description or "",
+                why=data.why or "",
+            )
+        except EntityQuotaExceeded as e:
+            raise _quota_error(e)
         return Idea.from_model(m)
 
     @strawberry.mutation
@@ -906,6 +936,8 @@ class Mutation:
             p = ideas_svc.promote_idea(uid, id)
         except NotFoundError:
             raise _not_found("Idea")
+        except EntityQuotaExceeded as e:
+            raise _quota_error(e)
         return Project.from_model(p)
 
     # Notes (kind=NOTE activities)
@@ -916,6 +948,8 @@ class Mutation:
             m = activities_svc.add_note(uid, project_id=project_id, note=note)
         except NotFoundError:
             raise _not_found("Project")
+        except EntityQuotaExceeded as e:
+            raise _quota_error(e)
         return Activity.from_model(m)
 
     @strawberry.mutation
@@ -940,9 +974,12 @@ class Mutation:
     @strawberry.mutation
     def create_category(self, info: Info, data: CategoryInput) -> Category:
         uid = _user_id(info)
-        m = categories_svc.create_category(
-            uid, name=data.name, color=data.color or "emerald"
-        )
+        try:
+            m = categories_svc.create_category(
+                uid, name=data.name, color=data.color or "emerald"
+            )
+        except EntityQuotaExceeded as e:
+            raise _quota_error(e)
         return Category.from_model(m)
 
     @strawberry.mutation
@@ -988,6 +1025,8 @@ class Mutation:
                 str(e.messages[0] if e.messages else "Invalid input"),
                 extensions={"code": "BAD_INPUT"},
             )
+        except EntityQuotaExceeded as e:
+            raise _quota_error(e)
         return Routine.from_model(m)
 
     @strawberry.mutation
@@ -1169,11 +1208,26 @@ class Mutation:
 
 
 CombinedQuery = merge_types(
-    "Query", (Query, NotificationsQuery, AdminQuery, CmsAdminQuery)
+    "Query",
+    (
+        Query,
+        NotificationsQuery,
+        AdminQuery,
+        CmsAdminQuery,
+        InAppNotificationsQuery,
+        AdminAnnouncementsQuery,
+    ),
 )
 CombinedMutation = merge_types(
     "Mutation",
-    (Mutation, NotificationsMutation, AdminMutation, CmsAdminMutation),
+    (
+        Mutation,
+        NotificationsMutation,
+        AdminMutation,
+        CmsAdminMutation,
+        BillingMutation,
+        AdminAnnouncementsMutation,
+    ),
 )
 
 schema = strawberry.Schema(query=CombinedQuery, mutation=CombinedMutation)

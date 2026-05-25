@@ -86,7 +86,7 @@ def test_usage_endpoint_returns_snapshot(http, user_a, make_profile):
     assert response.status_code == 200
     data = response.json()
     assert data["plan"] == "free"
-    assert data["daily_message_cap"] == 20
+    assert data["daily_message_cap"] == 15
 
 
 @pytest.mark.django_db
@@ -324,7 +324,7 @@ def test_chat_rejects_oversized_input(http, user_a, make_profile):
 def test_chat_blocked_when_quota_exceeded(http, user_a, make_profile):
     make_profile(user_a, plan="free")
     UsageDay.objects.create(
-        user_id=user_a, date=timezone.now().date(), messages_sent=20
+        user_id=user_a, date=timezone.now().date(), messages_sent=15
     )
     token = _make_jwt(user_a)
     response = http.post(

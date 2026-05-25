@@ -17,6 +17,7 @@ from typing import Iterable, Optional
 from django.utils import timezone
 
 from ..models import Activity, ActivityKind, Project
+from ..quotas import check_entity_quota
 from ._cache import bump_context_version as _bump_context_version
 from ._common import NotFoundError
 
@@ -79,6 +80,11 @@ def add_note(user_id: uuid.UUID, *, project_id, note: str) -> Activity:
     """Create a user-authored note tied to a project. Touches last_activity."""
     if not Project.objects.filter(pk=project_id, user_id=user_id).exists():
         raise NotFoundError("Project not found")
+    # `notes_per_project` here is a cheap proxy for "is the user creating
+    # new content under a project they shouldn't have anymore". The cross-
+    # kind block inside check_entity_quota refuses if projects/tasks/etc.
+    # are over cap, even if this kind isn't.
+    check_entity_quota(user_id, "notes_per_project", project_id=project_id)
     activity = log_event(
         user_id,
         kind=ActivityKind.NOTE,

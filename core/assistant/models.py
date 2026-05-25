@@ -22,6 +22,7 @@ from django.db import models
 class Plan(models.TextChoices):
     FREE = "free", "Free"
     PRO = "pro", "Pro"
+    STUDIO = "studio", "Studio"
     ADMIN = "admin", "Admin"
 
 
@@ -45,7 +46,21 @@ class AccountProfile(models.Model):
     plan_renews_at = models.DateTimeField(null=True, blank=True)
     stripe_customer_id = models.CharField(max_length=255, blank=True, default="")
     stripe_subscription_id = models.CharField(max_length=255, blank=True, default="")
+    # Active price id within the current subscription. Lets us derive the
+    # billing period (monthly/annual) and the plan without round-tripping
+    # to Stripe on every settings/billing page load.
+    stripe_price_id = models.CharField(max_length=255, blank=True, default="")
+    # True when the user clicked "Downgrade to Free" — Stripe keeps the
+    # subscription active until `plan_renews_at`, then auto-deletes it. We
+    # mirror this so the UI can show "scheduled to cancel on X" + a
+    # reactivate button without round-tripping to Stripe.
+    cancel_at_period_end = models.BooleanField(default=False)
     is_admin = models.BooleanField(default=False, db_index=True)
+    is_billing_exempt = models.BooleanField(default=False, db_index=True)
+    # True once a retention coupon has been offered+applied to this user.
+    # Prevents repeat coupon abuse: if the user tries to cancel again later,
+    # the offer step is skipped.
+    had_retention_offer = models.BooleanField(default=False)
     context_version = models.IntegerField(default=0)
     created = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
