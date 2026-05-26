@@ -70,7 +70,29 @@ def test_record_increments_counters(user_a, make_profile):
 
 
 @pytest.mark.django_db
-def test_get_or_create_profile_lazy(user_a):
+def test_get_or_create_profile_lazy_grants_early_adopter_cortesia(user_a):
     assert AccountProfile.objects.filter(user_id=user_a).count() == 0
     profile = quotas.get_or_create_profile(user_a)
+    assert profile.plan == "pro"
+    assert profile.is_billing_exempt is True
+
+
+@pytest.mark.django_db
+def test_get_or_create_profile_skips_cortesia_past_cap(user_a):
+    import uuid as _uuid
+
+    for _ in range(quotas.EARLY_ADOPTER_CAP):
+        AccountProfile.objects.create(user_id=_uuid.uuid4())
+    profile = quotas.get_or_create_profile(user_a)
     assert profile.plan == "free"
+    assert profile.is_billing_exempt is False
+
+
+@pytest.mark.django_db
+def test_get_or_create_profile_existing_profile_untouched(user_a):
+    AccountProfile.objects.create(
+        user_id=user_a, plan="free", is_billing_exempt=False
+    )
+    profile = quotas.get_or_create_profile(user_a)
+    assert profile.plan == "free"
+    assert profile.is_billing_exempt is False

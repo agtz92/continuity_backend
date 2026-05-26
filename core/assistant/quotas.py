@@ -49,8 +49,15 @@ class UsageSnapshot:
     reset_at: dt.datetime
 
 
+EARLY_ADOPTER_CAP = 50
+
+
 def get_or_create_profile(user_id: uuid.UUID) -> AccountProfile:
-    profile, _ = AccountProfile.objects.get_or_create(user_id=user_id)
+    profile, created = AccountProfile.objects.get_or_create(user_id=user_id)
+    if created and AccountProfile.objects.count() <= EARLY_ADOPTER_CAP:
+        profile.plan = "pro"
+        profile.is_billing_exempt = True
+        profile.save(update_fields=["plan", "is_billing_exempt", "updated_at"])
     return profile
 
 
