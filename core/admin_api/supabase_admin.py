@@ -109,6 +109,30 @@ def get_user(user_id: uuid.UUID) -> Optional[SupabaseUser]:
     return _parse_user(body.get("user", body) if isinstance(body, dict) else body)
 
 
+def fetch_all_users() -> list[SupabaseUser]:
+    """Return every Supabase auth user by walking the admin API pages.
+
+    The /auth/v1/admin/users endpoint doesn't return a reliable total in
+    the JSON body, so we paginate at max per_page (1000) until a short
+    page is returned. A 50-page safety cap (~50k users) prevents runaway
+    requests if the response shape ever changes.
+    """
+    PER_PAGE = 1000
+    MAX_PAGES = 50
+    out: list[SupabaseUser] = []
+    for page in range(1, MAX_PAGES + 1):
+        result = list_users(page=page, per_page=PER_PAGE)
+        out.extend(result.users)
+        if len(result.users) < PER_PAGE:
+            return out
+    return out
+
+
+def count_users() -> int:
+    """Count all Supabase auth users (see fetch_all_users for caveats)."""
+    return len(fetch_all_users())
+
+
 def get_users_map(user_ids: list[uuid.UUID]) -> dict[uuid.UUID, SupabaseUser]:
     """Fetch many users by id. Falls back to per-id requests because
     Supabase's admin API doesn't expose a bulk lookup-by-id endpoint.

@@ -37,6 +37,7 @@ from .permissions import _admin_user_id
 from .supabase_admin import (
     SupabaseAdminError,
     SupabaseUser,
+    fetch_all_users,
     get_user as supabase_get_user,
     get_users_map,
     list_users as supabase_list_users,
@@ -170,19 +171,63 @@ class JobStatusCount:
 
 
 @strawberry.type
+class LabeledCount:
+    """Generic (label, count) pair for categorical breakdowns."""
+
+    label: str
+    count: int
+
+
+@strawberry.type
+class SeriesPoint:
+    """One day's data point for a time series chart."""
+
+    date: dt.date
+    value: int
+
+
+@strawberry.type
+class RecentSignup:
+    user_id: strawberry.ID
+    email: str
+    created_at: Optional[dt.datetime]
+    plan: str
+
+
+@strawberry.type
 class AdminSystemStats:
-    total_accounts: int
+    # Headline counts.
+    total_users: int  # Real Supabase auth.users count.
+    total_accounts: int  # AccountProfile rows — may include orphans, kept for back-compat.
     admins: int
     plan_counts: list[PlanCount]
-    dau: int  # last 24h: users with activity
-    wau: int  # last 7d
-    mau: int  # last 30d
+
+    # Engagement.
+    dau: int
+    wau: int
+    mau: int
+    signups_series: list[SeriesPoint]  # last 30 days, by day
+    activity_series: list[SeriesPoint]  # DAU per day, last 30 days
+    activity_by_kind: list[LabeledCount]  # last 30 days
+
+    # Product objects.
+    project_state_counts: list[LabeledCount]
+    tasks_open: int
+    tasks_done_30d: int
+    ideas_total: int
+
+    # CMS.
     blog_posts_published: int
     blog_posts_draft: int
     pages_published: int
+
+    # System health.
     pending_jobs: int
     failed_jobs: int
     job_status_counts: list[JobStatusCount]
+
+    # Lists.
+    recent_signups: list[RecentSignup]
 
 
 @strawberry.type
@@ -545,13 +590,73 @@ class AdminQuery:
     def admin_system_stats(self, info: Info) -> AdminSystemStats:
         _admin_user_id(info)
         now = timezone.now()
+        today = now.date()
         d1 = now - dt.timedelta(days=1)
         d7 = now - dt.timedelta(days=7)
         d30 = now - dt.timedelta(days=30)
+        day0 = today - dt.timedelta(days=29)  # 30-day window inclusive of today
 
+        # --- Users (real source: Supabase auth) ----------------------------
+        try:
+            supabase_users = fetch_all_users()
+        except SupabaseAdminError as e:
+            logger.warning("adminSystemStats: supabase fetch failed: %s", e)
+            supabase_users = []
+        total_users = len(supabase_users)
+
+        signup_buckets: dict[dt.date, int] = {
+            day0 + dt.timedelta(days=i): 0 for i in range(30)
+        }
+        for u in supabase_users:
+            if not u.created_at:
+                continue
+            try:
+                created = dt.datetime.fromisoformat(
+                    u.created_at.replace("Z", "+00:00")
+                )
+            except ValueError:
+                continue
+            d = created.date()
+            if d in signup_buckets:
+                signup_buckets[d] += 1
+        signups_series = [
+            SeriesPoint(date=d, value=signup_buckets[d])
+            for d in sorted(signup_buckets)
+        ]
+
+        # Recent signups: top 10 by created_at desc, joined with plan.
+        sorted_users = sorted(
+            supabase_users,
+            key=lambda u: u.created_at or "",
+            reverse=True,
+        )[:10]
+        recent_uids = [u.id for u in sorted_users]
+        plan_by_uid = {
+            p.user_id: p.plan
+            for p in AccountProfile.objects.filter(user_id__in=recent_uids)
+        }
+        recent_signups: list[RecentSignup] = []
+        for u in sorted_users:
+            created_dt: Optional[dt.datetime] = None
+            if u.created_at:
+                try:
+                    created_dt = dt.datetime.fromisoformat(
+                        u.created_at.replace("Z", "+00:00")
+                    )
+                except ValueError:
+                    created_dt = None
+            recent_signups.append(
+                RecentSignup(
+                    user_id=strawberry.ID(str(u.id)),
+                    email=u.email,
+                    created_at=created_dt,
+                    plan=plan_by_uid.get(u.id, Plan.FREE.value),
+                )
+            )
+
+        # --- Local accounts / plans ---------------------------------------
         total_accounts = AccountProfile.objects.count()
         admins = AccountProfile.objects.filter(is_admin=True).count()
-
         plan_rows = (
             AccountProfile.objects.values("plan")
             .annotate(c=Count("user_id"))
@@ -561,6 +666,7 @@ class AdminQuery:
             PlanCount(plan=row["plan"], count=row["c"]) for row in plan_rows
         ]
 
+        # --- Engagement ---------------------------------------------------
         dau = (
             ActivityModel.objects.filter(created__gte=d1)
             .values("user_id")
@@ -580,13 +686,55 @@ class AdminQuery:
             .count()
         )
 
-        # CMS counts — keep loose imports inside to avoid circulars.
+        # DAU per day for the last 30 days.
+        activity_buckets: dict[dt.date, set[uuid.UUID]] = {
+            day0 + dt.timedelta(days=i): set() for i in range(30)
+        }
+        for row in ActivityModel.objects.filter(created__gte=d30).values(
+            "user_id", "created"
+        ):
+            d = row["created"].date()
+            if d in activity_buckets:
+                activity_buckets[d].add(row["user_id"])
+        activity_series = [
+            SeriesPoint(date=d, value=len(activity_buckets[d]))
+            for d in sorted(activity_buckets)
+        ]
+
+        # Activity-by-kind in the last 30 days.
+        kind_rows = (
+            ActivityModel.objects.filter(created__gte=d30)
+            .values("kind")
+            .annotate(c=Count("id"))
+            .order_by("-c")
+        )
+        activity_by_kind = [
+            LabeledCount(label=row["kind"], count=row["c"]) for row in kind_rows
+        ]
+
+        # --- Product objects ----------------------------------------------
+        proj_rows = (
+            ProjectModel.objects.values("status")
+            .annotate(c=Count("id"))
+            .order_by("status")
+        )
+        project_state_counts = [
+            LabeledCount(label=row["status"], count=row["c"]) for row in proj_rows
+        ]
+        tasks_open = TaskModel.objects.filter(done=False).count()
+        tasks_done_30d = TaskModel.objects.filter(
+            done=True, completed_at__gte=d30
+        ).count()
+        ideas_total = IdeaModel.objects.count()
+
+        # --- CMS -----------------------------------------------------------
         from core.cms.models import BlogPost, Page, PostStatus as CmsStatus
 
         blog_published = BlogPost.objects.filter(status=CmsStatus.PUBLISHED).count()
         blog_draft = BlogPost.objects.filter(status=CmsStatus.DRAFT).count()
         pages_published = Page.objects.filter(status=CmsStatus.PUBLISHED).count()
 
+        # --- System health -------------------------------------------------
         pending_jobs = Notification.objects.filter(
             status=NotificationStatus.PENDING
         ).count()
@@ -603,18 +751,27 @@ class AdminQuery:
         ]
 
         return AdminSystemStats(
+            total_users=total_users,
             total_accounts=total_accounts,
             admins=admins,
             plan_counts=plan_counts,
             dau=dau,
             wau=wau,
             mau=mau,
+            signups_series=signups_series,
+            activity_series=activity_series,
+            activity_by_kind=activity_by_kind,
+            project_state_counts=project_state_counts,
+            tasks_open=tasks_open,
+            tasks_done_30d=tasks_done_30d,
+            ideas_total=ideas_total,
             blog_posts_published=blog_published,
             blog_posts_draft=blog_draft,
             pages_published=pages_published,
             pending_jobs=pending_jobs,
             failed_jobs=failed_jobs,
             job_status_counts=job_status_counts,
+            recent_signups=recent_signups,
         )
 
     @strawberry.field(name="adminAuditLog")

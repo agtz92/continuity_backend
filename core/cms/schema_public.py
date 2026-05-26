@@ -8,13 +8,21 @@ admin-side `adminBlogPost*` resolvers are the write side.
 from __future__ import annotations
 
 import datetime as dt
+import logging
 from typing import Optional
 
 import strawberry
+from django.core.cache import cache
 from graphql import GraphQLError
 from strawberry.types import Info
 
+from ..admin_api.supabase_admin import SupabaseAdminError, count_users
 from .models import BlogPost, HelpCategory, HelpResource, Page, PostStatus
+
+logger = logging.getLogger(__name__)
+
+_USER_COUNT_CACHE_KEY = "public:platform_stats:user_count"
+_USER_COUNT_TTL_SECONDS = 300
 
 
 @strawberry.type
@@ -98,6 +106,11 @@ class PublicHelpResourcePage:
     page: int
     per_page: int
     has_next: bool
+
+
+@strawberry.type
+class PublicPlatformStats:
+    user_count: int
 
 
 def _to_public_help_category(m: HelpCategory, count: int | None = None) -> PublicHelpCategory:
@@ -292,3 +305,16 @@ class CmsPublicQuery:
             qs = qs.filter(locale=locale)
         m = qs.first()
         return _to_public_help_resource(m) if m else None
+
+    @strawberry.field(name="publicPlatformStats")
+    def public_platform_stats(self, info: Info) -> PublicPlatformStats:
+        cached = cache.get(_USER_COUNT_CACHE_KEY)
+        if isinstance(cached, int):
+            return PublicPlatformStats(user_count=cached)
+        try:
+            count = count_users()
+        except SupabaseAdminError as e:
+            logger.warning("publicPlatformStats fallback: %s", e)
+            count = 0
+        cache.set(_USER_COUNT_CACHE_KEY, count, _USER_COUNT_TTL_SECONDS)
+        return PublicPlatformStats(user_count=count)
