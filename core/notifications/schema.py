@@ -95,9 +95,10 @@ class NotificationSettingsInput:
 
 
 SUPPORTED_LOCALES = {"en", "es"}
-SUPPORTED_THEMES = {"light", "dark", "system"}
+SUPPORTED_THEMES = {"continuuit", "light", "dark", "system"}
 SUPPORTED_PALETTES = {
     "default",
+    "continuuit",
     "pink",
     "business",
     "neon",
