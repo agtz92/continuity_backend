@@ -18,6 +18,7 @@ from .models import (
     Idea as IdeaModel,
     BackupMeta,
     Category as CategoryModel,
+    OnboardingProgress as OnboardingProgressModel,
     Profile as ProfileModel,
     Routine as RoutineModel,
     RoutineOccurrence as RoutineOccurrenceModel,
@@ -37,11 +38,13 @@ from .services import (
     google_tasks as google_tasks_svc,
     ideas as ideas_svc,
     notes as notes_svc,
+    onboarding as onboarding_svc,
     profiles as profiles_svc,
     projects as projects_svc,
     routines as routines_svc,
     tasks as tasks_svc,
 )
+from core.assistant.models import AccountProfile
 from .services.projects import NotFoundError
 from .quotas import EntityQuotaExceeded
 
@@ -243,10 +246,31 @@ class Activity:
 @strawberry.type
 class Profile:
     avatar: Optional[str]
+    first_name: Optional[str]
 
     @classmethod
     def from_model(cls, m: ProfileModel) -> "Profile":
-        return cls(avatar=m.avatar or None)
+        return cls(
+            avatar=m.avatar or None,
+            first_name=m.first_name or None,
+        )
+
+
+@strawberry.type
+class OnboardingState:
+    """Combined onboarding snapshot. One round-trip powers the whole flow."""
+
+    status: str
+    current_step: int
+    tour_status: str
+    completed_at: Optional[dt.datetime]
+    completed_via: Optional[str]
+    # Snapshot of the fields onboarding reads/writes, so the UI doesn't need
+    # a second query against profile / notificationSettings / accountProfile.
+    first_name: Optional[str]
+    avatar: Optional[str]
+    plan: str
+    is_billing_exempt: bool
 
 
 @strawberry.type
@@ -707,6 +731,26 @@ class Query:
         return Profile.from_model(profiles_svc.get_profile(uid))
 
     @strawberry.field
+    def onboarding_state(self, info: Info) -> OnboardingState:
+        uid = _user_id(info)
+        progress = onboarding_svc.get_progress(uid)
+        profile = profiles_svc.get_profile(uid)
+        account = AccountProfile.objects.filter(user_id=uid).first()
+        plan = account.plan if account else "free"
+        is_billing_exempt = bool(account.is_billing_exempt) if account else False
+        return OnboardingState(
+            status=progress.status,
+            current_step=progress.current_step,
+            tour_status=progress.tour_status,
+            completed_at=progress.completed_at,
+            completed_via=progress.completed_via or None,
+            first_name=profile.first_name or None,
+            avatar=profile.avatar or None,
+            plan=plan,
+            is_billing_exempt=is_billing_exempt,
+        )
+
+    @strawberry.field
     def activity(
         self,
         info: Info,
@@ -1118,19 +1162,71 @@ class Mutation:
     # Profile
     @strawberry.mutation
     def update_profile(
-        self, info: Info, avatar: Optional[str] = None
+        self,
+        info: Info,
+        avatar: Optional[str] = strawberry.UNSET,
+        first_name: Optional[str] = strawberry.UNSET,
     ) -> Profile:
+        """Partial profile update.
+
+        Field is omitted (UNSET) -> not touched.
+        Field is null            -> cleared (existing AvatarPickerModal
+                                    relies on this for the "clear avatar"
+                                    button).
+        Field is a string        -> set to that string.
+        """
         from django.core.exceptions import ValidationError
 
         uid = _user_id(info)
+        m = profiles_svc.get_profile(uid)
         try:
-            m = profiles_svc.set_avatar(uid, avatar)
+            if avatar is not strawberry.UNSET:
+                m = profiles_svc.set_avatar(uid, avatar)
+            if first_name is not strawberry.UNSET:
+                m = profiles_svc.set_first_name(uid, first_name)
         except ValidationError as e:
             raise GraphQLError(
                 str(e.messages[0] if e.messages else "Invalid input"),
                 extensions={"code": "BAD_INPUT"},
             )
         return Profile.from_model(m)
+
+    # Onboarding
+    @strawberry.mutation
+    def set_onboarding_step(self, info: Info, step: int) -> OnboardingState:
+        from django.core.exceptions import ValidationError
+
+        uid = _user_id(info)
+        try:
+            onboarding_svc.set_step(uid, step)
+        except ValidationError as e:
+            raise GraphQLError(
+                str(e.messages[0] if e.messages else "Invalid input"),
+                extensions={"code": "BAD_INPUT"},
+            )
+        return Query().onboarding_state(info)
+
+    @strawberry.mutation
+    def complete_onboarding(
+        self, info: Info, mode: str = "finished"
+    ) -> OnboardingState:
+        from django.core.exceptions import ValidationError
+
+        uid = _user_id(info)
+        try:
+            onboarding_svc.complete(uid, mode=mode)
+        except ValidationError as e:
+            raise GraphQLError(
+                str(e.messages[0] if e.messages else "Invalid input"),
+                extensions={"code": "BAD_INPUT"},
+            )
+        return Query().onboarding_state(info)
+
+    @strawberry.mutation
+    def mark_tour(self, info: Info, seen: bool) -> OnboardingState:
+        uid = _user_id(info)
+        onboarding_svc.mark_tour(uid, seen=seen)
+        return Query().onboarding_state(info)
 
     # Google Tasks plugin
     @strawberry.mutation

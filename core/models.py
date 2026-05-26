@@ -125,6 +125,55 @@ class BackupMeta(models.Model):
 class Profile(models.Model):
     user_id = models.UUIDField(primary_key=True)
     avatar = models.CharField(max_length=64, blank=True, default="")
+    first_name = models.CharField(max_length=50, blank=True, default="")
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+class OnboardingStatus(models.TextChoices):
+    PENDING = "pending", "Pending"
+    IN_PROGRESS = "in_progress", "In progress"
+    COMPLETED = "completed", "Completed"
+    SKIPPED = "skipped", "Skipped"
+
+
+class OnboardingCompletionMode(models.TextChoices):
+    FINISHED = "finished", "Finished"
+    SKIPPED = "skipped", "Skipped"
+
+
+class TourStatus(models.TextChoices):
+    PENDING = "pending", "Pending"
+    SEEN = "seen", "Seen"
+    SKIPPED = "skipped", "Skipped"
+
+
+class OnboardingProgress(models.Model):
+    """Per-user onboarding state. Decoupled from AccountProfile (which is
+    plan/billing-focused). Lazy-created on first read; the absence of a row
+    means the user has not started onboarding yet.
+    """
+
+    user_id = models.UUIDField(primary_key=True)
+    status = models.CharField(
+        max_length=16,
+        choices=OnboardingStatus.choices,
+        default=OnboardingStatus.PENDING,
+    )
+    current_step = models.PositiveSmallIntegerField(default=1)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    completed_via = models.CharField(
+        max_length=8,
+        choices=OnboardingCompletionMode.choices,
+        blank=True,
+        default="",
+    )
+    tour_status = models.CharField(
+        max_length=16,
+        choices=TourStatus.choices,
+        default=TourStatus.PENDING,
+    )
+    tour_completed_at = models.DateTimeField(null=True, blank=True)
+    created = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
 
