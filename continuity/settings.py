@@ -180,6 +180,22 @@ STRIPE_PRICE_PRO_MONTHLY = config("STRIPE_PRICE_PRO_MONTHLY", default="")
 STRIPE_PRICE_PRO_ANNUAL = config("STRIPE_PRICE_PRO_ANNUAL", default="")
 STRIPE_PRICE_STUDIO_MONTHLY = config("STRIPE_PRICE_STUDIO_MONTHLY", default="")
 STRIPE_PRICE_STUDIO_ANNUAL = config("STRIPE_PRICE_STUDIO_ANNUAL", default="")
+# Monetary amounts (integer cents) for the prices above. Used by the admin
+# billing overview to estimate MRR/ARR without round-tripping to Stripe. Keep
+# these in sync with Stripe Dashboard → Product catalog → Prices.
+STRIPE_PRICE_PRO_MONTHLY_AMOUNT_CENTS = config(
+    "STRIPE_PRICE_PRO_MONTHLY_AMOUNT_CENTS", default=0, cast=int
+)
+STRIPE_PRICE_PRO_ANNUAL_AMOUNT_CENTS = config(
+    "STRIPE_PRICE_PRO_ANNUAL_AMOUNT_CENTS", default=0, cast=int
+)
+STRIPE_PRICE_STUDIO_MONTHLY_AMOUNT_CENTS = config(
+    "STRIPE_PRICE_STUDIO_MONTHLY_AMOUNT_CENTS", default=0, cast=int
+)
+STRIPE_PRICE_STUDIO_ANNUAL_AMOUNT_CENTS = config(
+    "STRIPE_PRICE_STUDIO_ANNUAL_AMOUNT_CENTS", default=0, cast=int
+)
+STRIPE_CURRENCY = config("STRIPE_CURRENCY", default="usd")
 # Where success/cancel/portal redirects send the user back.
 BILLING_FRONTEND_BASE_URL = config(
     "BILLING_FRONTEND_BASE_URL", default="http://localhost:3000"
