@@ -146,7 +146,7 @@ def run_turn_iter(
     iterations = 0
     cap = (
         settings.ASSISTANT_MAX_TOOL_ITERATIONS_WRITE
-        if plan in ("pro", "admin")
+        if plan in ("pro", "studio", "admin")
         else settings.ASSISTANT_MAX_TOOL_ITERATIONS
     )
 

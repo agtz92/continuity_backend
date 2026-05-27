@@ -143,9 +143,11 @@ ASSISTANT_DEEP_DAILY_CAP = config(
 )
 ASSISTANT_MAX_TOKENS_OUT = config("ASSISTANT_MAX_TOKENS_OUT", default=1024, cast=int)
 # The write tier emits long brainstorming plans plus many tool calls in a
-# single turn; 1024 tokens truncates that mid-tool-use. Give it more room.
+# single turn; 4096 still occasionally truncates mid-tool-use on big
+# project brainstorms. 8192 gives comfortable headroom so paid tiers
+# (pro/studio/admin) virtually never hit `max_tokens`.
 ASSISTANT_MAX_TOKENS_OUT_WRITE = config(
-    "ASSISTANT_MAX_TOKENS_OUT_WRITE", default=4096, cast=int
+    "ASSISTANT_MAX_TOKENS_OUT_WRITE", default=8192, cast=int
 )
 ASSISTANT_MAX_TOOL_ITERATIONS = config(
     "ASSISTANT_MAX_TOOL_ITERATIONS", default=6, cast=int

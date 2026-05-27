@@ -274,8 +274,8 @@ def get_or_build_skinny_context(
 
 
 def _is_write_tier(plan: str) -> bool:
-    """Pro and admin plans get the read-write assistant; free is read-only."""
-    return plan in ("pro", "admin")
+    """Paid plans get the read-write assistant; free is read-only."""
+    return plan in ("pro", "studio", "admin")
 
 
 def build_system_blocks(
@@ -418,11 +418,11 @@ def build_messages(
 def select_model(plan: str, *, deep_mode: bool = False) -> str:
     """Pick the model.
 
-    Sonnet (the deeper, costlier model) is reserved for the admin plan AND
-    only when `deep_mode` is explicitly requested for that message. Every
-    other case — free, pro, and admin without deep_mode — uses the fast
-    Haiku model to keep cost down.
+    Sonnet (the deeper, costlier model) is reserved for studio and admin
+    plans AND only when `deep_mode` is explicitly requested for that
+    message. Daily caps in DEEP_DAILY_CAP_BY_PLAN bound usage. Every other
+    case uses the fast Haiku model to keep cost down.
     """
-    if plan == "admin" and deep_mode:
+    if plan in ("studio", "admin") and deep_mode:
         return settings.ASSISTANT_MODEL_DEEP
     return settings.ASSISTANT_MODEL_FAST

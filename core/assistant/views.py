@@ -146,18 +146,19 @@ class ChatView(View):
 
         history_messages = prompts.build_messages(conv, content)
         # `deep_mode` is an explicit, per-message opt-in to the costlier
-        # Sonnet model. It only has an effect for the admin plan (see
-        # select_model); for everyone else this flag is a no-op. Even for
-        # admin it's bounded by a daily cap — once that's hit we silently
-        # fall back to Haiku so a user can't route every chat through Sonnet.
+        # Sonnet model. It only has an effect for studio and admin plans
+        # (see select_model); for free/pro this flag is a no-op. Even for
+        # the eligible plans it's bounded by a daily cap — once that's hit
+        # we silently fall back to Haiku so a user can't route every chat
+        # through Sonnet.
         deep_mode = bool(body.get("deep_mode"))
-        if deep_mode and plan == "admin" and not quotas.deep_allowed(user_id):
+        if deep_mode and plan in ("studio", "admin") and not quotas.deep_allowed(user_id):
             deep_mode = False
         model = prompts.select_model(plan, deep_mode=deep_mode)
-        used_deep = plan == "admin" and deep_mode
+        used_deep = plan in ("studio", "admin") and deep_mode
         max_tokens = (
             settings.ASSISTANT_MAX_TOKENS_OUT_WRITE
-            if plan in ("pro", "admin")
+            if plan in ("pro", "studio", "admin")
             else settings.ASSISTANT_MAX_TOKENS_OUT
         )
 
