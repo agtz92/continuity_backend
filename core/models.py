@@ -177,6 +177,23 @@ class OnboardingProgress(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 
+class UserPreferences(models.Model):
+    """Per-user UI preferences. Lazy-created on first read; the absence of a
+    row means the user has never customized anything and defaults apply.
+
+    Today layout shape:
+        {"hidden": ["done-today", ...], "order": ["today-focus", ...]}
+
+    Stored as JSON so adding new sections doesn't require a migration —
+    unknown ids are silently ignored on read, defaults fill the gap.
+    """
+
+    user_id = models.UUIDField(primary_key=True)
+    today_layout = models.JSONField(default=dict, blank=True)
+    created = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
 class GoogleOAuthCredential(models.Model):
     user_id = models.UUIDField(primary_key=True)
     refresh_token = models.TextField()

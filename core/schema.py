@@ -39,6 +39,7 @@ from .services import (
     ideas as ideas_svc,
     notes as notes_svc,
     onboarding as onboarding_svc,
+    preferences as preferences_svc,
     profiles as profiles_svc,
     projects as projects_svc,
     routines as routines_svc,
@@ -271,6 +272,21 @@ class OnboardingState:
     avatar: Optional[str]
     plan: str
     is_billing_exempt: bool
+
+
+@strawberry.type
+class TodayLayout:
+    """User's customization of the Today screen.
+
+    `order` is always the full canonical section list with the user's
+    reorder applied. `hidden` lists ids the user has chosen not to
+    render. Sections not in `hidden` still respect their data-existence
+    condition (e.g. "sleeping" only renders if there are sleeping
+    projects).
+    """
+
+    order: List[str]
+    hidden: List[str]
 
 
 @strawberry.type
@@ -751,6 +767,12 @@ class Query:
         )
 
     @strawberry.field
+    def today_layout(self, info: Info) -> TodayLayout:
+        uid = _user_id(info)
+        layout = preferences_svc.get_today_layout(uid)
+        return TodayLayout(order=layout["order"], hidden=layout["hidden"])
+
+    @strawberry.field
     def activity(
         self,
         info: Info,
@@ -1227,6 +1249,34 @@ class Mutation:
         uid = _user_id(info)
         onboarding_svc.mark_tour(uid, seen=seen)
         return Query().onboarding_state(info)
+
+    # Today layout preferences
+    @strawberry.mutation
+    def update_today_layout(
+        self,
+        info: Info,
+        order: Optional[List[str]] = None,
+        hidden: Optional[List[str]] = None,
+    ) -> TodayLayout:
+        from django.core.exceptions import ValidationError
+
+        uid = _user_id(info)
+        try:
+            layout = preferences_svc.update_today_layout(
+                uid, order=order, hidden=hidden
+            )
+        except ValidationError as e:
+            raise GraphQLError(
+                str(e.messages[0] if e.messages else "Invalid input"),
+                extensions={"code": "BAD_INPUT"},
+            )
+        return TodayLayout(order=layout["order"], hidden=layout["hidden"])
+
+    @strawberry.mutation
+    def reset_today_layout(self, info: Info) -> TodayLayout:
+        uid = _user_id(info)
+        layout = preferences_svc.reset_today_layout(uid)
+        return TodayLayout(order=layout["order"], hidden=layout["hidden"])
 
     # Google Tasks plugin
     @strawberry.mutation
