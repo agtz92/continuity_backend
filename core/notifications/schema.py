@@ -24,6 +24,7 @@ from strawberry.types import Info
 
 from .models import (
     Channel,
+    ExpoPushToken,
     NotificationLink,
     NotificationSettings as SettingsModel,
 )
@@ -66,6 +67,7 @@ class NotificationSettingsType:
     due_reminders_enabled: bool
     due_reminder_hour: int
     manual_enabled: bool
+    push_enabled: bool
     is_admin: bool
     links: List[NotificationLinkType]
 
@@ -92,6 +94,7 @@ class NotificationSettingsInput:
     due_reminders_enabled: Optional[bool] = None
     due_reminder_hour: Optional[int] = None
     manual_enabled: Optional[bool] = None
+    push_enabled: Optional[bool] = None
 
 
 SUPPORTED_LOCALES = {"en", "es"}
@@ -130,6 +133,7 @@ def _to_gql(s: SettingsModel) -> NotificationSettingsType:
         due_reminders_enabled=s.due_reminders_enabled,
         due_reminder_hour=s.due_reminder_hour,
         manual_enabled=s.manual_enabled,
+        push_enabled=s.push_enabled,
         is_admin=s.is_admin,
         links=[
             NotificationLinkType(
@@ -216,8 +220,38 @@ class NotificationsMutation:
             s.due_reminder_hour = max(0, min(23, data.due_reminder_hour))
         if data.manual_enabled is not None:
             s.manual_enabled = data.manual_enabled
+        if data.push_enabled is not None:
+            s.push_enabled = data.push_enabled
         s.save()
         return _to_gql(s)
+
+    @strawberry.mutation
+    def register_push_token(self, info: Info, token: str, device_id: str) -> bool:
+        """Store/refresh the Expo push token for the caller's device.
+
+        Keyed by (user_id, device_id) so re-registering the same device updates
+        the token in place. Returns True. Matches the mobile client's
+        registerPushToken(token, deviceId).
+        """
+        uid = _user_id(info)
+        token = (token or "").strip()
+        device_id = (device_id or "").strip()
+        if not token or not device_id:
+            raise GraphQLError(
+                "token and deviceId are required",
+                extensions={"code": "INVALID_INPUT"},
+            )
+        ExpoPushToken.objects.update_or_create(
+            user_id=uid, device_id=device_id, defaults={"token": token}
+        )
+        return True
+
+    @strawberry.mutation
+    def unregister_push_token(self, info: Info, device_id: str) -> bool:
+        """Remove the caller's Expo push token for a device (logout / opt-out)."""
+        uid = _user_id(info)
+        ExpoPushToken.objects.filter(user_id=uid, device_id=(device_id or "").strip()).delete()
+        return True
 
     @strawberry.mutation
     def request_channel_link(

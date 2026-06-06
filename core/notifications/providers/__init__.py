@@ -17,4 +17,7 @@ def get_provider(channel: str) -> NotificationProvider:
     if channel == "whatsapp":
         from .whatsapp import TwilioWhatsAppProvider  # lazy import — Fase 4
         return TwilioWhatsAppProvider()
+    if channel == "expo":
+        from .expo import ExpoProvider  # lazy import — push (Fase 8)
+        return ExpoProvider()
     raise ProviderError(f"Unknown channel: {channel}")

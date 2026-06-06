@@ -5,6 +5,7 @@ from django.db import models
 class Channel(models.TextChoices):
     TELEGRAM = "telegram", "Telegram"
     WHATSAPP = "whatsapp", "WhatsApp"
+    EXPO = "expo", "Push (Expo)"
 
 
 class NotificationKind(models.TextChoices):
@@ -48,6 +49,7 @@ class NotificationSettings(models.Model):
     due_reminder_hour = models.PositiveSmallIntegerField(default=19)  # 0-23 local
 
     manual_enabled = models.BooleanField(default=True)
+    push_enabled = models.BooleanField(default=True)  # mobile push (Expo) channel
     is_admin = models.BooleanField(default=False)
 
     updated_at = models.DateTimeField(auto_now=True)
@@ -113,4 +115,28 @@ class Notification(models.Model):
         ]
         indexes = [
             models.Index(fields=["status", "scheduled_for"]),
+        ]
+
+
+class ExpoPushToken(models.Model):
+    """An Expo push token for one of a user's devices.
+
+    Registered by the mobile app (`registerPushToken(token, deviceId)`) on
+    sign-in. `device_id` is a stable per-install id so a device can update its
+    token without creating duplicates. Unlike Telegram/WhatsApp, push has no
+    verification step — the token IS the address.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user_id = models.UUIDField(db_index=True)
+    device_id = models.CharField(max_length=128)
+    token = models.CharField(max_length=255)
+    created = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user_id", "device_id"], name="unique_expo_token_per_device"
+            )
         ]

@@ -45,7 +45,7 @@ services:
     plan: starter
     schedule: "0 * * * *"
     buildCommand: "./build.sh"
-    startCommand: "python manage.py send_weekly_digest && python manage.py send_daily_digest && python manage.py send_due_reminders"
+    startCommand: "python manage.py send_weekly_digest && python manage.py send_daily_digest && python manage.py send_due_reminders && python manage.py send_announcement_push"
     envVars:
       - key: DJANGO_SECRET_KEY
         sync: false
