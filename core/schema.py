@@ -8,6 +8,7 @@ from strawberry.types import Info
 from graphql import GraphQLError
 
 from . import analytics as analytics_mod
+from . import account_deletion
 from .analytics import AnalyticsRange as AnalyticsRangeEnum
 from .models import (
     Activity as ActivityModel,
@@ -1350,6 +1351,16 @@ class Mutation:
     def remove_task_blocker(self, info: Info, id: strawberry.ID) -> bool:
         uid = _user_id(info)
         tasks_svc.remove_task_blocker(uid, id)
+        return True
+
+    @strawberry.mutation(name="deleteAccount")
+    def delete_account(self, info: Info) -> bool:
+        """Permanently delete the authenticated user's account + all their data
+        (Apple App Store requirement). Erases app data then the Supabase auth
+        user. Does NOT cancel Stripe — the client warns the user to cancel
+        billing on the web first."""
+        uid = _user_id(info)
+        account_deletion.delete_account(uid)
         return True
 
 

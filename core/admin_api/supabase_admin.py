@@ -109,6 +109,18 @@ def get_user(user_id: uuid.UUID) -> Optional[SupabaseUser]:
     return _parse_user(body.get("user", body) if isinstance(body, dict) else body)
 
 
+def delete_user(user_id: uuid.UUID) -> None:
+    """Hard-delete a Supabase auth user (service role). Idempotent — a 404 is
+    treated as success (already gone)."""
+    url = f"{settings.SUPABASE_URL}/auth/v1/admin/users/{user_id}"
+    resp = requests.delete(url, headers=_auth_headers(), timeout=15)
+    if resp.status_code in (200, 204, 404):
+        return
+    raise SupabaseAdminError(
+        f"Supabase admin API delete_user {resp.status_code}: {resp.text}"
+    )
+
+
 def fetch_all_users() -> list[SupabaseUser]:
     """Return every Supabase auth user by walking the admin API pages.
 
