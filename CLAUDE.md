@@ -13,6 +13,17 @@ avatar · plan · personalizar Today). La finalización se rige por `status`
 `TOTAL_STEPS` no afecta a usuarios existentes ni requiere migración. Detalle del
 paso 5: `../frontend/docs/onboarding-paso5-personalizar-today.md`.
 
+**`onboardingState` provisiona el `AccountProfile`.** El resolver (`core/schema.py`)
+llama `get_or_create_profile(uid)` (de `core/assistant/quotas.py`) en vez de solo
+leer el perfil. Esto asegura que la decisión de exención early-adopter
+(`is_billing_exempt`/`plan="pro"`, gateada por `EARLY_ADOPTER_CAP`) ya corrió
+cuando el paso 4 del onboarding decide qué pantalla mostrar (elegir plan vs.
+"indultado"). Antes el resolver solo hacía `filter().first()`, así que un usuario
+nuevo cuyo primer request era el onboarding veía `is_billing_exempt=False` hasta
+que algún request al assistant creaba el perfil — race que mostraba la pantalla
+equivocada al azar. Cuando se quite la auto-exención, el flag quedará en `False` y
+el paso 4 mostrará el selector de plan correctamente.
+
 ## App `core/feedback` — buzón de bug reports (usuario → admin, one-way)
 
 Reportes de bugs que el usuario manda desde web o app y caen en un **inbox de admin**.

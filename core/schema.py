@@ -51,7 +51,7 @@ from .services import (
     routines as routines_svc,
     tasks as tasks_svc,
 )
-from core.assistant.models import AccountProfile
+from core.assistant.quotas import get_or_create_profile
 from .services.projects import NotFoundError
 from .quotas import EntityQuotaExceeded
 
@@ -753,9 +753,19 @@ class Query:
         uid = _user_id(info)
         progress = onboarding_svc.get_progress(uid)
         profile = profiles_svc.get_profile(uid)
-        account = AccountProfile.objects.filter(user_id=uid).first()
-        plan = account.plan if account else "free"
-        is_billing_exempt = bool(account.is_billing_exempt) if account else False
+        # Provision the AccountProfile through the canonical path so the
+        # early-adopter exemption decision has already run by the time we read
+        # the flag. The resolver used to only *read* the profile (filter().first()),
+        # so a brand-new user whose first request was this onboarding query saw
+        # is_billing_exempt=False (the plan-picker screen) until some later
+        # request (e.g. the assistant) lazily created the profile — a race that
+        # randomly showed the wrong Step 4 screen. Reading it here makes the
+        # screen deterministic: it now reflects the flag's true value, including
+        # once the auto-exemption logic is eventually removed (flag = off →
+        # plan-picker shows).
+        account = get_or_create_profile(uid)
+        plan = account.plan
+        is_billing_exempt = bool(account.is_billing_exempt)
         return OnboardingState(
             status=progress.status,
             current_step=progress.current_step,
