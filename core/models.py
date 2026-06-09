@@ -173,6 +173,11 @@ class OnboardingProgress(models.Model):
         default=TourStatus.PENDING,
     )
     tour_completed_at = models.DateTimeField(null=True, blank=True)
+    # When the one-time example content (project/tasks/routine/idea) was seeded
+    # for this user. NULL means "not yet decided". Set the moment we seed OR
+    # the moment we decide not to (e.g. the user already has projects), so the
+    # decision is made exactly once and deleting the examples never re-seeds.
+    example_seeded_at = models.DateTimeField(null=True, blank=True)
     created = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

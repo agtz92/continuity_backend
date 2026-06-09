@@ -324,7 +324,7 @@ _ANALYTICS_VIEWS = (
     name="get_analytics",
     description=(
         "Fetch a slice of the user's analytics. Use `view` to pick the "
-        "section: cadence (streaks), top_projects, backlog_health (overdue / "
+        "section: cadence (activity days), top_projects, backlog_health (overdue / "
         "quick-wins), sleeping (idle projects), stale_ideas, idea_funnel "
         "(promotion rate), effort (hours by project), weekday_heatmap. "
         "Use `range` to pick the time window."
@@ -364,8 +364,6 @@ def _get_analytics(user_id: uuid.UUID, args: dict) -> dict:
         return {
             "view": view,
             "range": range_str,
-            "current_streak": c.current_streak,
-            "longest_streak": c.longest_streak,
             "active_days_in_range": c.active_days_in_range,
             "total_activity_events": c.total_activity_events,
         }

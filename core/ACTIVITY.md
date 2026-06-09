@@ -272,7 +272,6 @@ Now it reads directly from `Activity`:
 
 | Stat | How it's computed |
 |---|---|
-| `cadence.current_streak` / `longest_streak` | Distinct dates of `Activity.created` over the full history |
 | `cadence.active_days_in_range` | Distinct dates over the windowed queryset |
 | `cadence.total_activity_events` | `Activity.count()` in window — every kind counts |
 | `activity_series[*].updates` | Daily count of `kind=note` |

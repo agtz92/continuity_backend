@@ -75,8 +75,6 @@ def previous_window(
 
 @dataclass
 class CadenceStats:
-    current_streak: int
-    longest_streak: int
     active_days_in_range: int
     total_activity_events: int
 
@@ -189,35 +187,6 @@ def _activity_day_set(days_iter: Iterable[dt.date]) -> set[dt.date]:
     return {d for d in days_iter if d is not None}
 
 
-def compute_streak(days: set[dt.date], today: dt.date) -> int:
-    """Consecutive days ending at today (or yesterday) with activity."""
-    if not days:
-        return 0
-    cursor = today if today in days else today - dt.timedelta(days=1)
-    if cursor not in days:
-        return 0
-    streak = 0
-    while cursor in days:
-        streak += 1
-        cursor -= dt.timedelta(days=1)
-    return streak
-
-
-def compute_longest_streak(days: set[dt.date]) -> int:
-    if not days:
-        return 0
-    sorted_days = sorted(days)
-    best = 1
-    cur = 1
-    for i in range(1, len(sorted_days)):
-        if (sorted_days[i] - sorted_days[i - 1]).days == 1:
-            cur += 1
-            best = max(best, cur)
-        else:
-            cur = 1
-    return best
-
-
 # ---------- Resolver
 
 
@@ -242,7 +211,7 @@ def compute_analytics(user_id: uuid.UUID, rng: AnalyticsRange) -> AnalyticsResul
         ranged_activity = activity_qs
         ranged_tasks_done = tasks_done_qs
 
-    cadence = _cadence(activity_qs, ranged_activity, now)
+    cadence = _cadence(ranged_activity)
     activity_series = _activity_series(ranged_activity, start, end)
     weekday_heatmap = _weekday_heatmap(ranged_activity)
     top_projects = _top_projects(
@@ -277,25 +246,14 @@ def compute_analytics(user_id: uuid.UUID, rng: AnalyticsRange) -> AnalyticsResul
 # ---------- Per-section helpers
 
 
-def _cadence(activity_all, ranged_activity, now: dt.datetime) -> CadenceStats:
-    # Streaks use the full history; "active days in range" and total events
-    # use the windowed queryset so the user can see how the chosen range
-    # compares.
-    all_days = _activity_day_set(
-        list(activity_all.annotate(d=TruncDate("created")).values_list("d", flat=True))
-    )
-
-    today = now.date()
-    current = compute_streak(all_days, today)
-    longest = compute_longest_streak(all_days)
-
+def _cadence(ranged_activity) -> CadenceStats:
+    # "Active days in range" and total events use the windowed queryset so
+    # the user can see how the chosen range compares.
     range_days = _activity_day_set(
         list(ranged_activity.annotate(d=TruncDate("created")).values_list("d", flat=True))
     )
 
     return CadenceStats(
-        current_streak=current,
-        longest_streak=longest,
         active_days_in_range=len(range_days),
         total_activity_events=ranged_activity.count(),
     )

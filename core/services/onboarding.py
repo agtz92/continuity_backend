@@ -28,6 +28,14 @@ TOTAL_STEPS = 4
 
 def get_progress(user_id: uuid.UUID) -> OnboardingProgress:
     progress, _ = OnboardingProgress.objects.get_or_create(user_id=user_id)
+    # First touch of the backend = the natural "account created" moment in this
+    # Supabase-auth, lazily-provisioned architecture. Seed example content for
+    # brand-new users. Idempotent and self-guarding, so calling it on every read
+    # is safe; it acts at most once. Re-read afterward to reflect the marker.
+    from .seed import seed_example_content
+
+    if seed_example_content(user_id):
+        progress.refresh_from_db()
     return progress
 
 

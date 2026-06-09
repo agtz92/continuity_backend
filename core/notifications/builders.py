@@ -48,13 +48,7 @@ def build_weekly_digest(user_id: uuid.UUID) -> str:
     lines.append(f"📊 *{_esc(s['weekly.title'])}*")
     lines.append("")
 
-    streak = r.cadence.current_streak
-    longest = r.cadence.longest_streak
     active_days = r.cadence.active_days_in_range
-    streak_emoji = "🔥" if streak > 0 else "💤"
-    lines.append(
-        f"{streak_emoji} " + s["weekly.streak"].format(streak=streak, longest=longest)
-    )
     lines.append("✅ " + s["weekly.activeDays"].format(days=active_days))
     lines.append(
         "📝 " + s["weekly.events"].format(count=r.cadence.total_activity_events)

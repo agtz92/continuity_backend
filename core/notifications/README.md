@@ -26,7 +26,7 @@ Already in this module:
 
 Done:
 
-- **Builder** ([builders.py](builders.py)): `build_weekly_digest(user_id) -> str` reuses `core.analytics.compute_analytics(user_id, LAST_7_DAYS)` and renders a MarkdownV2 message with streak, top projects (with delta vs previous week), backlog (overdue / due soon / open, quick wins, almost there), sleeping projects, stale ideas, idea funnel, logged hours, and a dashboard link.
+- **Builder** ([builders.py](builders.py)): `build_weekly_digest(user_id) -> str` reuses `core.analytics.compute_analytics(user_id, LAST_7_DAYS)` and renders a MarkdownV2 message with active days, top projects (with delta vs previous week), backlog (overdue / due soon / open, quick wins, almost there), sleeping projects, stale ideas, idea funnel, logged hours, and a dashboard link.
 - **Command** ([management/commands/send_weekly_digest.py](management/commands/send_weekly_digest.py)):
   - Designed to run hourly; respects `setting.timezone + digest_day_of_week + digest_hour`.
   - Flags: `--force` (ignore schedule, uses a unique-per-run dedupe key so re-sends are allowed), `--user-id <uuid>`, `--all-verified`.
@@ -220,7 +220,7 @@ Twilio Console steps (1-3 business days):
 1. **WhatsApp Sender** → Request Access → Twilio handles "embedded signup" with Meta.
 2. Verify the business in Meta Business Manager (sole proprietorship is OK).
 3. Register **HSM templates** (one per `kind`):
-   - `weekly_digest` — **Utility** category (~$0.012/conversation in MX). Variables: `{{1}}` streak, `{{2}}` top projects, etc.
+   - `weekly_digest` — **Utility** category (~$0.012/conversation in MX). Variables: `{{1}}` active days, `{{2}}` top projects, etc.
    - `sleeping_alert` — Utility. Variables: `{{1}}` project name, `{{2}}` days idle.
    - `due_reminder` — Utility. Variables: `{{1}}` task title, `{{2}}` due date.
 4. Each approved template gets a `content_sid`. Save them in settings:

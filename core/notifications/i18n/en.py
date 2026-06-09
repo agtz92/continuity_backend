@@ -1,6 +1,5 @@
 STRINGS = {
     "weekly.title": "Your week on Continuity",
-    "weekly.streak": "Streak: *{streak}* days \\(best: {longest}\\)",
     "weekly.activeDays": "Active *{days}* of 7 days this week",
     "weekly.events": "*{count}* total events",
     "weekly.topProjects": "Top projects",

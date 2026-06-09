@@ -14,8 +14,6 @@ ANALYTICS_QUERY = """
             rangeStart
             rangeEnd
             cadence {
-                currentStreak
-                longestStreak
                 activeDaysInRange
                 totalActivityEvents
             }
@@ -214,19 +212,19 @@ def test_top_projects_delta_vs_previous_window(
 
 
 @pytest.mark.django_db
-def test_cadence_streak_and_longest(
+def test_cadence_active_days_and_events(
     execute_query, user_a, project_factory
 ):
     p = project_factory(user_a)
     today = timezone.now()
-    # 3-day streak ending today
+    # activity on 3 distinct days within the window
     for offset in (0, 1, 2):
         a = Activity.objects.create(
             user_id=user_a, kind=ActivityKind.NOTE,
             project_id=p.id, note=f"d{offset}",
         )
         _shift_activity_created(a, today - dt.timedelta(days=offset))
-    # an older isolated activity, gap of >1 day → doesn't extend current streak
+    # an older isolated activity, still inside the 30-day window
     a_old = Activity.objects.create(
         user_id=user_a, kind=ActivityKind.NOTE, project_id=p.id, note="old"
     )
@@ -237,9 +235,8 @@ def test_cadence_streak_and_longest(
         variable_values={"range": "LAST_30_DAYS"},
     )
     cad = res.data["analytics"]["cadence"]
-    assert cad["currentStreak"] == 3
-    assert cad["longestStreak"] == 3
-    assert cad["totalActivityEvents"] >= 3
+    assert cad["activeDaysInRange"] == 4
+    assert cad["totalActivityEvents"] >= 4
 
 
 # ---------- Status & category breakdown

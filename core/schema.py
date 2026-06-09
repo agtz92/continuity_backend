@@ -480,8 +480,6 @@ class GoogleTasksImportResult:
 
 @strawberry.type
 class CadenceStats:
-    current_streak: int
-    longest_streak: int
     active_days_in_range: int
     total_activity_events: int
 
@@ -593,8 +591,6 @@ def _to_analytics_gql(r: analytics_mod.AnalyticsResult) -> Analytics:
         range_start=r.range_start,
         range_end=r.range_end,
         cadence=CadenceStats(
-            current_streak=r.cadence.current_streak,
-            longest_streak=r.cadence.longest_streak,
             active_days_in_range=r.cadence.active_days_in_range,
             total_activity_events=r.cadence.total_activity_events,
         ),

@@ -24,7 +24,6 @@ from ..models import UserPreferences
 # IS the page's identity). It still participates in `order` so the
 # user can move it.
 TODAY_SECTION_IDS: tuple[str, ...] = (
-    "streak",
     "counters",
     "stalled-alert",
     "today-focus",
