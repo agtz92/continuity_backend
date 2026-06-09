@@ -21,9 +21,11 @@ from ..models import (
 
 # Total visible steps in the flow. Bumping this number means the new last
 # step won't auto-trigger `completed` until reached, but existing users in
-# `current_step=4` will still be considered done — completion is tracked by
-# `status`, not by step count.
-TOTAL_STEPS = 4
+# an earlier `current_step` will still be considered done — completion is
+# tracked by `status`, not by step count.
+#
+# Steps: 1 name · 2 theme · 3 avatar · 4 plan · 5 personalize Today view.
+TOTAL_STEPS = 5
 
 
 def get_progress(user_id: uuid.UUID) -> OnboardingProgress:

@@ -5,6 +5,14 @@ El schema raíz fusiona las apps con `merge_types()` en `core/schema.py`. Admin 
 `_admin_user_id(info)` (`core/admin_api/permissions.py`) + auditoría `audit_record(...)`
 (`core/admin_api/audit.py`). Migraciones contra Postgres de Supabase (`DATABASE_URL`).
 
+## Onboarding — pasos
+
+`core/services/onboarding.py` define `TOTAL_STEPS` (hoy **5**: nombre · tema ·
+avatar · plan · personalizar Today). La finalización se rige por `status`
+(`COMPLETED`/`SKIPPED`), **no** por el conteo de pasos, así que bumpear
+`TOTAL_STEPS` no afecta a usuarios existentes ni requiere migración. Detalle del
+paso 5: `../frontend/docs/onboarding-paso5-personalizar-today.md`.
+
 ## App `core/feedback` — buzón de bug reports (usuario → admin, one-way)
 
 Reportes de bugs que el usuario manda desde web o app y caen en un **inbox de admin**.
