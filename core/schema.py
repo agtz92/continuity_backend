@@ -28,6 +28,11 @@ from .notifications.schema import NotificationsQuery, NotificationsMutation
 from .admin_api.schema import AdminQuery, AdminMutation
 from .cms.schema_admin import CmsAdminQuery, CmsAdminMutation
 from .billing.schema import BillingMutation
+from .feedback.schema import (
+    AdminFeedbackMutation,
+    AdminFeedbackQuery,
+    FeedbackMutation,
+)
 from .announcements.schema import (
     AdminAnnouncementsMutation,
     AdminAnnouncementsQuery,
@@ -1373,6 +1378,7 @@ CombinedQuery = merge_types(
         CmsAdminQuery,
         InAppNotificationsQuery,
         AdminAnnouncementsQuery,
+        AdminFeedbackQuery,
     ),
 )
 CombinedMutation = merge_types(
@@ -1384,6 +1390,8 @@ CombinedMutation = merge_types(
         CmsAdminMutation,
         BillingMutation,
         AdminAnnouncementsMutation,
+        FeedbackMutation,
+        AdminFeedbackMutation,
     ),
 )
 

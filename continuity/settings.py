@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "core.cms.apps.CmsConfig",
     "core.billing.apps.BillingConfig",
     "core.announcements.apps.AnnouncementsConfig",
+    "core.feedback.apps.FeedbackConfig",
 ]
 
 MIDDLEWARE = [
