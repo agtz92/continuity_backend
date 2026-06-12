@@ -5,6 +5,23 @@ El schema raíz fusiona las apps con `merge_types()` en `core/schema.py`. Admin 
 `_admin_user_id(info)` (`core/admin_api/permissions.py`) + auditoría `audit_record(...)`
 (`core/admin_api/audit.py`). Migraciones contra Postgres de Supabase (`DATABASE_URL`).
 
+## CMS público (`core/cms`) — schema sin auth para el sitio de marketing
+
+`core/cms/schema_public.py` expone solo lecturas de contenido **PUBLISHED** (blog, help
+resources/categories, pages) en `/public-graphql/`, sin JWT, para que el sitio (continuu.it) lo
+consuma por SSR/ISR. El frontend lo trae estático pasando un `locale` explícito por ruta (no por
+cookie) — ver `docs/marketing-performance.md` y `frontend/CLAUDE.md`.
+
+**Performance — invariantes al tocar estos resolvers:**
+- Las queries de **lista** (`publicBlogPosts`, `publicHelpResources`) hacen
+  `.defer("content_html", "content_json")` y serializan con `include_content=False`. El cuerpo
+  (`content_html`) puede pesar mucho; traerlo en listas infla el payload. **No** leas `m.content_html`
+  en el path de lista: sobre un queryset diferido dispara una query por fila (N+1).
+- Las queries de **detalle** (`publicBlogPost`, `publicHelpResource`, `publicPage`) sí traen el cuerpo.
+- `publicHelpCategories` usa `annotate(Count("resources", filter=Q(status=PUBLISHED)))` para contar
+  publicados en **una** query (antes era un `COUNT` por categoría → N+1). Mantenerlo así.
+- Tests: `core/cms/tests/test_help_resources.py`, `test_admin_cms.py`.
+
 ## Onboarding — pasos
 
 `core/services/onboarding.py` define `TOTAL_STEPS` (hoy **5**: nombre · tema ·
