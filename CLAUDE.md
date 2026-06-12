@@ -52,3 +52,44 @@ mutaciones admin→usuario ni campos de respuesta.
 Clientes: web `continuity/frontend` (`/report-bug` + inbox `/admin/feedback`), móvil
 `continuity-mobile` (pantalla `(more)/report-bug`, solo envío). La lista de temas vive en cada
 cliente (`bugTopics.ts`) y debe mantenerse en sync; el backend guarda `topic` como texto plano.
+
+## Quick Notes — cuaderno tipo Notion (notas con secciones plegables)
+
+Notas top-level **categorizables** y **opcionalmente ligadas a un proyecto** (o sueltas),
+cada una con una lista ordenable de **secciones plegables** (toggles tipo Notion). Distinto
+de `Idea` (captura plana) y de `ProjectNote` (sub-notas encerradas en un proyecto). Plan,
+wireframes y detalle: `../docs/quick-notes/PLAN.md`.
+
+- **Modelos** (`core/models.py`, ambos heredan de `TimestampedModel`):
+  - `QuickNote` → `title`, `category` (FK `Category`, `SET_NULL`), `project` (FK `Project`,
+    `SET_NULL`), `pinned`, `updated_at`. `SET_NULL` en ambos FKs: borrar categoría/proyecto
+    **no** borra la nota. Orden `["-pinned", "-updated_at"]`.
+  - `NoteSection` → `note` (FK `QuickNote`, `CASCADE`), `heading`, `body` (markdown libre),
+    `position`, `collapsed`, `updated_at`. Orden `["position", "created"]`.
+- **Servicio:** `core/services/quick_notes.py`. CRUD de nota + secciones, `set_pin`,
+  `reorder_sections(note_id, ordered_ids)`. Editar/añadir/borrar secciones hace
+  `_touch_note` (bump de `updated_at` de la nota para que flote arriba). Valida que
+  `category`/`project` referenciados sean del mismo `user_id`. Dispara `log_event` y
+  `bump_context_version` igual que ideas.
+- **Schema:** `core/schema.py`. Tipos `QuickNote`/`NoteSection`, inputs `QuickNoteInput`
+  (`title/categoryId/projectId/pinned`) y `NoteSectionInput` (`heading/body/position/collapsed`).
+  Queries `quickNotes(search, categoryId, projectId, pinned)` y `quickNote(id)` —
+  **fuera del `dashboard`** (se cargan lazy al abrir Notes; los cuerpos pueden ser grandes).
+  Mutations: `createQuickNote`, `updateQuickNote`, `setQuickNotePinned`, `deleteQuickNote`,
+  `addNoteSection`, `updateNoteSection`, `deleteNoteSection`, `reorderNoteSections`.
+- **Quotas** (`core/quotas.py`): `quick_notes` (Free 50 / Pro 1000 / Studio·Admin ∞) y
+  `sections_per_note` (Free 20 / resto ∞). Para `sections_per_note`, `_count` recibe el
+  id de la nota por el parámetro `project_id` de `check_entity_quota` (slot genérico de "padre").
+  `quick_notes` **no** es kind bloqueante (igual que `notes_per_project`).
+- **Activity:** `ActivityKind.QUICK_NOTE_CREATED` / `QUICK_NOTE_DELETED` → aparecen en el Log
+  de ambos clientes (icono `NotebookPen`, i18n `views.log.entries.quickNote*`).
+- **Migración:** `core/migrations/0020_*` (crea ambas tablas; aditiva). **Tests:**
+  `core/tests/test_quick_notes.py`.
+
+### Integración con el onboarding
+- **Seed** (`core/services/seed.py` → `_create_example_content`): los usuarios **nuevos**
+  reciben una nota de ejemplo "How to use Notes" con 2 secciones (la 2ª `collapsed=True`)
+  junto al proyecto/tareas/rutina/idea de ejemplo. Idempotente (no re-siembra). Test en
+  `core/tests/test_seed.py`.
+- El **tour** (paso de Notes) y la **vista**/pantallas viven en los clientes — ver sus
+  `CLAUDE.md`. No se tocó `TOTAL_STEPS` (es un paso del tour, no del onboarding).
