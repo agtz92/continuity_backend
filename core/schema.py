@@ -19,8 +19,10 @@ from .models import (
     Idea as IdeaModel,
     BackupMeta,
     Category as CategoryModel,
+    NoteSection as NoteSectionModel,
     OnboardingProgress as OnboardingProgressModel,
     Profile as ProfileModel,
+    QuickNote as QuickNoteModel,
     Routine as RoutineModel,
     RoutineOccurrence as RoutineOccurrenceModel,
 )
@@ -48,6 +50,7 @@ from .services import (
     preferences as preferences_svc,
     profiles as profiles_svc,
     projects as projects_svc,
+    quick_notes as quick_notes_svc,
     routines as routines_svc,
     tasks as tasks_svc,
 )
@@ -216,6 +219,60 @@ class Idea:
             description=m.description,
             why=m.why,
             created=m.created,
+        )
+
+
+@strawberry.type
+class NoteSection:
+    id: strawberry.ID
+    note_id: strawberry.ID
+    heading: str
+    body: str
+    position: int
+    collapsed: bool
+    created: dt.datetime
+    updated_at: dt.datetime
+
+    @classmethod
+    def from_model(cls, m: NoteSectionModel) -> "NoteSection":
+        return cls(
+            id=strawberry.ID(str(m.id)),
+            note_id=strawberry.ID(str(m.note_id)),
+            heading=m.heading,
+            body=m.body,
+            position=m.position,
+            collapsed=m.collapsed,
+            created=m.created,
+            updated_at=m.updated_at,
+        )
+
+
+@strawberry.type
+class QuickNote:
+    id: strawberry.ID
+    title: str
+    category_id: Optional[strawberry.ID]
+    project_id: Optional[strawberry.ID]
+    pinned: bool
+    sections: List[NoteSection]
+    created: dt.datetime
+    updated_at: dt.datetime
+
+    @classmethod
+    def from_model(
+        cls, m: QuickNoteModel, sections: Optional[List[NoteSectionModel]] = None
+    ) -> "QuickNote":
+        if sections is None:
+            sections = list(m.sections.all())
+        return cls(
+            id=strawberry.ID(str(m.id)),
+            title=m.title,
+            category_id=strawberry.ID(str(m.category_id)) if m.category_id else None,
+            project_id=strawberry.ID(str(m.project_id)) if m.project_id else None,
+            pinned=m.pinned,
+            sections=[NoteSection.from_model(s) for s in sections],
+            created=m.created,
+            updated_at=m.updated_at,
         )
 
 
@@ -415,6 +472,22 @@ class IdeaInput:
     title: str
     description: Optional[str] = ""
     why: Optional[str] = ""
+
+
+@strawberry.input
+class QuickNoteInput:
+    title: Optional[str] = ""
+    category_id: Optional[strawberry.ID] = None
+    project_id: Optional[strawberry.ID] = None
+    pinned: Optional[bool] = False
+
+
+@strawberry.input
+class NoteSectionInput:
+    heading: Optional[str] = ""
+    body: Optional[str] = ""
+    position: Optional[int] = None
+    collapsed: Optional[bool] = False
 
 
 @strawberry.input
@@ -712,6 +785,34 @@ class Query:
             ],
             last_backup=meta.last_backup if meta else None,
         )
+
+    @strawberry.field
+    def quick_notes(
+        self,
+        info: Info,
+        search: Optional[str] = None,
+        category_id: Optional[strawberry.ID] = None,
+        project_id: Optional[strawberry.ID] = None,
+        pinned: Optional[bool] = None,
+    ) -> List[QuickNote]:
+        uid = _user_id(info)
+        notes = quick_notes_svc.list_quick_notes(
+            uid,
+            search=search,
+            category_id=category_id,
+            project_id=project_id,
+            pinned=pinned,
+        )
+        return [QuickNote.from_model(n) for n in notes]
+
+    @strawberry.field
+    def quick_note(self, info: Info, id: strawberry.ID) -> Optional[QuickNote]:
+        uid = _user_id(info)
+        try:
+            n = quick_notes_svc.get_quick_note(uid, id)
+        except NotFoundError:
+            return None
+        return QuickNote.from_model(n)
 
     @strawberry.field(name="routinesDue")
     def routines_due(
@@ -1017,6 +1118,113 @@ class Mutation:
         except EntityQuotaExceeded as e:
             raise _quota_error(e)
         return Project.from_model(p)
+
+    # Quick Notes
+    @strawberry.mutation
+    def create_quick_note(self, info: Info, data: QuickNoteInput) -> QuickNote:
+        uid = _user_id(info)
+        try:
+            m = quick_notes_svc.create_quick_note(
+                uid,
+                title=data.title or "",
+                category_id=data.category_id,
+                project_id=data.project_id,
+                pinned=bool(data.pinned),
+            )
+        except NotFoundError as e:
+            raise _not_found(str(e).split(" ", 1)[0])
+        except EntityQuotaExceeded as e:
+            raise _quota_error(e)
+        return QuickNote.from_model(m)
+
+    @strawberry.mutation
+    def update_quick_note(
+        self, info: Info, id: strawberry.ID, data: QuickNoteInput
+    ) -> QuickNote:
+        uid = _user_id(info)
+        try:
+            m = quick_notes_svc.update_quick_note(
+                uid,
+                id,
+                title=data.title or "",
+                category_id=data.category_id,
+                project_id=data.project_id,
+                pinned=bool(data.pinned),
+            )
+        except NotFoundError as e:
+            raise _not_found(str(e).split(" ", 1)[0])
+        return QuickNote.from_model(m)
+
+    @strawberry.mutation
+    def set_quick_note_pinned(
+        self, info: Info, id: strawberry.ID, pinned: bool
+    ) -> QuickNote:
+        uid = _user_id(info)
+        try:
+            m = quick_notes_svc.set_pin(uid, id, pinned)
+        except NotFoundError:
+            raise _not_found("QuickNote")
+        return QuickNote.from_model(m)
+
+    @strawberry.mutation
+    def delete_quick_note(self, info: Info, id: strawberry.ID) -> bool:
+        uid = _user_id(info)
+        quick_notes_svc.delete_quick_note(uid, id)
+        return True
+
+    @strawberry.mutation
+    def add_note_section(
+        self, info: Info, note_id: strawberry.ID, data: NoteSectionInput
+    ) -> NoteSection:
+        uid = _user_id(info)
+        try:
+            m = quick_notes_svc.add_section(
+                uid,
+                note_id,
+                heading=data.heading or "",
+                body=data.body or "",
+                position=data.position,
+                collapsed=bool(data.collapsed),
+            )
+        except NotFoundError:
+            raise _not_found("QuickNote")
+        except EntityQuotaExceeded as e:
+            raise _quota_error(e)
+        return NoteSection.from_model(m)
+
+    @strawberry.mutation
+    def update_note_section(
+        self, info: Info, id: strawberry.ID, data: NoteSectionInput
+    ) -> NoteSection:
+        uid = _user_id(info)
+        try:
+            m = quick_notes_svc.update_section(
+                uid,
+                id,
+                heading=data.heading or "",
+                body=data.body or "",
+                collapsed=data.collapsed,
+            )
+        except NotFoundError:
+            raise _not_found("NoteSection")
+        return NoteSection.from_model(m)
+
+    @strawberry.mutation
+    def delete_note_section(self, info: Info, id: strawberry.ID) -> bool:
+        uid = _user_id(info)
+        quick_notes_svc.delete_section(uid, id)
+        return True
+
+    @strawberry.mutation
+    def reorder_note_sections(
+        self, info: Info, note_id: strawberry.ID, ordered_ids: List[strawberry.ID]
+    ) -> QuickNote:
+        uid = _user_id(info)
+        try:
+            m = quick_notes_svc.reorder_sections(uid, note_id, list(ordered_ids))
+        except NotFoundError:
+            raise _not_found("QuickNote")
+        return QuickNote.from_model(m)
 
     # Notes (kind=NOTE activities)
     @strawberry.mutation

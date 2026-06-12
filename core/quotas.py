@@ -22,8 +22,10 @@ from .assistant.models import AccountProfile, Plan
 from .models import (
     Category,
     Idea,
+    NoteSection,
     Project,
     ProjectNote,
+    QuickNote,
     Routine,
     Task,
 )
@@ -69,6 +71,18 @@ ENTITY_QUOTAS: dict[str, dict[str, Optional[int]]] = {
     },
     "notes_per_project": {
         Plan.FREE.value: 3,
+        Plan.PRO.value: None,
+        Plan.STUDIO.value: None,
+        Plan.ADMIN.value: None,
+    },
+    "quick_notes": {
+        Plan.FREE.value: 50,
+        Plan.PRO.value: 1000,
+        Plan.STUDIO.value: None,
+        Plan.ADMIN.value: None,
+    },
+    "sections_per_note": {
+        Plan.FREE.value: 20,
         Plan.PRO.value: None,
         Plan.STUDIO.value: None,
         Plan.ADMIN.value: None,
@@ -134,6 +148,15 @@ def _count(kind: str, user_id: uuid.UUID, project_id: Optional[uuid.UUID]) -> in
             return 0
         return ProjectNote.objects.filter(
             user_id=user_id, project_id=project_id
+        ).count()
+    if kind == "quick_notes":
+        return QuickNote.objects.filter(user_id=user_id).count()
+    if kind == "sections_per_note":
+        # `project_id` carries the parent note id for this per-parent kind.
+        if project_id is None:
+            return 0
+        return NoteSection.objects.filter(
+            user_id=user_id, note_id=project_id
         ).count()
     raise ValueError(f"Unknown quota kind: {kind}")
 

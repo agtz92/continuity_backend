@@ -117,6 +117,60 @@ class ProjectNote(TimestampedModel):
         ordering = ["-updated_at"]
 
 
+class QuickNote(TimestampedModel):
+    """A notebook-style note. Unlike `Idea` (flat capture) or `ProjectNote`
+    (sub-notes locked inside one project), a QuickNote is a top-level note that
+    holds a list of collapsible `NoteSection` blocks (Notion-style toggles). It
+    can be tagged with a `Category` and optionally linked to a `Project`, or
+    live standalone. Both FKs are SET_NULL so deleting a category/project never
+    deletes the note."""
+
+    title = models.CharField(max_length=255, blank=True, default="")
+    category = models.ForeignKey(
+        Category,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="quick_notes",
+    )
+    project = models.ForeignKey(
+        Project,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="quick_notes",
+    )
+    pinned = models.BooleanField(default=False)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-pinned", "-updated_at"]
+        indexes = [
+            models.Index(fields=["user_id", "-updated_at"]),
+            models.Index(fields=["user_id", "category"]),
+            models.Index(fields=["user_id", "project"]),
+        ]
+
+
+class NoteSection(TimestampedModel):
+    """A collapsible block (toggle) inside a QuickNote. Body is free-form
+    markdown. Ordered by `position`; `collapsed` is the default open/closed
+    state the UI restores on load."""
+
+    note = models.ForeignKey(
+        QuickNote, on_delete=models.CASCADE, related_name="sections"
+    )
+    heading = models.CharField(max_length=255, blank=True, default="")
+    body = models.TextField(blank=True, default="")
+    position = models.PositiveIntegerField(default=0)
+    collapsed = models.BooleanField(default=False)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["position", "created"]
+        indexes = [models.Index(fields=["note", "position"])]
+
+
 class BackupMeta(models.Model):
     user_id = models.UUIDField(primary_key=True)
     last_backup = models.DateTimeField(null=True, blank=True)
@@ -226,6 +280,8 @@ class ActivityKind(models.TextChoices):
     ROUTINE_CREATED = "routine_created", "Routine created"
     ROUTINE_COMPLETED = "routine_completed", "Routine completed"
     ROUTINE_DELETED = "routine_deleted", "Routine deleted"
+    QUICK_NOTE_CREATED = "quick_note_created", "Quick note created"
+    QUICK_NOTE_DELETED = "quick_note_deleted", "Quick note deleted"
 
 
 class RecurrenceType(models.TextChoices):
