@@ -27,6 +27,7 @@ from django.utils import timezone
 from ..models import OnboardingProgress, Project, RecurrenceType
 from . import ideas as ideas_svc
 from . import projects as projects_svc
+from . import quick_notes as quick_notes_svc
 from . import routines as routines_svc
 from . import tasks as tasks_svc
 
@@ -121,4 +122,34 @@ def _create_example_content(user_id: uuid.UUID, now: dt.datetime) -> None:
             "Captured, not started. If it's still itching in two weeks, it earns "
             "a project. Most ideas won't. That's fine. That's the point."
         ),
+    )
+
+    # One example note so the Notes tab opens with something to learn from —
+    # a couple of collapsible sections (the second folded) to show the toggle.
+    note = quick_notes_svc.create_quick_note(
+        user_id,
+        title="How to use Notes",
+    )
+    quick_notes_svc.add_section(
+        user_id,
+        note.id,
+        heading="What this is",
+        body=(
+            "Your notebook, inside Continuity. Capture references and group them "
+            "into collapsible sections. Link a note to a project, or leave it "
+            "standalone. This is where Notion-shaped notes finally live next to "
+            "the work they're about."
+        ),
+    )
+    quick_notes_svc.add_section(
+        user_id,
+        note.id,
+        heading="Try it (this section starts folded)",
+        body=(
+            "Click a section heading to fold or unfold it. Drag the handle to "
+            "reorder. Tag a note with a category, pin the important ones, and "
+            "search runs across every section's text. Delete this example when "
+            "it stops being useful."
+        ),
+        collapsed=True,
     )

@@ -13,6 +13,7 @@ from typing import Optional
 
 import strawberry
 from django.core.cache import cache
+from django.db.models import Count, Q
 from graphql import GraphQLError
 from strawberry.types import Info
 
@@ -128,13 +129,18 @@ def _to_public_help_category(m: HelpCategory, count: int | None = None) -> Publi
     )
 
 
-def _to_public_help_resource(m: HelpResource) -> PublicHelpResource:
+def _to_public_help_resource(
+    m: HelpResource, *, include_content: bool = True
+) -> PublicHelpResource:
     return PublicHelpResource(
         id=strawberry.ID(str(m.id)),
         slug=m.slug,
         title=m.title,
         excerpt=m.excerpt,
-        content_html=m.content_html,
+        # List views never render the body — deferring `content_html` keeps
+        # this off both the DB read and the wire. Reading it here would
+        # re-trigger a per-row query (N+1) on a deferred queryset.
+        content_html=m.content_html if include_content else "",
         cover_image_url=m.cover_image_url,
         published_at=m.published_at,
         tags=list(m.tags or []),
@@ -146,13 +152,15 @@ def _to_public_help_resource(m: HelpResource) -> PublicHelpResource:
     )
 
 
-def _to_public_post(m: BlogPost) -> PublicBlogPost:
+def _to_public_post(m: BlogPost, *, include_content: bool = True) -> PublicBlogPost:
     return PublicBlogPost(
         id=strawberry.ID(str(m.id)),
         slug=m.slug,
         title=m.title,
         excerpt=m.excerpt,
-        content_html=m.content_html,
+        # See `_to_public_help_resource`: list views defer `content_html`, so
+        # don't read it here or we'd N+1 the deferred queryset.
+        content_html=m.content_html if include_content else "",
         cover_image_url=m.cover_image_url,
         published_at=m.published_at,
         tags=list(m.tags or []),
@@ -194,8 +202,10 @@ class CmsPublicQuery:
         page = max(1, page)
         offset = (page - 1) * per_page
 
-        qs = BlogPost.objects.filter(status=PostStatus.PUBLISHED).order_by(
-            "-published_at"
+        qs = (
+            BlogPost.objects.filter(status=PostStatus.PUBLISHED)
+            .defer("content_html", "content_json")
+            .order_by("-published_at")
         )
         if locale:
             qs = qs.filter(locale=locale)
@@ -206,7 +216,7 @@ class CmsPublicQuery:
         has_next = len(items) > per_page
         items = items[:per_page]
         return PublicBlogPostPage(
-            posts=[_to_public_post(m) for m in items],
+            posts=[_to_public_post(m, include_content=False) for m in items],
             page=page,
             per_page=per_page,
             has_next=has_next,
@@ -252,16 +262,22 @@ class CmsPublicQuery:
     def public_help_categories(
         self, info: Info, locale: Optional[str] = None
     ) -> list[PublicHelpCategory]:
-        qs = HelpCategory.objects.all().order_by("order", "name")
+        # One aggregated query instead of a COUNT per category (was N+1).
+        qs = (
+            HelpCategory.objects.annotate(
+                published_count=Count(
+                    "resources",
+                    filter=Q(resources__status=PostStatus.PUBLISHED),
+                )
+            )
+            .filter(published_count__gt=0)  # only categories with published content
+            .order_by("order", "name")
+        )
         if locale:
             qs = qs.filter(locale=locale)
-        # Only return categories that have at least one published resource.
-        result: list[PublicHelpCategory] = []
-        for cat in qs:
-            count = cat.resources.filter(status=PostStatus.PUBLISHED).count()
-            if count > 0:
-                result.append(_to_public_help_category(cat, count))
-        return result
+        return [
+            _to_public_help_category(cat, cat.published_count) for cat in qs
+        ]
 
     @strawberry.field(name="publicHelpResources")
     def public_help_resources(
@@ -276,9 +292,12 @@ class CmsPublicQuery:
         page = max(1, page)
         offset = (page - 1) * per_page
 
-        qs = HelpResource.objects.select_related("category").filter(
-            status=PostStatus.PUBLISHED
-        ).order_by("category__order", "order", "-published_at")
+        qs = (
+            HelpResource.objects.select_related("category")
+            .defer("content_html", "content_json")
+            .filter(status=PostStatus.PUBLISHED)
+            .order_by("category__order", "order", "-published_at")
+        )
         if locale:
             qs = qs.filter(locale=locale)
         if category_slug:
@@ -288,7 +307,9 @@ class CmsPublicQuery:
         has_next = len(items) > per_page
         items = items[:per_page]
         return PublicHelpResourcePage(
-            resources=[_to_public_help_resource(m) for m in items],
+            resources=[
+                _to_public_help_resource(m, include_content=False) for m in items
+            ],
             page=page,
             per_page=per_page,
             has_next=has_next,

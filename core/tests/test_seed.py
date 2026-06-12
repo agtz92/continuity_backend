@@ -6,6 +6,7 @@ from core.models import (
     Idea,
     OnboardingProgress,
     Project,
+    QuickNote,
     Routine,
     Task,
 )
@@ -48,6 +49,14 @@ def test_new_user_gets_example_content(user_a):
 
     idea = Idea.objects.get(user_id=user_a)
     assert idea.title == "Newsletter for people who quit things"
+
+    # One example Quick Note with two collapsible sections (the 2nd folded).
+    note = QuickNote.objects.get(user_id=user_a)
+    assert note.title == "How to use Notes"
+    sections = list(note.sections.all().order_by("position"))
+    assert len(sections) == 2
+    assert sections[0].collapsed is False
+    assert sections[1].collapsed is True
 
     assert OnboardingProgress.objects.get(user_id=user_a).example_seeded_at
 
