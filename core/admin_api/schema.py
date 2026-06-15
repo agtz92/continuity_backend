@@ -20,6 +20,8 @@ from graphql import GraphQLError
 from strawberry.types import Info
 
 from core.assistant.models import AccountProfile, Plan, UsageDay
+from core.services import interactions as interactions_svc
+from core.services import mcp_connections as mcp_connections_svc
 from core.models import Activity as ActivityModel
 from core.models import Idea as IdeaModel
 from core.models import Project as ProjectModel
@@ -77,6 +79,8 @@ class AdminUserSummary:
     last_sign_in_at: Optional[dt.datetime]
     counts: UserCounts
     last_activity: Optional[dt.datetime]
+    # Total "actions with effect" in the last 30 days, all channels combined.
+    interactions_30d: int = 0
 
 
 @strawberry.type
@@ -131,6 +135,10 @@ class AdminUserDetail:
     last_activity: Optional[dt.datetime]
     usage_last_30d: list[UsageDayPoint]
     notifications: Optional[NotificationPrefs]
+    # Interaction counts (actions with effect) over the last 30 days, split by
+    # channel (web / mobile / connector / unknown). Counts only — no content.
+    interactions_by_source: list[LabeledCount]
+    interactions_30d_total: int
 
 
 @strawberry.type
@@ -176,6 +184,30 @@ class LabeledCount:
 
     label: str
     count: int
+
+
+@strawberry.type
+class AdminMcpConnection:
+    user_id: strawberry.ID
+    client_id: str
+    client_name: str
+    connected_at: Optional[dt.datetime] = None
+
+
+@strawberry.type
+class AdminMcpConnectionEvent:
+    user_id: strawberry.ID
+    client_id: str
+    client_name: str
+    event: str
+    created: dt.datetime
+
+
+@strawberry.type
+class AdminMcpStats:
+    active_connections: int
+    distinct_users: int
+    by_client: list[LabeledCount]
 
 
 @strawberry.type
@@ -395,6 +427,7 @@ def _build_summary(
     profile: Optional[AccountProfile],
     counts: UserCounts,
     last_activity: Optional[dt.datetime],
+    interactions_30d: int = 0,
 ) -> AdminUserSummary:
     return AdminUserSummary(
         user_id=strawberry.ID(str(s_user.id)),
@@ -406,6 +439,7 @@ def _build_summary(
         last_sign_in_at=_parse_dt(s_user.last_sign_in_at),
         counts=counts,
         last_activity=last_activity,
+        interactions_30d=interactions_30d,
     )
 
 
@@ -480,6 +514,7 @@ class AdminQuery:
         kept_ids = [u.id for u in s_users]
         counts_map = _bulk_counts(kept_ids)
         last_act_map = _last_activity_map(kept_ids)
+        interactions_map = interactions_svc.bulk_interactions_total(kept_ids, days=30)
 
         zero_counts = UserCounts(
             projects=0, tasks_open=0, tasks_done=0, ideas=0, notes=0
@@ -490,6 +525,7 @@ class AdminQuery:
                 profiles.get(u.id),
                 counts_map.get(u.id, zero_counts),
                 last_act_map.get(u.id),
+                interactions_map.get(u.id, 0),
             )
             for u in s_users
         ]
@@ -545,6 +581,18 @@ class AdminQuery:
             for r in usage_rows
         ]
 
+        by_source = interactions_svc.interactions_by_source(uid, days=30)
+        interactions_by_source = [
+            LabeledCount(label=label, count=by_source.get(label, 0))
+            for label in (
+                interactions_svc.WEB,
+                interactions_svc.MOBILE,
+                interactions_svc.CONNECTOR,
+                interactions_svc.UNKNOWN,
+            )
+        ]
+        interactions_30d_total = sum(by_source.values())
+
         notif_settings = NotificationSettings.objects.filter(user_id=uid).first()
         if notif_settings:
             links_qs = NotificationLink.objects.filter(user_id=uid)
@@ -586,6 +634,8 @@ class AdminQuery:
             last_activity=last_activity,
             usage_last_30d=usage,
             notifications=prefs,
+            interactions_by_source=interactions_by_source,
+            interactions_30d_total=interactions_30d_total,
         )
 
     @strawberry.field(name="adminNotificationJobs")
@@ -1071,12 +1121,76 @@ class AdminQuery:
             has_next=has_next,
         )
 
+    @strawberry.field(name="adminMcpConnections")
+    def admin_mcp_connections(
+        self, info: Info, limit: int = 50
+    ) -> list[AdminMcpConnection]:
+        _admin_user_id(info)
+        return [
+            AdminMcpConnection(
+                user_id=strawberry.ID(str(c["user_id"])),
+                client_id=c["client_id"],
+                client_name=c["client_name"],
+                connected_at=c["connected_at"],
+            )
+            for c in mcp_connections_svc.list_all_connections(limit=limit)
+        ]
+
+    @strawberry.field(name="adminMcpConnectionEvents")
+    def admin_mcp_connection_events(
+        self, info: Info, limit: int = 50
+    ) -> list[AdminMcpConnectionEvent]:
+        _admin_user_id(info)
+        return [
+            AdminMcpConnectionEvent(
+                user_id=strawberry.ID(str(e.user_id)),
+                client_id=e.client_id,
+                client_name=e.client_name,
+                event=e.event,
+                created=e.created,
+            )
+            for e in mcp_connections_svc.recent_events(limit=limit)
+        ]
+
+    @strawberry.field(name="adminMcpStats")
+    def admin_mcp_stats(self, info: Info) -> AdminMcpStats:
+        _admin_user_id(info)
+        s = mcp_connections_svc.connection_stats()
+        return AdminMcpStats(
+            active_connections=s["active_connections"],
+            distinct_users=s["distinct_users"],
+            by_client=[
+                LabeledCount(label=k, count=v) for k, v in s["by_client"].items()
+            ],
+        )
+
 
 # ---------- Mutations ----------
 
 
 @strawberry.type
 class AdminMutation:
+    @strawberry.mutation(name="adminRevokeMcpConnection")
+    def admin_revoke_mcp_connection(
+        self, info: Info, user_id: strawberry.ID, client_id: str
+    ) -> bool:
+        actor = _admin_user_id(info)
+        import uuid as _uuid
+
+        try:
+            uid = _uuid.UUID(str(user_id))
+        except ValueError:
+            raise GraphQLError("Invalid user_id", extensions={"code": "BAD_INPUT"})
+        n = mcp_connections_svc.revoke_connection(uid, str(client_id), by_admin=True)
+        audit_record(
+            actor_user_id=actor,
+            action="mcp.revoke_connection",
+            target_type="mcp_connection",
+            target_id=f"{user_id}:{client_id}",
+            payload={"revoked": n},
+        )
+        return n > 0
+
     @strawberry.mutation(name="adminSetUserPlan")
     def admin_set_user_plan(
         self, info: Info, user_id: strawberry.ID, plan: str
@@ -1135,6 +1249,7 @@ class AdminMutation:
             last_sign_in_at=_parse_dt(s_user.last_sign_in_at) if s_user else None,
             counts=counts,
             last_activity=last_activity,
+            interactions_30d=interactions_svc.interactions_total(uid),
         )
 
     @strawberry.mutation(name="adminNotificationJobRetry")
@@ -1238,6 +1353,7 @@ class AdminMutation:
             last_sign_in_at=_parse_dt(s_user.last_sign_in_at) if s_user else None,
             counts=counts,
             last_activity=last_activity,
+            interactions_30d=interactions_svc.interactions_total(uid),
         )
 
     @strawberry.mutation(name="adminSetUserIsBillingExempt")
@@ -1290,4 +1406,5 @@ class AdminMutation:
             last_sign_in_at=_parse_dt(s_user.last_sign_in_at) if s_user else None,
             counts=counts,
             last_activity=last_activity,
+            interactions_30d=interactions_svc.interactions_total(uid),
         )

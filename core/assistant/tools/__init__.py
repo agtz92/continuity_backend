@@ -40,6 +40,10 @@ class Tool:
     input_schema: dict
     handler: Callable[[uuid.UUID, dict], dict]
     plan_required: str = "free"
+    # True for tools that create/modify/delete user data. Read-only tools
+    # leave this False. The MCP connector's policy layer (core/mcp/policy.py)
+    # uses this to gate writes per plan independently of `plan_required`.
+    mutates: bool = False
 
 
 _REGISTRY: dict[str, Tool] = {}
@@ -51,6 +55,7 @@ def tool(
     description: str,
     input_schema: dict,
     plan_required: str = "free",
+    mutates: bool = False,
 ):
     """Decorator that registers a function as a tool.
 
@@ -75,6 +80,7 @@ def tool(
             input_schema=input_schema,
             handler=wrapped,
             plan_required=plan_required,
+            mutates=mutates,
         )
         return wrapped
 

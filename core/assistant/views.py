@@ -25,6 +25,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
 from core.auth import authenticate_request
+from core.services import interactions
 
 from . import anthropic_client, prompts, quotas
 from .anthropic_client import AssistantConfigError
@@ -270,6 +271,9 @@ class ChatView(View):
                 cache_read_in=result.total_usage.cache_read_in,
                 deep=used_deep,
             )
+            # One interaction per assistant message, tagged by the client
+            # channel (web/mobile). Best-effort — never breaks the stream.
+            interactions.record_from_request(request)
 
             cache.delete(cancel_key)
             conv.save(update_fields=["updated_at"])

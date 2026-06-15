@@ -45,6 +45,7 @@ from .services import (
     categories as categories_svc,
     google_tasks as google_tasks_svc,
     ideas as ideas_svc,
+    mcp_connections as mcp_connections_svc,
     notes as notes_svc,
     onboarding as onboarding_svc,
     preferences as preferences_svc,
@@ -534,6 +535,15 @@ class GoogleTaskList:
     title: str
 
 
+@strawberry.type
+class McpConnection:
+    """An MCP connector (e.g. Claude) the user has authorized."""
+
+    client_id: strawberry.ID
+    client_name: str
+    connected_at: Optional[dt.datetime] = None
+
+
 @strawberry.input
 class GoogleTasksImportMapping:
     google_list_id: str
@@ -932,12 +942,33 @@ class Query:
             raise GraphQLError(str(e), extensions={"code": "GOOGLE_TASKS_ERROR"})
         return [GoogleTaskList(id=it["id"], title=it["title"]) for it in items]
 
+    @strawberry.field
+    def mcp_connections(self, info: Info) -> List[McpConnection]:
+        uid = _user_id(info)
+        return [
+            McpConnection(
+                client_id=strawberry.ID(c["client_id"]),
+                client_name=c["client_name"],
+                connected_at=c["connected_at"],
+            )
+            for c in mcp_connections_svc.list_connections(uid)
+        ]
+
 
 # ---------- Mutations ----------
 
 
 @strawberry.type
 class Mutation:
+    # MCP connector
+    @strawberry.mutation
+    def revoke_mcp_connection(self, info: Info, client_id: strawberry.ID) -> bool:
+        """Revoke a connected MCP client (e.g. Claude). Returns True if any
+        live token was revoked."""
+        uid = _user_id(info)
+        revoked = mcp_connections_svc.revoke_connection(uid, str(client_id))
+        return revoked > 0
+
     # Projects
     @strawberry.mutation
     def create_project(self, info: Info, data: ProjectInput) -> Project:
@@ -1609,4 +1640,10 @@ CombinedMutation = merge_types(
     ),
 )
 
-schema = strawberry.Schema(query=CombinedQuery, mutation=CombinedMutation)
+from .interaction_tracking import InteractionTrackingExtension  # noqa: E402
+
+schema = strawberry.Schema(
+    query=CombinedQuery,
+    mutation=CombinedMutation,
+    extensions=[InteractionTrackingExtension],
+)

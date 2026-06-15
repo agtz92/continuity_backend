@@ -114,6 +114,13 @@ CORS_ALLOWED_ORIGINS = config(
 )
 CORS_ALLOW_CREDENTIALS = True
 
+# Allow the custom client-attribution header (web/mobile) through CORS preflight.
+# Without this, browser requests carrying `X-Continuity-Client` would be blocked
+# cross-origin. See core/services/interactions.py + docs/admin-metrics/INTERACTIONS.md.
+from corsheaders.defaults import default_headers as _cors_default_headers
+
+CORS_ALLOW_HEADERS = (*_cors_default_headers, "x-continuity-client")
+
 CSRF_TRUSTED_ORIGINS = [o for o in CORS_ALLOWED_ORIGINS if o.startswith("http")]
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -127,6 +134,29 @@ CACHES = {
 
 GRAPHQL_RATE_LIMIT_USER = config("GRAPHQL_RATE_LIMIT_USER", default="120/m")
 GRAPHQL_RATE_LIMIT_IP = config("GRAPHQL_RATE_LIMIT_IP", default="300/m")
+
+# MCP connector (/mcp/) — protects our infra (Postgres/compute), not an AI bill,
+# since the model runs on the user's Claude. See docs/mcp-connector/PLAN.md §2.
+MCP_RATE_LIMIT_USER = config("MCP_RATE_LIMIT_USER", default="120/m")
+MCP_RATE_LIMIT_IP = config("MCP_RATE_LIMIT_IP", default="300/m")
+# Per-plan user rate for the connector (higher plans = more throughput).
+# Unknown plans fall back to MCP_RATE_LIMIT_USER.
+MCP_RATE_LIMIT_BY_PLAN = {
+    "free": config("MCP_RATE_LIMIT_FREE", default="30/m"),
+    "pro": config("MCP_RATE_LIMIT_PRO", default="120/m"),
+    "studio": config("MCP_RATE_LIMIT_STUDIO", default="300/m"),
+    "admin": config("MCP_RATE_LIMIT_ADMIN", default="600/m"),
+}
+
+# MCP OAuth 2.1 (Fase 1). The consent page lives in the frontend; access tokens
+# are JWTs signed with our own key (sub = Supabase UUID). See PLAN.md §4.2.
+FRONTEND_BASE_URL = config("FRONTEND_BASE_URL", default=GOOGLE_OAUTH_FRONTEND_BASE_URL)
+MCP_OAUTH_SIGNING_KEY = config("MCP_OAUTH_SIGNING_KEY", default=SECRET_KEY)
+MCP_OAUTH_ACCESS_TTL = config("MCP_OAUTH_ACCESS_TTL", default=3600, cast=int)
+MCP_OAUTH_REFRESH_TTL = config(
+    "MCP_OAUTH_REFRESH_TTL", default=60 * 60 * 24 * 30, cast=int
+)
+MCP_OAUTH_CODE_TTL = config("MCP_OAUTH_CODE_TTL", default=300, cast=int)
 
 # AI assistant
 ANTHROPIC_API_KEY = config("ANTHROPIC_API_KEY", default="")

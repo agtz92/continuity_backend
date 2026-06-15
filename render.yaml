@@ -35,6 +35,13 @@ services:
         value: America/Mexico_City
       - key: ANTHROPIC_API_KEY
         sync: false
+      # MCP connector OAuth (Fase 1). FRONTEND_BASE_URL is where the consent
+      # page lives (the app frontend, e.g. https://continuu.it). The signing
+      # key for MCP access tokens is generated once and kept stable.
+      - key: FRONTEND_BASE_URL
+        sync: false
+      - key: MCP_OAUTH_SIGNING_KEY
+        generateValue: true
       - key: PYTHON_VERSION
         value: "3.12.4"
 
@@ -45,7 +52,7 @@ services:
     plan: starter
     schedule: "0 * * * *"
     buildCommand: "./build.sh"
-    startCommand: "python manage.py send_weekly_digest && python manage.py send_daily_digest && python manage.py send_due_reminders && python manage.py send_announcement_push"
+    startCommand: "python manage.py send_weekly_digest && python manage.py send_daily_digest && python manage.py send_due_reminders && python manage.py send_announcement_push && python manage.py cleanup_oauth_tokens"
     envVars:
       - key: DJANGO_SECRET_KEY
         sync: false

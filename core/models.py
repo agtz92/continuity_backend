@@ -386,3 +386,122 @@ class Activity(TimestampedModel):
             models.Index(fields=["user_id", "kind"]),
             models.Index(fields=["user_id", "project_id"]),
         ]
+
+
+class InteractionSource(models.TextChoices):
+    WEB = "web", "Web app"
+    MOBILE = "mobile", "Mobile app"
+    CONNECTOR = "connector", "Claude connector"
+    UNKNOWN = "unknown", "Unknown"
+
+
+class InteractionDay(models.Model):
+    """Append-only per-user, per-source daily interaction counter.
+
+    Privacy by design: stores ONLY counts — never message content, query
+    text, IPs, user-agents or any payload. One "interaction" = one action
+    with effect (a GraphQL mutation, an assistant message, or a connector
+    tool call), bucketed by the channel it came from. Powers the admin
+    usage metrics; safe to surface because it reveals volume, not content.
+    """
+
+    user_id = models.UUIDField()
+    date = models.DateField()
+    source = models.CharField(
+        max_length=16,
+        choices=InteractionSource.choices,
+        default=InteractionSource.UNKNOWN,
+    )
+    count = models.IntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user_id", "date", "source"],
+                name="unique_interaction_per_user_day_source",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["user_id", "-date"]),
+            models.Index(fields=["date", "source"]),
+        ]
+
+
+# ---------------------------------------------------------------------------
+# MCP connector OAuth 2.1 (see docs/mcp-connector/PLAN.md §4.2 / Fase 1)
+#
+# A minimal OAuth authorization server so Claude.ai can connect to /mcp/ as a
+# remote connector. Public clients only (PKCE, no client secret). Codes and
+# refresh tokens are stored **hashed** (sha256) so a DB leak can't replay them.
+# Access tokens are stateless JWTs (not stored) — short-lived; revocation works
+# by revoking the refresh token.
+# ---------------------------------------------------------------------------
+
+
+class OAuthClient(models.Model):
+    """A dynamically-registered (RFC 7591) MCP client, e.g. Claude."""
+
+    client_id = models.CharField(max_length=64, primary_key=True)
+    client_name = models.CharField(max_length=255, blank=True, default="")
+    redirect_uris = models.JSONField(default=list)
+    token_endpoint_auth_method = models.CharField(max_length=32, default="none")
+    created = models.DateTimeField(auto_now_add=True)
+
+
+class OAuthAuthorizationCode(models.Model):
+    """Short-lived authorization code, bound to a user + client + PKCE challenge."""
+
+    code_hash = models.CharField(max_length=64, unique=True, db_index=True)
+    client = models.ForeignKey(OAuthClient, on_delete=models.CASCADE)
+    user_id = models.UUIDField()
+    redirect_uri = models.TextField()
+    code_challenge = models.CharField(max_length=255)
+    code_challenge_method = models.CharField(max_length=12, default="S256")
+    scope = models.CharField(max_length=255, blank=True, default="")
+    expires_at = models.DateTimeField()
+    consumed_at = models.DateTimeField(null=True, blank=True)
+    created = models.DateTimeField(auto_now_add=True)
+
+
+class OAuthRefreshToken(models.Model):
+    """Long-lived refresh token (hashed). Revocable for the 'active connections' UI."""
+
+    token_hash = models.CharField(max_length=64, unique=True, db_index=True)
+    client = models.ForeignKey(OAuthClient, on_delete=models.CASCADE)
+    user_id = models.UUIDField(db_index=True)
+    scope = models.CharField(max_length=255, blank=True, default="")
+    expires_at = models.DateTimeField()
+    revoked_at = models.DateTimeField(null=True, blank=True)
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["user_id", "client"])]
+
+
+class OAuthConnectionEvent(models.Model):
+    """Append-only audit trail of MCP connector lifecycle events.
+
+    Security/incident-response log: who authorized which client, when tokens
+    were refreshed, and when a connection was revoked (by the user or an admin).
+    Counts only the event + client + timestamp — no payloads.
+    """
+
+    class Event(models.TextChoices):
+        AUTHORIZED = "authorized", "Authorized"
+        TOKEN_REFRESHED = "token_refreshed", "Token refreshed"
+        REVOKED = "revoked", "Revoked by user"
+        ADMIN_REVOKED = "admin_revoked", "Revoked by admin"
+
+    user_id = models.UUIDField(db_index=True)
+    client_id = models.CharField(max_length=64)
+    client_name = models.CharField(max_length=255, blank=True, default="")
+    event = models.CharField(max_length=32, choices=Event.choices)
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created"]
+        indexes = [
+            models.Index(fields=["user_id", "-created"]),
+            models.Index(fields=["-created"]),
+        ]

@@ -128,6 +128,7 @@ def _parse_due_dt(value, user_id: uuid.UUID) -> dt.datetime | None:
         "what you will create before calling."
     ),
     plan_required="pro",
+    mutates=True,
     input_schema={
         "type": "object",
         "properties": {
@@ -167,6 +168,7 @@ def _create_project(user_id: uuid.UUID, args: dict) -> dict:
         "`clear_category` / `clear_due_date` to unset those."
     ),
     plan_required="pro",
+    mutates=True,
     input_schema={
         "type": "object",
         "properties": {
@@ -226,6 +228,58 @@ def _update_project(user_id: uuid.UUID, args: dict) -> dict:
 
 
 @tool(
+    name="set_project_priority",
+    description=(
+        "Set ONLY the priority of an existing project. Narrow-scope tool: it "
+        "cannot rename, change status, dates, category or any other field — "
+        "use `update_project` for those. `id` and `priority` are required."
+    ),
+    plan_required="pro",
+    mutates=True,
+    input_schema={
+        "type": "object",
+        "properties": {
+            "id": {"type": "string", "format": "uuid"},
+            "priority": {"type": "string", "enum": _PRIORITY},
+        },
+        "required": ["id", "priority"],
+        "additionalProperties": False,
+    },
+)
+def _set_project_priority(user_id: uuid.UUID, args: dict) -> dict:
+    """Change a project's priority and nothing else.
+
+    Mirrors `_update_project`'s field-preservation pattern but only the
+    `priority` field is taken from `args`; every other field keeps its
+    current value. The connector exposes this on the basic/free tier
+    (via `core/mcp/policy.py`) while the full `update_project` bundle
+    stays gated to pro+.
+    """
+    try:
+        p = projects_svc.get_project(user_id, args["id"])
+    except NotFoundError:
+        return {"error": "Project not found"}
+
+    updated = projects_svc.update_project(
+        user_id,
+        p.id,
+        name=p.name,
+        description=p.description,
+        why=p.why,
+        next_step=p.next_step,
+        status=p.status,
+        priority=args["priority"],
+        category_id=p.category_id,
+        due_date=p.due_date,
+    )
+    return {
+        "ok": True,
+        "id": str(updated.id),
+        "priority": updated.priority,
+    }
+
+
+@tool(
     name="delete_project",
     description=(
         "Permanently delete a project AND all of its tasks. Irreversible. "
@@ -233,6 +287,7 @@ def _update_project(user_id: uuid.UUID, args: dict) -> dict:
         "deletion in conversation; set `confirm` to true only then."
     ),
     plan_required="pro",
+    mutates=True,
     input_schema={
         "type": "object",
         "properties": {
@@ -274,6 +329,7 @@ def _delete_project(user_id: uuid.UUID, args: dict) -> dict:
         "this once per task."
     ),
     plan_required="pro",
+    mutates=True,
     input_schema={
         "type": "object",
         "properties": {
@@ -315,6 +371,7 @@ def _create_task(user_id: uuid.UUID, args: dict) -> dict:
         "`clear_project` to unset those. `due_date` is 'YYYY-MM-DD'."
     ),
     plan_required="pro",
+    mutates=True,
     input_schema={
         "type": "object",
         "properties": {
@@ -379,6 +436,7 @@ def _update_task(user_id: uuid.UUID, args: dict) -> dict:
         "user has explicitly confirmed; set `confirm` to true only then."
     ),
     plan_required="pro",
+    mutates=True,
     input_schema={
         "type": "object",
         "properties": {
@@ -422,6 +480,7 @@ def _delete_task(user_id: uuid.UUID, args: dict) -> dict:
         "once needs nothing more."
     ),
     plan_required="pro",
+    mutates=True,
     input_schema={
         "type": "object",
         "properties": {
@@ -475,6 +534,7 @@ def _create_routine(user_id: uuid.UUID, args: dict) -> dict:
         "`clear_project` to unlink it."
     ),
     plan_required="pro",
+    mutates=True,
     input_schema={
         "type": "object",
         "properties": {
@@ -565,6 +625,7 @@ def _update_routine(user_id: uuid.UUID, args: dict) -> dict:
         "confirmed; set `confirm` to true only then."
     ),
     plan_required="pro",
+    mutates=True,
     input_schema={
         "type": "object",
         "properties": {
@@ -605,6 +666,7 @@ def _delete_routine(user_id: uuid.UUID, args: dict) -> dict:
         "Requires `project_id` and `body`; `title` is optional."
     ),
     plan_required="pro",
+    mutates=True,
     input_schema={
         "type": "object",
         "properties": {
@@ -641,6 +703,7 @@ def _create_note(user_id: uuid.UUID, args: dict) -> dict:
         "current value."
     ),
     plan_required="pro",
+    mutates=True,
     input_schema={
         "type": "object",
         "properties": {
@@ -674,6 +737,7 @@ def _update_note(user_id: uuid.UUID, args: dict) -> dict:
         "then."
     ),
     plan_required="pro",
+    mutates=True,
     input_schema={
         "type": "object",
         "properties": {
@@ -713,6 +777,7 @@ def _delete_note(user_id: uuid.UUID, args: dict) -> dict:
         "`project_id` and `note` text."
     ),
     plan_required="pro",
+    mutates=True,
     input_schema={
         "type": "object",
         "properties": {
@@ -740,6 +805,7 @@ def _add_project_update(user_id: uuid.UUID, args: dict) -> dict:
         "`id` is the update's id; `note` is the new text."
     ),
     plan_required="pro",
+    mutates=True,
     input_schema={
         "type": "object",
         "properties": {
@@ -766,6 +832,7 @@ def _edit_project_update(user_id: uuid.UUID, args: dict) -> dict:
         "confirmed; set `confirm` to true only then."
     ),
     plan_required="pro",
+    mutates=True,
     input_schema={
         "type": "object",
         "properties": {
@@ -805,6 +872,7 @@ def _delete_project_update(user_id: uuid.UUID, args: dict) -> dict:
         "are rejected automatically."
     ),
     plan_required="pro",
+    mutates=True,
     input_schema={
         "type": "object",
         "properties": {
@@ -857,6 +925,7 @@ def _add_task_blocker(user_id: uuid.UUID, args: dict) -> dict:
         "Use when the user resolves a blocker manually."
     ),
     plan_required="pro",
+    mutates=True,
     input_schema={
         "type": "object",
         "properties": {
@@ -888,6 +957,7 @@ def _remove_task_blocker(user_id: uuid.UUID, args: dict) -> dict:
         "project. `title` is required."
     ),
     plan_required="pro",
+    mutates=True,
     input_schema={
         "type": "object",
         "properties": {
@@ -916,6 +986,7 @@ def _create_idea(user_id: uuid.UUID, args: dict) -> dict:
         "current value."
     ),
     plan_required="pro",
+    mutates=True,
     input_schema={
         "type": "object",
         "properties": {
@@ -950,6 +1021,7 @@ def _update_idea(user_id: uuid.UUID, args: dict) -> dict:
         "the user has explicitly confirmed; set `confirm` to true only then."
     ),
     plan_required="pro",
+    mutates=True,
     input_schema={
         "type": "object",
         "properties": {
@@ -986,6 +1058,7 @@ def _delete_idea(user_id: uuid.UUID, args: dict) -> dict:
         "the user decides to commit to an idea."
     ),
     plan_required="pro",
+    mutates=True,
     input_schema={
         "type": "object",
         "properties": {
@@ -1014,6 +1087,7 @@ def _promote_idea(user_id: uuid.UUID, args: dict) -> dict:
         "exists it is returned unchanged."
     ),
     plan_required="pro",
+    mutates=True,
     input_schema={
         "type": "object",
         "properties": {
@@ -1041,6 +1115,7 @@ def _create_category(user_id: uuid.UUID, args: dict) -> dict:
         "their current value."
     ),
     plan_required="pro",
+    mutates=True,
     input_schema={
         "type": "object",
         "properties": {
@@ -1079,6 +1154,7 @@ def _update_category(user_id: uuid.UUID, args: dict) -> dict:
         "explicitly confirmed; set `confirm` to true only then."
     ),
     plan_required="pro",
+    mutates=True,
     input_schema={
         "type": "object",
         "properties": {
