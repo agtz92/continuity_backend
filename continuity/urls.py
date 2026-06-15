@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.urls import include, path
+from django.urls import include, path, re_path
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
@@ -18,7 +18,9 @@ def healthcheck(_request):
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("graphql/", csrf_exempt(JWTAuthGraphQLView.as_view(schema=schema))),
-    path("mcp/", McpView.as_view()),
+    # Acepta /mcp y /mcp/ sin redirect 301 (Claude normaliza la URL sin slash
+    # y los clientes MCP no siguen redirects en el POST).
+    re_path(r"^mcp/?$", McpView.as_view()),
     # MCP OAuth 2.1 (discovery + DCR + authorize + token).
     path(
         ".well-known/oauth-protected-resource",
