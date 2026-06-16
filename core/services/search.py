@@ -12,9 +12,9 @@ from typing import Literal, Optional
 
 from django.db.models import Q
 
-from ..models import Idea, Project, ProjectNote, Task
+from ..models import Idea, Project, ProjectNote, QuickNote, Task
 
-SearchKind = Literal["project", "task", "idea", "note"]
+SearchKind = Literal["project", "task", "idea", "note", "quick_note"]
 
 
 @dataclass
@@ -99,6 +99,35 @@ def search(
                     id=n.id,
                     title=n.title or _truncate(n.body, 80),
                     snippet=_truncate(n.body),
+                    project_id=n.project_id,
+                )
+            )
+
+    if kind in (None, "quick_note"):
+        qn = (
+            QuickNote.objects.filter(user_id=user_id)
+            .filter(
+                Q(title__icontains=q)
+                | Q(sections__heading__icontains=q)
+                | Q(sections__body__icontains=q)
+            )
+            .distinct()
+            .prefetch_related("sections")[:limit]
+        )
+        for n in qn:
+            snippet = ""
+            for s in n.sections.all():
+                if q.lower() in (s.heading or "").lower() or q.lower() in (
+                    s.body or ""
+                ).lower():
+                    snippet = _truncate(s.heading or s.body)
+                    break
+            hits.append(
+                SearchHit(
+                    kind="quick_note",
+                    id=n.id,
+                    title=n.title or _truncate(snippet, 80) or "(untitled note)",
+                    snippet=snippet,
                     project_id=n.project_id,
                 )
             )

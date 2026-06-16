@@ -20,6 +20,7 @@ from core.services import categories as categories_svc
 from core.services import ideas as ideas_svc
 from core.services import notes as notes_svc
 from core.services import projects as projects_svc
+from core.services import quick_notes as quick_notes_svc
 from core.services import search as search_svc
 from core.services import tasks as tasks_svc
 from core.services import activities as activities_svc
@@ -465,7 +466,8 @@ def _get_analytics(user_id: uuid.UUID, args: dict) -> dict:
     name="search",
     description=(
         "Case-insensitive substring search across the user's projects, "
-        "tasks, ideas, and notes. Use for open-ended 'where did I write "
+        "tasks, ideas, project notes, and Quick Notes (Notion-style notebook "
+        "notes + their sections). Use for open-ended 'where did I write "
         "about X' questions. Default limit 10, max 50."
     ),
     input_schema={
@@ -474,7 +476,7 @@ def _get_analytics(user_id: uuid.UUID, args: dict) -> dict:
             "query": {"type": "string", "minLength": 1},
             "kind": {
                 "type": "string",
-                "enum": ["project", "task", "idea", "note"],
+                "enum": ["project", "task", "idea", "note", "quick_note"],
             },
             "limit": {**_LIMIT, "default": 10},
         },
@@ -501,4 +503,97 @@ def _search(user_id: uuid.UUID, args: dict) -> dict:
             for h in hits
         ],
         "count": len(hits),
+    }
+
+
+# ---------- Quick Notes (Notion-style notebook notes) ----------
+
+
+@tool(
+    name="list_quick_notes",
+    description=(
+        "List the user's Quick Notes — notebook-style notes with collapsible "
+        "sections. Distinct from project notes and ideas. Optional filters: "
+        "`search` (matches title + section content), `category_id`, "
+        "`project_id`, `pinned`. Bodies are omitted here; use `get_quick_note` "
+        "for full content."
+    ),
+    input_schema={
+        "type": "object",
+        "properties": {
+            "search": {"type": "string"},
+            "category_id": {"type": "string", "format": "uuid"},
+            "project_id": {"type": "string", "format": "uuid"},
+            "pinned": {"type": "boolean"},
+            "limit": _LIMIT,
+        },
+        "additionalProperties": False,
+    },
+)
+def _list_quick_notes(user_id: uuid.UUID, args: dict) -> dict:
+    notes = quick_notes_svc.list_quick_notes(
+        user_id,
+        search=args.get("search"),
+        category_id=args.get("category_id"),
+        project_id=args.get("project_id"),
+        pinned=args.get("pinned"),
+    )
+    limit = min(int(args.get("limit") or 30), 50)
+    out = []
+    for n in notes[:limit]:
+        secs = list(n.sections.all())
+        out.append(
+            {
+                "id": str(n.id),
+                "title": n.title,
+                "pinned": n.pinned,
+                "category_id": str(n.category_id) if n.category_id else None,
+                "project_id": str(n.project_id) if n.project_id else None,
+                "section_count": len(secs),
+                "section_headings": [
+                    short_text(s.heading, 80) for s in secs[:8] if s.heading
+                ],
+                "updated_at": n.updated_at.isoformat() if n.updated_at else None,
+            }
+        )
+    return {"quick_notes": out, "total": len(notes)}
+
+
+@tool(
+    name="get_quick_note",
+    description=(
+        "Full content of one Quick Note: title, pinned/category/project, and "
+        "all its sections (heading + body, ordered). Use after `list_quick_notes` "
+        "or `search` to read the body."
+    ),
+    input_schema={
+        "type": "object",
+        "properties": {"id": {"type": "string", "format": "uuid"}},
+        "required": ["id"],
+        "additionalProperties": False,
+    },
+)
+def _get_quick_note(user_id: uuid.UUID, args: dict) -> dict:
+    try:
+        n = quick_notes_svc.get_quick_note(user_id, args["id"])
+    except NotFoundError:
+        return {"error": "Quick note not found"}
+    secs = sorted(n.sections.all(), key=lambda s: (s.position, s.created))
+    return {
+        "id": str(n.id),
+        "title": n.title,
+        "pinned": n.pinned,
+        "category_id": str(n.category_id) if n.category_id else None,
+        "project_id": str(n.project_id) if n.project_id else None,
+        "updated_at": n.updated_at.isoformat() if n.updated_at else None,
+        "sections": [
+            {
+                "id": str(s.id),
+                "heading": s.heading,
+                "body": short_text(s.body, 600),
+                "collapsed": s.collapsed,
+                "position": s.position,
+            }
+            for s in secs
+        ],
     }
