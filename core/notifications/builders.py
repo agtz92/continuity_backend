@@ -11,12 +11,14 @@ import uuid
 import zoneinfo
 from dataclasses import dataclass
 
+from django.db.models import Q
 from django.utils import timezone
 
 from core import analytics
 from core.analytics import AnalyticsRange
 from core.models import Routine, Task
 from core.services import routines as routines_service
+from core.services.projects import DAILY_VIEW_PROJECT_STATUSES
 
 from . import i18n as i18n_strings
 from .models import NotificationSettings
@@ -204,6 +206,10 @@ def _daily_context(user_id: uuid.UUID, today: dt.date | None) -> _DailyContext:
             done=False,
             due_date__isnull=False,
             due_date__lte=end_of_today_local,
+        )
+        .filter(
+            Q(project__isnull=True)
+            | Q(project__status__in=DAILY_VIEW_PROJECT_STATUSES)
         )
         .select_related("project")
         .order_by("due_date")

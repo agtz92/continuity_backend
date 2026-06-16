@@ -6,13 +6,19 @@ import datetime as dt
 import uuid
 from typing import Optional
 
+from django.db.models import Q
 from django.utils import timezone
 
 from ..models import ActivityKind, Project, Task, TaskBlocker
 from ..quotas import check_entity_quota
 from ._cache import bump_context_version
 from .activities import iso, log_event
-from .projects import NotFoundError, assert_owned, touch_last_activity
+from .projects import (
+    DAILY_VIEW_PROJECT_STATUSES,
+    NotFoundError,
+    assert_owned,
+    touch_last_activity,
+)
 
 
 def list_tasks(
@@ -21,11 +27,19 @@ def list_tasks(
     project_id: Optional[uuid.UUID] = None,
     done: Optional[bool] = None,
     due_within_days: Optional[int] = None,
+    daily_view: bool = False,
     limit: int = 50,
 ) -> list[Task]:
     qs = Task.objects.filter(user_id=user_id).prefetch_related("blockers")
     if project_id is not None:
         qs = qs.filter(project_id=project_id)
+    if daily_view:
+        # Only tasks of "live" projects pollute daily views; standalone tasks
+        # (no project) always stay visible (D5/D6).
+        qs = qs.filter(
+            Q(project__isnull=True)
+            | Q(project__status__in=DAILY_VIEW_PROJECT_STATUSES)
+        )
     if done is not None:
         qs = qs.filter(done=done)
     if due_within_days is not None:
@@ -102,6 +116,8 @@ def update_task(
     if not task.done:
         task.completed_at = None
     task.save()
+    if task.project_id:
+        touch_last_activity(user_id, task.project_id)
     if old_due_date != task.due_date:
         log_event(
             user_id,
@@ -199,6 +215,8 @@ def delete_task(user_id: uuid.UUID, task_id) -> None:
         .first()
     )
     Task.objects.filter(pk=task_id, user_id=user_id).delete()
+    if task is not None and task.project_id:
+        touch_last_activity(user_id, task.project_id)
     if task is not None:
         log_event(
             user_id,

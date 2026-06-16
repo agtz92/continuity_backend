@@ -55,6 +55,8 @@ from .services import (
     routines as routines_svc,
     tasks as tasks_svc,
 )
+from django.core.exceptions import ValidationError
+
 from core.assistant.quotas import get_or_create_profile
 from .services.projects import NotFoundError
 from .quotas import EntityQuotaExceeded
@@ -89,6 +91,11 @@ def _quota_error(e: EntityQuotaExceeded) -> GraphQLError:
     )
 
 
+def _closure_error(e: ValidationError) -> GraphQLError:
+    msg = "; ".join(e.messages) if hasattr(e, "messages") else str(e)
+    return GraphQLError(msg, extensions={"code": "CLOSURE_NOTES_REQUIRED"})
+
+
 @strawberry.type
 class Category:
     id: strawberry.ID
@@ -119,6 +126,16 @@ class Project:
     last_activity: dt.datetime
     created: dt.datetime
     due_date: Optional[dt.datetime] = None
+    paused_context: Optional[str] = None
+    paused_next_action: Optional[str] = None
+    paused_blocker: Optional[str] = None
+    paused_at: Optional[dt.datetime] = None
+    killed_reason: Optional[str] = None
+    killed_learnings: Optional[str] = None
+    killed_would_restart: Optional[str] = None
+    killed_at: Optional[dt.datetime] = None
+    killed_ai_reflection: Optional[str] = None
+    stalled_at: Optional[dt.datetime] = None
 
     @classmethod
     def from_model(cls, m: ProjectModel) -> "Project":
@@ -134,6 +151,16 @@ class Project:
             last_activity=m.last_activity,
             created=m.created,
             due_date=m.due_date,
+            paused_context=m.paused_context,
+            paused_next_action=m.paused_next_action,
+            paused_blocker=m.paused_blocker,
+            paused_at=m.paused_at,
+            killed_reason=m.killed_reason,
+            killed_learnings=m.killed_learnings,
+            killed_would_restart=m.killed_would_restart,
+            killed_at=m.killed_at,
+            killed_ai_reflection=m.killed_ai_reflection,
+            stalled_at=m.stalled_at,
         )
 
 
@@ -444,6 +471,13 @@ class ProjectInput:
     priority: Optional[str] = "medium"
     category_id: Optional[strawberry.ID] = None
     due_date: Optional[dt.datetime] = None
+    # Closure notes (used by updateProject; ignored by createProject).
+    paused_context: Optional[str] = None
+    paused_next_action: Optional[str] = None
+    paused_blocker: Optional[str] = None
+    killed_reason: Optional[str] = None
+    killed_learnings: Optional[str] = None
+    killed_would_restart: Optional[str] = None
 
 
 @strawberry.input
@@ -1005,9 +1039,19 @@ class Mutation:
                 category_id=data.category_id,
                 clear_category=data.category_id is None,
                 due_date=data.due_date,
+                paused_context=data.paused_context,
+                paused_next_action=data.paused_next_action,
+                paused_blocker=data.paused_blocker,
+                killed_reason=data.killed_reason,
+                killed_learnings=data.killed_learnings,
+                killed_would_restart=data.killed_would_restart,
             )
         except NotFoundError:
             raise _not_found("Project")
+        except EntityQuotaExceeded as e:
+            raise _quota_error(e)
+        except ValidationError as e:
+            raise _closure_error(e)
         return Project.from_model(m)
 
     # Project notes (multiple per project)

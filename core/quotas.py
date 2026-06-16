@@ -128,7 +128,12 @@ def _get_plan(user_id: uuid.UUID) -> str:
 
 def _count(kind: str, user_id: uuid.UUID, project_id: Optional[uuid.UUID]) -> int:
     if kind == "projects":
-        return Project.objects.filter(user_id=user_id).exclude(status="archived").count()
+        # Terminal states (archived + killed) don't count toward the cap (D3).
+        return (
+            Project.objects.filter(user_id=user_id)
+            .exclude(status__in=["archived", "killed"])
+            .count()
+        )
     if kind == "tasks_total":
         return Task.objects.filter(user_id=user_id, done=False).count()
     if kind == "tasks_per_project":
