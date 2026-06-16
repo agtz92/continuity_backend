@@ -9,6 +9,7 @@ class ProjectStatus(models.TextChoices):
     STALLED = "stalled", "Stalled"
     PAUSED = "paused", "Paused"
     LAUNCHED = "launched", "Launched"
+    KILLED = "killed", "Killed"
     ARCHIVED = "archived", "Archived"
 
 
@@ -63,8 +64,37 @@ class Project(TimestampedModel):
     promoted_from_idea_at = models.DateTimeField(null=True, blank=True, db_index=True)
     due_date = models.DateTimeField(null=True, blank=True)
 
+    # Closure notes — paused (see STATE_CLOSURE_FINAL.md §3). Text uses
+    # default="" (never null) per the codebase convention; "never paused" is
+    # expressed by paused_at IS NULL, not by empty text.
+    paused_context = models.CharField(max_length=200, blank=True, default="")
+    paused_next_action = models.CharField(max_length=200, blank=True, default="")
+    paused_blocker = models.CharField(max_length=300, blank=True, default="")
+    paused_at = models.DateTimeField(null=True, blank=True)
+
+    # Closure notes — killed
+    killed_reason = models.CharField(max_length=300, blank=True, default="")
+    killed_learnings = models.CharField(max_length=300, blank=True, default="")
+    killed_would_restart = models.CharField(max_length=200, blank=True, default="")
+    killed_at = models.DateTimeField(null=True, blank=True)
+    # Loop autopsy, Capa A: one-time reflection written when the project dies.
+    killed_ai_reflection = models.TextField(blank=True, default="")
+
+    # Stalled auto-detection (cron, 14 days; only active projects).
+    stalled_at = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         ordering = ["-last_activity"]
+        indexes = [
+            models.Index(
+                fields=["user_id", "status", "last_activity"],
+                name="idx_project_status_activity",
+            ),
+            models.Index(
+                fields=["status", "last_activity"],
+                name="idx_project_stalled_sweep",
+            ),
+        ]
 
 
 class Task(TimestampedModel):
@@ -174,6 +204,21 @@ class NoteSection(TimestampedModel):
 class BackupMeta(models.Model):
     user_id = models.UUIDField(primary_key=True)
     last_backup = models.DateTimeField(null=True, blank=True)
+
+
+class GraveyardInsight(models.Model):
+    """Per-user cached cross-project autopsy of killed projects (Loop, Capa B).
+
+    Recomputed only when a project dies (threshold: 3 kills) — reading it never
+    calls the model. `is_stale` is set on revive so the next death recomputes.
+    Singleton per user, same shape as BackupMeta/Profile."""
+
+    user_id = models.UUIDField(primary_key=True)
+    body = models.TextField(blank=True, default="")
+    deaths_count = models.PositiveIntegerField(default=0)
+    computed_at = models.DateTimeField(null=True, blank=True)
+    is_stale = models.BooleanField(default=False)
+    updated_at = models.DateTimeField(auto_now=True)
 
 
 class Profile(models.Model):

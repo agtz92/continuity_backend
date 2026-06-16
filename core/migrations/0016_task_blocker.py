@@ -2,6 +2,8 @@ import uuid
 from django.db import migrations, models
 import django.db.models.deletion
 
+from . import _pg
+
 ENABLE_RLS = "ALTER TABLE IF EXISTS public.core_taskblocker ENABLE ROW LEVEL SECURITY;"
 DISABLE_RLS = "ALTER TABLE IF EXISTS public.core_taskblocker DISABLE ROW LEVEL SECURITY;"
 
@@ -41,5 +43,5 @@ class Migration(migrations.Migration):
             ],
             options={"ordering": ["created"]},
         ),
-        migrations.RunSQL(ENABLE_RLS, DISABLE_RLS),
+        _pg.postgres_only(ENABLE_RLS, DISABLE_RLS),
     ]

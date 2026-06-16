@@ -6,6 +6,8 @@ import uuid
 import django.db.models.deletion
 from django.db import migrations, models
 
+from . import _pg
+
 
 ENABLE_RLS_SQL = """
 ALTER TABLE IF EXISTS public.core_routine ENABLE ROW LEVEL SECURITY;
@@ -153,5 +155,5 @@ class Migration(migrations.Migration):
                 name="core_routin_user_id_2db5b9_idx",
             ),
         ),
-        migrations.RunSQL(ENABLE_RLS_SQL, DISABLE_RLS_SQL),
+        _pg.postgres_only(ENABLE_RLS_SQL, DISABLE_RLS_SQL),
     ]

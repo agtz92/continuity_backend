@@ -1,5 +1,7 @@
 from django.db import migrations
 
+from . import _pg
+
 
 ENABLE_SQL = """
 DO $$
@@ -43,5 +45,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunSQL(ENABLE_SQL, DISABLE_SQL),
+        _pg.postgres_only(ENABLE_SQL, DISABLE_SQL),
     ]

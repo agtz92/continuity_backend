@@ -1,5 +1,7 @@
 from django.db import migrations, models
 
+from . import _pg
+
 
 ENABLE_RLS_SQL = (
     "ALTER TABLE core_userpreferences ENABLE ROW LEVEL SECURITY;"
@@ -31,5 +33,5 @@ class Migration(migrations.Migration):
                 ("updated_at", models.DateTimeField(auto_now=True)),
             ],
         ),
-        migrations.RunSQL(ENABLE_RLS_SQL, DISABLE_RLS_SQL),
+        _pg.postgres_only(ENABLE_RLS_SQL, DISABLE_RLS_SQL),
     ]
