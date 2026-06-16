@@ -45,6 +45,28 @@ SUPPORTED_PROTOCOL_VERSIONS = {"2024-11-05", "2025-03-26", "2025-06-18"}
 DEFAULT_PROTOCOL_VERSION = "2025-06-18"
 SERVER_INFO = {"name": "Continuity", "version": "0.1.0"}
 
+# Sent once in the `initialize` response. The client reads it as guidance on how
+# to use this server efficiently, so the model follows the fast path instead of
+# probing tools one by one. Keep it short and high-signal.
+SERVER_INSTRUCTIONS = (
+    "Continuity is the user's personal productivity workspace (projects, tasks, "
+    "ideas, categories, routines, project notes, and Quick Notes — Notion-style "
+    "notebook notes with sections).\n\n"
+    "Be efficient — do NOT call tools speculatively or one-by-one to explore:\n"
+    "1. For 'how am I doing / what's pending' questions, call `get_dashboard_summary` "
+    "ONCE; it usually has enough to answer.\n"
+    "2. To find something by topic across everything, call `search(query, kind?)` ONCE "
+    "(it covers projects, tasks, ideas, project notes, and Quick Notes). `search` "
+    "returns short snippets only.\n"
+    "3. To read FULL content, call the matching detail tool with the id from search: "
+    "`get_quick_note(id)` for a Quick Note's full sections/body, `get_project_detail(id)` "
+    "for a project. Don't rely on search snippets for full text.\n"
+    "4. Use `list_*` tools only when the user wants a filtered list.\n\n"
+    "Plan gating: free users can read/search and adjust project priority; creating, "
+    "editing and deleting require a Pro/Studio plan and will return an error otherwise. "
+    "Deletions are irreversible — confirm with the user first."
+)
+
 
 @method_decorator(csrf_exempt, name="dispatch")
 class McpView(View):
@@ -134,6 +156,7 @@ class McpView(View):
             "protocolVersion": version,
             "capabilities": {"tools": {"listChanged": False}},
             "serverInfo": SERVER_INFO,
+            "instructions": SERVER_INSTRUCTIONS,
         }
 
     def _tools_list(self, request: HttpRequest) -> dict:

@@ -99,6 +99,10 @@ def test_initialize_echoes_supported_version(http, user_a, make_profile):
     assert result["protocolVersion"] == "2025-06-18"
     assert result["serverInfo"]["name"] == "Continuity"
     assert "tools" in result["capabilities"]
+    # Connector instructions guide the model down the fast path.
+    assert "instructions" in result
+    assert "get_dashboard_summary" in result["instructions"]
+    assert "search" in result["instructions"]
 
 
 @pytest.mark.django_db

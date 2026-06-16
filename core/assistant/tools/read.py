@@ -16,6 +16,7 @@ from typing import Any
 
 from django.utils import timezone
 
+from core.models import TaskBlocker
 from core.services import categories as categories_svc
 from core.services import ideas as ideas_svc
 from core.services import notes as notes_svc
@@ -146,6 +147,14 @@ def _get_project_detail(user_id: uuid.UUID, args: dict) -> dict:
         return {"error": "Project not found"}
 
     tasks = tasks_svc.list_tasks(user_id, project_id=p.id, limit=10)
+    # Which of these tasks are blocked — resolved in ONE query (avoids an
+    # `exists()` per task / N+1 in the loop below).
+    task_ids = [t.id for t in tasks]
+    blocked_ids = set(
+        TaskBlocker.objects.filter(blocked_task_id__in=task_ids).values_list(
+            "blocked_task_id", flat=True
+        )
+    )
     updates = activities_svc.list_activity(
         user_id, project_id=p.id, kinds=["note"], limit=5
     )
@@ -172,7 +181,7 @@ def _get_project_detail(user_id: uuid.UUID, args: dict) -> dict:
                 "done": t.done,
                 "due_date": t.due_date.isoformat() if t.due_date else None,
                 "effort_hours": t.effort_hours,
-                "blocked": not t.done and t.blockers.exists(),
+                "blocked": (not t.done) and (t.id in blocked_ids),
             }
             for t in tasks
         ],

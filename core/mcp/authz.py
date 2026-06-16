@@ -11,12 +11,28 @@ from __future__ import annotations
 import uuid
 
 from django.conf import settings
+from django.core.cache import cache
 from django.http import HttpResponse, JsonResponse
 from django_ratelimit.core import is_ratelimited
 
 from core.assistant.quotas import get_or_create_profile
 from core.auth import JWTAuthError, _ip_key, _user_key, verify_supabase_jwt
 from core.mcp.oauth.tokens import user_id_from_access_token
+
+# Cache the user's plan briefly to avoid a DB lookup on every tool call. A
+# conversation fires many calls in seconds; the plan rarely changes, so a short
+# TTL removes ~all repeated lookups while keeping plan changes near-real-time.
+_PLAN_CACHE_TTL = 60
+
+
+def _user_plan(user_id) -> str:
+    key = f"mcp:plan:{user_id}"
+    plan = cache.get(key)
+    if plan is None:
+        # First touch also creates the profile if missing (early-adopter logic).
+        plan = get_or_create_profile(user_id).plan
+        cache.set(key, plan, _PLAN_CACHE_TTL)
+    return plan
 
 
 def _bearer(request) -> str | None:
@@ -84,7 +100,7 @@ def authenticate_mcp(request):
     # Resolve the plan once (also drives tool gating in McpView) and apply the
     # per-plan user rate limit. The connector's cost is OUR infra, so higher
     # plans get more throughput; unknown plans fall back to the global default.
-    plan = get_or_create_profile(user_id).plan
+    plan = _user_plan(user_id)
     request.mcp_plan = plan  # type: ignore[attr-defined]
     user_rate = settings.MCP_RATE_LIMIT_BY_PLAN.get(plan, settings.MCP_RATE_LIMIT_USER)
 
