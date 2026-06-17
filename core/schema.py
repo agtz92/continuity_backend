@@ -18,6 +18,7 @@ from .models import (
     TaskBlocker as TaskBlockerModel,
     Idea as IdeaModel,
     BackupMeta,
+    GraveyardInsight as GraveyardInsightModel,
     Category as CategoryModel,
     NoteSection as NoteSectionModel,
     OnboardingProgress as OnboardingProgressModel,
@@ -703,6 +704,14 @@ class Analytics:
     effort: EffortStats
 
 
+@strawberry.type
+class GraveyardInsightType:
+    body: str
+    deaths_count: int
+    computed_at: Optional[dt.datetime]
+    is_stale: bool
+
+
 def _to_analytics_gql(r: analytics_mod.AnalyticsResult) -> Analytics:
     return Analytics(
         range=r.range,
@@ -838,6 +847,19 @@ class Query:
                 RoutineOccurrence.from_model(o) for o in routine_occurrences
             ],
             last_backup=meta.last_backup if meta else None,
+        )
+
+    @strawberry.field
+    def graveyard_insight(self, info: Info) -> Optional[GraveyardInsightType]:
+        uid = _user_id(info)
+        gi = GraveyardInsightModel.objects.filter(user_id=uid).first()
+        if gi is None or not gi.body:
+            return None
+        return GraveyardInsightType(
+            body=gi.body,
+            deaths_count=gi.deaths_count,
+            computed_at=gi.computed_at,
+            is_stale=gi.is_stale,
         )
 
     @strawberry.field

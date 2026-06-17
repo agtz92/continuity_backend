@@ -174,6 +174,14 @@ def update_project(
             new_value=project.status,
             note=_closure_note_summary(project),
         )
+        if project.status == ProjectStatus.KILLED:
+            from .autopsy import maybe_generate_on_kill
+
+            maybe_generate_on_kill(user_id, project)
+        elif old_status == ProjectStatus.KILLED:
+            from .autopsy import mark_pattern_stale
+
+            mark_pattern_stale(user_id)
     if old_due_date != project.due_date:
         log_event(
             user_id,

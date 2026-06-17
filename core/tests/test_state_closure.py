@@ -11,7 +11,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from core.assistant.models import AccountProfile
-from core.models import Activity, ActivityKind, Project, ProjectStatus
+from core.models import Activity, ActivityKind, GraveyardInsight, Project, ProjectStatus
 from core.quotas import EntityQuotaExceeded
 from core.services import projects as projects_svc
 from core.services.stalled import STALLED_THRESHOLD_DAYS, detect_and_mark_stalled
@@ -142,3 +142,35 @@ def test_revive_over_cap_is_blocked(user_id):
     _mk(user_id, ProjectStatus.ACTIVE, name="c")
     with pytest.raises(EntityQuotaExceeded):
         projects_svc.update_project(user_id, killed.id, name=killed.name, status="active")
+
+
+# ----- autopsy hook is best-effort (D12) -----
+
+@pytest.mark.django_db
+def test_kill_without_api_key_is_noop_but_kill_succeeds(user_id, settings):
+    settings.ANTHROPIC_API_KEY = ""
+    AccountProfile.objects.create(user_id=user_id, plan="pro")
+    p = _mk(user_id, ProjectStatus.ACTIVE)
+    projects_svc.update_project(
+        user_id, p.id, name=p.name, status="killed",
+        killed_reason="r", killed_learnings="l",
+    )
+    p.refresh_from_db()
+    assert p.status == ProjectStatus.KILLED
+    assert p.killed_ai_reflection == ""  # no model call without a key
+
+
+@pytest.mark.django_db
+def test_revive_marks_graveyard_pattern_stale(user_id, settings):
+    settings.ANTHROPIC_API_KEY = ""
+    AccountProfile.objects.create(user_id=user_id, plan="pro")
+    GraveyardInsight.objects.create(
+        user_id=user_id, body="prior pattern", deaths_count=3, is_stale=False
+    )
+    p = _mk(user_id, ProjectStatus.ACTIVE)
+    projects_svc.update_project(
+        user_id, p.id, name=p.name, status="killed",
+        killed_reason="r", killed_learnings="l",
+    )
+    projects_svc.update_project(user_id, p.id, name=p.name, status="active")  # revive
+    assert GraveyardInsight.objects.get(user_id=user_id).is_stale is True
