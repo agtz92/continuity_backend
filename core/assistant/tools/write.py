@@ -31,13 +31,14 @@ from core.services import quick_notes as quick_notes_svc
 from core.services import routines as routines_svc
 from core.services import tasks as tasks_svc
 from core.services.projects import NotFoundError
+from django.core.exceptions import ValidationError
 
 from . import tool
 
 
 # ---------- Shared schema fragments ----------
 
-_STATUS = ["idea", "active", "stalled", "paused", "launched", "archived"]
+_STATUS = ["idea", "active", "stalled", "paused", "launched", "killed", "archived"]
 _PRIORITY = ["critical", "high", "medium", "low"]
 _RECURRENCE = ["once", "weekly_days", "every_n", "monthly_day"]
 _INTERVAL_UNIT = ["days", "weeks", "months"]
@@ -166,7 +167,10 @@ def _create_project(user_id: uuid.UUID, args: dict) -> dict:
     description=(
         "Update an existing project. `id` is required; pass only the fields "
         "to change — omitted fields keep their current value. Use "
-        "`clear_category` / `clear_due_date` to unset those."
+        "`clear_category` / `clear_due_date` to unset those. Setting status to "
+        "'paused' REQUIRES paused_context + paused_next_action; 'killed' "
+        "REQUIRES killed_reason + killed_learnings. Ask the user for these "
+        "before calling if missing."
     ),
     plan_required="pro",
     mutates=True,
@@ -184,6 +188,12 @@ def _create_project(user_id: uuid.UUID, args: dict) -> dict:
             "clear_category": {"type": "boolean"},
             "due_date": {"type": "string", "description": "YYYY-MM-DD"},
             "clear_due_date": {"type": "boolean"},
+            "paused_context": {"type": "string"},
+            "paused_next_action": {"type": "string"},
+            "paused_blocker": {"type": "string"},
+            "killed_reason": {"type": "string"},
+            "killed_learnings": {"type": "string"},
+            "killed_would_restart": {"type": "string"},
         },
         "required": ["id"],
         "additionalProperties": False,
@@ -206,19 +216,30 @@ def _update_project(user_id: uuid.UUID, args: dict) -> dict:
         args.get("category_id") or p.category_id
     )
 
-    updated = projects_svc.update_project(
-        user_id,
-        p.id,
-        name=args.get("name", p.name),
-        description=args.get("description", p.description),
-        why=args.get("why", p.why),
-        next_step=args.get("next_step", p.next_step),
-        status=args.get("status") or p.status,
-        priority=args.get("priority") or p.priority,
-        category_id=category_id,
-        clear_category=bool(args.get("clear_category")),
-        due_date=due,
-    )
+    try:
+        updated = projects_svc.update_project(
+            user_id,
+            p.id,
+            name=args.get("name", p.name),
+            description=args.get("description", p.description),
+            why=args.get("why", p.why),
+            next_step=args.get("next_step", p.next_step),
+            status=args.get("status") or p.status,
+            priority=args.get("priority") or p.priority,
+            category_id=category_id,
+            clear_category=bool(args.get("clear_category")),
+            due_date=due,
+            paused_context=args.get("paused_context"),
+            paused_next_action=args.get("paused_next_action"),
+            paused_blocker=args.get("paused_blocker"),
+            killed_reason=args.get("killed_reason"),
+            killed_learnings=args.get("killed_learnings"),
+            killed_would_restart=args.get("killed_would_restart"),
+        )
+    except ValidationError as e:
+        # Surface so the model asks the user for the missing closure notes.
+        msg = "; ".join(e.messages) if hasattr(e, "messages") else str(e)
+        return {"error": msg}
     return {
         "ok": True,
         "id": str(updated.id),

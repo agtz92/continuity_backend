@@ -58,6 +58,7 @@ def _get_dashboard_summary(user_id: uuid.UUID, args: dict) -> dict:
     return {
         "active_projects": s.active_projects,
         "sleeping_projects": s.sleeping_projects,
+        "stalled_projects": s.stalled_projects,
         "launched_projects": s.launched_projects,
         "archived_projects": s.archived_projects,
         "open_tasks": s.open_tasks,
@@ -84,7 +85,7 @@ def _get_dashboard_summary(user_id: uuid.UUID, args: dict) -> dict:
         "properties": {
             "status": {
                 "type": "string",
-                "enum": ["idea", "active", "stalled", "paused", "launched", "archived"],
+                "enum": ["idea", "active", "stalled", "paused", "launched", "killed", "archived"],
             },
             "priority": {
                 "type": "string",
@@ -173,6 +174,17 @@ def _get_project_detail(user_id: uuid.UUID, args: dict) -> dict:
             "days_idle": days_between(p.last_activity, now=now),
             "last_activity": p.last_activity.isoformat(),
             "created": p.created.isoformat(),
+            # Closure context — powers AI Resume Context + graveyard autopsy.
+            "paused_context": p.paused_context or None,
+            "paused_next_action": p.paused_next_action or None,
+            "paused_blocker": p.paused_blocker or None,
+            "paused_at": p.paused_at.isoformat() if p.paused_at else None,
+            "killed_reason": p.killed_reason or None,
+            "killed_learnings": p.killed_learnings or None,
+            "killed_would_restart": p.killed_would_restart or None,
+            "killed_at": p.killed_at.isoformat() if p.killed_at else None,
+            "killed_ai_reflection": p.killed_ai_reflection or None,
+            "stalled_at": p.stalled_at.isoformat() if p.stalled_at else None,
         },
         "tasks": [
             {

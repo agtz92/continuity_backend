@@ -16,6 +16,7 @@ from ..models import Category, Idea, Project, Task, TaskBlocker
 class DashboardSummary:
     active_projects: int
     sleeping_projects: int
+    stalled_projects: int
     launched_projects: int
     archived_projects: int
     open_tasks: int
@@ -45,6 +46,7 @@ def get_dashboard_summary(user_id: uuid.UUID) -> DashboardSummary:
             "id",
             filter=Q(status__in=["active", "idea"], last_activity__lt=sleeping_cutoff),
         ),
+        stalled=Count("id", filter=Q(status="stalled")),
         launched=Count("id", filter=Q(status="launched")),
         archived=Count("id", filter=Q(status="archived")),
     )
@@ -76,6 +78,7 @@ def get_dashboard_summary(user_id: uuid.UUID) -> DashboardSummary:
     return DashboardSummary(
         active_projects=project_counts["active"] or 0,
         sleeping_projects=project_counts["sleeping"] or 0,
+        stalled_projects=project_counts["stalled"] or 0,
         launched_projects=project_counts["launched"] or 0,
         archived_projects=project_counts["archived"] or 0,
         open_tasks=task_counts["open"] or 0,
