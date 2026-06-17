@@ -174,7 +174,8 @@ class AnalyticsResult:
     status_counts: list[StatusCount]
     category_breakdown: list[CategoryRow]
     backlog: BacklogHealth
-    sleeping_projects: list[SleepingProjectRow]
+    sleeping_projects: list[SleepingProjectRow]  # deprecated: derived 7d idle
+    stalled_projects: list[SleepingProjectRow]  # persisted status=stalled (D7)
     stale_ideas: list[StaleIdeaRow]
     idea_funnel: IdeaFunnel
     effort: EffortStats
@@ -221,6 +222,7 @@ def compute_analytics(user_id: uuid.UUID, rng: AnalyticsRange) -> AnalyticsResul
     category_breakdown = _category_breakdown(projects_qs, ranged_activity)
     backlog = _backlog(tasks_qs, projects_qs, now)
     sleeping_projects = _sleeping_projects(projects_qs, now)
+    stalled_projects = _stalled_projects(projects_qs, now)
     stale_ideas = _stale_ideas(ideas_qs, now)
     idea_funnel = _idea_funnel(ideas_qs, projects_qs, start, end)
     effort = _effort(tasks_qs, ranged_tasks_done, projects_qs, start, end)
@@ -237,6 +239,7 @@ def compute_analytics(user_id: uuid.UUID, rng: AnalyticsRange) -> AnalyticsResul
         category_breakdown=category_breakdown,
         backlog=backlog,
         sleeping_projects=sleeping_projects,
+        stalled_projects=stalled_projects,
         stale_ideas=stale_ideas,
         idea_funnel=idea_funnel,
         effort=effort,
@@ -466,6 +469,31 @@ def _sleeping_projects(projects_qs, now: dt.datetime) -> list[SleepingProjectRow
     cutoff = now - dt.timedelta(days=SLEEPING_THRESHOLD_DAYS)
     rows = (
         projects_qs.filter(status__in=["active", "idea"], last_activity__lt=cutoff)
+        .order_by("last_activity")
+        .values("id", "name", "last_activity")[:SLEEPING_LIMIT]
+    )
+    out: list[SleepingProjectRow] = []
+    for r in rows:
+        days = (now - r["last_activity"]).days
+        if days <= SLEEPING_BUCKET_MID:
+            bucket = "7-14"
+        elif days <= SLEEPING_BUCKET_LATE:
+            bucket = "15-30"
+        else:
+            bucket = "30+"
+        out.append(
+            SleepingProjectRow(
+                project_id=r["id"], name=r["name"], days_idle=days, bucket=bucket
+            )
+        )
+    return out
+
+
+def _stalled_projects(projects_qs, now: dt.datetime) -> list[SleepingProjectRow]:
+    """Persisted stalled projects (status=stalled), reusing the sleeping row
+    shape so clients can migrate field-for-field (D7)."""
+    rows = (
+        projects_qs.filter(status="stalled")
         .order_by("last_activity")
         .values("id", "name", "last_activity")[:SLEEPING_LIMIT]
     )

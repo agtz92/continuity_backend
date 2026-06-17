@@ -63,7 +63,8 @@ class NotificationSettingsType:
     digest_hour: int
     daily_digest_enabled: bool
     daily_digest_hour: int
-    sleeping_alerts_enabled: bool
+    sleeping_alerts_enabled: bool  # deprecated alias of stalled_alerts_enabled
+    stalled_alerts_enabled: bool
     due_reminders_enabled: bool
     due_reminder_hour: int
     manual_enabled: bool
@@ -90,7 +91,8 @@ class NotificationSettingsInput:
     digest_hour: Optional[int] = None
     daily_digest_enabled: Optional[bool] = None
     daily_digest_hour: Optional[int] = None
-    sleeping_alerts_enabled: Optional[bool] = None
+    sleeping_alerts_enabled: Optional[bool] = None  # deprecated alias
+    stalled_alerts_enabled: Optional[bool] = None
     due_reminders_enabled: Optional[bool] = None
     due_reminder_hour: Optional[int] = None
     manual_enabled: Optional[bool] = None
@@ -130,6 +132,7 @@ def _to_gql(s: SettingsModel) -> NotificationSettingsType:
         daily_digest_enabled=s.daily_digest_enabled,
         daily_digest_hour=s.daily_digest_hour,
         sleeping_alerts_enabled=s.sleeping_alerts_enabled,
+        stalled_alerts_enabled=s.sleeping_alerts_enabled,
         due_reminders_enabled=s.due_reminders_enabled,
         due_reminder_hour=s.due_reminder_hour,
         manual_enabled=s.manual_enabled,
@@ -214,6 +217,9 @@ class NotificationsMutation:
             s.daily_digest_hour = max(0, min(23, data.daily_digest_hour))
         if data.sleeping_alerts_enabled is not None:
             s.sleeping_alerts_enabled = data.sleeping_alerts_enabled
+        if data.stalled_alerts_enabled is not None:
+            # Alias maps onto the same column during expand→migrate→contract.
+            s.sleeping_alerts_enabled = data.stalled_alerts_enabled
         if data.due_reminders_enabled is not None:
             s.due_reminders_enabled = data.due_reminders_enabled
         if data.due_reminder_hour is not None:

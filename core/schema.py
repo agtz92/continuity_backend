@@ -696,7 +696,8 @@ class Analytics:
     status_counts: List[StatusCount]
     category_breakdown: List[CategoryRow]
     backlog: BacklogHealth
-    sleeping_projects: List[SleepingProjectRow]
+    sleeping_projects: List[SleepingProjectRow]  # deprecated alias, see stalledProjects
+    stalled_projects: List[SleepingProjectRow]
     stale_ideas: List[StaleIdeaRow]
     idea_funnel: IdeaFunnel
     effort: EffortStats
@@ -761,6 +762,15 @@ def _to_analytics_gql(r: analytics_mod.AnalyticsResult) -> Analytics:
                 bucket=s.bucket,
             )
             for s in r.sleeping_projects
+        ],
+        stalled_projects=[
+            SleepingProjectRow(
+                project_id=strawberry.ID(str(s.project_id)),
+                name=s.name,
+                days_idle=s.days_idle,
+                bucket=s.bucket,
+            )
+            for s in r.stalled_projects
         ],
         stale_ideas=[
             StaleIdeaRow(
