@@ -221,6 +221,18 @@ class GraveyardInsight(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 
+class StalledSweepState(models.Model):
+    """Singleton (pk=1) recording when stalled auto-detection went live for this
+    deployment. The cron stalls nothing until STALLED_THRESHOLD_DAYS after
+    `cutoff_at`, so the first run on an existing database never avalanches old
+    projects into 'stalled'. `cutoff_at` is set automatically on the first run —
+    no env var or ops step needed (STATE_CLOSURE_FINAL.md §0.1, cutoff option)."""
+
+    id = models.PositiveSmallIntegerField(primary_key=True, default=1)
+    cutoff_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
 class Profile(models.Model):
     user_id = models.UUIDField(primary_key=True)
     avatar = models.CharField(max_length=64, blank=True, default="")

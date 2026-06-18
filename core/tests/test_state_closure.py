@@ -11,7 +11,14 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from core.assistant.models import AccountProfile
-from core.models import Activity, ActivityKind, GraveyardInsight, Project, ProjectStatus
+from core.models import (
+    Activity,
+    ActivityKind,
+    GraveyardInsight,
+    Project,
+    ProjectStatus,
+    StalledSweepState,
+)
 from core.quotas import EntityQuotaExceeded
 from core.services import projects as projects_svc
 from core.services.stalled import STALLED_THRESHOLD_DAYS, detect_and_mark_stalled
@@ -20,6 +27,16 @@ from core.services.stalled import STALLED_THRESHOLD_DAYS, detect_and_mark_stalle
 @pytest.fixture
 def user_id() -> uuid.UUID:
     return uuid.uuid4()
+
+
+@pytest.fixture(autouse=True)
+def _stalled_cutoff_in_past(db):
+    # Most tests assume the feature has been live a while, so the avalanche
+    # cutoff has already passed and detection runs normally. The first-run /
+    # grace-window behavior is covered explicitly in its own test.
+    StalledSweepState.objects.update_or_create(
+        pk=1, defaults={"cutoff_at": timezone.now() - dt.timedelta(days=60)}
+    )
 
 
 def _mk(user, status, *, days_idle=0, name="proj"):
@@ -55,6 +72,16 @@ def test_ignores_recent_active(user_id):
 def test_idea_never_auto_stalls(user_id):
     _mk(user_id, ProjectStatus.IDEA, days_idle=STALLED_THRESHOLD_DAYS + 30)
     assert detect_and_mark_stalled(user_id) == []
+
+
+@pytest.mark.django_db
+def test_cutoff_prevents_avalanche_on_first_run(user_id):
+    # Fresh deployment: no cutoff stamped yet. Even very old active projects must
+    # NOT stall during the grace window (avoids day-1 avalanche).
+    StalledSweepState.objects.all().delete()
+    _mk(user_id, ProjectStatus.ACTIVE, days_idle=120)
+    assert detect_and_mark_stalled(user_id) == []  # first run stamps cutoff, stalls nothing
+    assert detect_and_mark_stalled(user_id) == []  # still inside the grace window
 
 
 # ----- closure-note validation (D2) -----

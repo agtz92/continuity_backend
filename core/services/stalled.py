@@ -14,7 +14,7 @@ from typing import Optional
 
 from django.utils import timezone
 
-from ..models import ActivityKind, Project, ProjectStatus
+from ..models import ActivityKind, Project, ProjectStatus, StalledSweepState
 from ._cache import bump_context_version
 from .activities import log_event
 
@@ -26,9 +26,28 @@ def detect_and_mark_stalled(user_id: Optional[uuid.UUID] = None) -> list[Project
 
     If `user_id` is given, only that user's projects are checked (used by tests
     and on-demand runs); otherwise it sweeps every user.
+
+    Avalanche guard (STATE_CLOSURE_FINAL.md §0.1, cutoff): idle is measured from
+    `max(last_activity, cutoff_at)`, where `cutoff_at` is stamped automatically on
+    the first run. Because the cutoff is global, this is equivalent to stalling
+    NOTHING until STALLED_THRESHOLD_DAYS after the feature went live, then
+    behaving normally — so existing old projects never get stalled en masse.
     """
-    cutoff = timezone.now() - timedelta(days=STALLED_THRESHOLD_DAYS)
-    qs = Project.objects.filter(status=ProjectStatus.ACTIVE, last_activity__lt=cutoff)
+    now = timezone.now()
+    threshold = now - timedelta(days=STALLED_THRESHOLD_DAYS)
+
+    state, _ = StalledSweepState.objects.get_or_create(
+        pk=1, defaults={"cutoff_at": now}
+    )
+    if state.cutoff_at is None:
+        state.cutoff_at = now
+        state.save(update_fields=["cutoff_at", "updated_at"])
+    # Still inside the grace window: every project's effective idle clock starts
+    # at the cutoff, so nothing can be 14 days idle yet.
+    if state.cutoff_at > threshold:
+        return []
+
+    qs = Project.objects.filter(status=ProjectStatus.ACTIVE, last_activity__lt=threshold)
     if user_id:
         qs = qs.filter(user_id=user_id)
 
