@@ -30,3 +30,11 @@ def error(req_id: Any, code: int, message: str, data: Any = None) -> dict:
 def is_notification(message: dict) -> bool:
     """A JSON-RPC message with no `id` is a notification — no reply expected."""
     return "id" not in message
+
+
+def notification(method: str, params: Any = None) -> dict:
+    """A server→client JSON-RPC notification (no `id`)."""
+    msg: dict = {"jsonrpc": "2.0", "method": method}
+    if params is not None:
+        msg["params"] = params
+    return msg

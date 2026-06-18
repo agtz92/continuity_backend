@@ -26,8 +26,14 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 
-from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.http import (
+    HttpRequest,
+    HttpResponse,
+    JsonResponse,
+    StreamingHttpResponse,
+)
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
@@ -44,6 +50,17 @@ logger = logging.getLogger(__name__)
 SUPPORTED_PROTOCOL_VERSIONS = {"2024-11-05", "2025-03-26", "2025-06-18"}
 DEFAULT_PROTOCOL_VERSION = "2025-06-18"
 SERVER_INFO = {"name": "Continuity", "version": "0.1.0"}
+
+# Server→client SSE stream (Streamable HTTP GET). Bounded lifetime so a held
+# stream never ties up a gthread worker thread indefinitely — the client
+# reconnects. Each (re)connect nudges a tools/list refresh, which is how newly
+# deployed tools reach already-connected users WITHOUT a manual reconnect.
+SSE_KEEPALIVE_SECONDS = 25
+SSE_MAX_LIFETIME_SECONDS = 300
+
+
+def _sse(message: dict) -> str:
+    return f"data: {json.dumps(message)}\n\n"
 
 # Sent once in the `initialize` response. The client reads it as guidance on how
 # to use this server efficiently, so the model follows the fast path instead of
@@ -71,11 +88,36 @@ SERVER_INSTRUCTIONS = (
 @method_decorator(csrf_exempt, name="dispatch")
 class McpView(View):
     def get(self, request: HttpRequest):
-        # Optional Streamable-HTTP GET (server→client SSE) not implemented in
-        # the spike. initialize/tools/call all work over POST.
-        resp = HttpResponse(status=405)
-        resp["Allow"] = "POST"
+        # Streamable-HTTP server→client SSE stream. Only opened when the client
+        # asks for it (Accept: text/event-stream); a plain GET still gets 405.
+        if "text/event-stream" not in request.META.get("HTTP_ACCEPT", ""):
+            resp = HttpResponse(status=405)
+            resp["Allow"] = "POST"
+            return resp
+
+        early = authenticate_mcp(request)
+        if early is not None:
+            return early
+
+        resp = StreamingHttpResponse(
+            self._event_stream(), content_type="text/event-stream"
+        )
+        resp["Cache-Control"] = "no-cache"
+        resp["X-Accel-Buffering"] = "no"  # disable proxy buffering (Render/nginx)
         return resp
+
+    def _event_stream(self):
+        # Nudge the client to (re)load its tool list now. On every (re)connect
+        # — including the one right after a deploy restarts the server — this
+        # makes Claude re-fetch tools/list and pick up new/changed tools.
+        yield _sse(jsonrpc.notification("notifications/tools/list_changed"))
+        # Keep the stream alive for a bounded window, then close (client
+        # reconnects). Comments (`: ...`) are ignored by SSE clients.
+        elapsed = 0
+        while elapsed < SSE_MAX_LIFETIME_SECONDS:
+            time.sleep(SSE_KEEPALIVE_SECONDS)
+            elapsed += SSE_KEEPALIVE_SECONDS
+            yield ": keepalive\n\n"
 
     def post(self, request: HttpRequest):
         early = authenticate_mcp(request)
@@ -154,7 +196,7 @@ class McpView(View):
         )
         return {
             "protocolVersion": version,
-            "capabilities": {"tools": {"listChanged": False}},
+            "capabilities": {"tools": {"listChanged": True}},
             "serverInfo": SERVER_INFO,
             "instructions": SERVER_INSTRUCTIONS,
         }

@@ -79,10 +79,34 @@ def test_requires_auth(http):
 
 
 @pytest.mark.django_db
-def test_get_not_allowed(http):
+def test_get_not_allowed_without_sse_accept(http):
+    # A plain GET (no SSE) is still 405 — only the event-stream channel is GET-able.
     resp = http.get("/mcp/")
     assert resp.status_code == 405
     assert resp["Allow"] == "POST"
+
+
+@pytest.mark.django_db
+def test_sse_stream_requires_auth(http):
+    resp = http.get("/mcp/", HTTP_ACCEPT="text/event-stream")
+    assert resp.status_code == 401
+
+
+@pytest.mark.django_db
+def test_sse_stream_emits_list_changed(http, user_a, make_profile):
+    make_profile(user_a, plan="free")
+    resp = http.get(
+        "/mcp/",
+        HTTP_ACCEPT="text/event-stream",
+        HTTP_AUTHORIZATION=f"Bearer {_make_jwt(user_a)}",
+    )
+    assert resp.status_code == 200
+    assert resp["Content-Type"].startswith("text/event-stream")
+    # First chunk (emitted before any keepalive sleep) tells the client to
+    # re-fetch its tools — this is what picks up newly deployed tools.
+    first = next(resp.streaming_content)
+    assert b"tools/list_changed" in first
+    resp.close()
 
 
 # --------------------------------------------------------------------------
@@ -98,7 +122,8 @@ def test_initialize_echoes_supported_version(http, user_a, make_profile):
     result = resp.json()["result"]
     assert result["protocolVersion"] == "2025-06-18"
     assert result["serverInfo"]["name"] == "Continuity"
-    assert "tools" in result["capabilities"]
+    # listChanged advertises that we push tools/list_changed over the SSE stream.
+    assert result["capabilities"]["tools"]["listChanged"] is True
     # Connector instructions guide the model down the fast path.
     assert "instructions" in result
     assert "get_dashboard_summary" in result["instructions"]
