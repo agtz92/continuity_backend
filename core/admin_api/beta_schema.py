@@ -29,7 +29,7 @@ from core.services import app_config, beta_lifecycle
 
 from .audit import record as audit_record
 from .permissions import _admin_user_id
-from .supabase_admin import SupabaseAdminError, get_user, get_users_map
+from .supabase_admin import SupabaseAdminError, fetch_all_users, get_user
 
 
 @strawberry.type
@@ -97,8 +97,11 @@ def _last_email_map(user_ids: list[uuid.UUID]) -> dict[uuid.UUID, EmailSend]:
 
 def _build_rows(profiles: list[AccountProfile], now: dt.datetime) -> list[BetaUserRow]:
     ids = [p.user_id for p in profiles]
+    # Resolve emails via the same bulk source as adminUsers so the two tables
+    # always agree. (get_users_map did one fragile request per id, which could
+    # leave real users showing as a bare id when a lookup failed.)
     try:
-        emails = get_users_map(ids)
+        emails = {u.id: u for u in fetch_all_users()}
     except SupabaseAdminError:
         emails = {}
     last_sig = _last_sig_map(ids)
