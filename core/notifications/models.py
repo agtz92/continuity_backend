@@ -155,6 +155,10 @@ class EmailSend(models.Model):
         SENT = "sent", "Sent"
         FAILED = "failed", "Failed"
         DRY_RUN = "dry_run", "Dry run"
+        # Marked as "do not send" without an actual send — e.g. existing users
+        # at launch who shouldn't get the new-signup welcome. Occupies the real
+        # (dry_run=False) idempotency slot so the welcome never fires for them.
+        SUPPRESSED = "suppressed", "Suppressed"
 
     # email_id values: welcome_beta, welcome_regular, inactivity_1..4,
     # reengage_1, reengage_2, reclaim_warn, reclaim_final.
@@ -165,7 +169,7 @@ class EmailSend(models.Model):
     # (reengage_*, reclaim_*) = ISO date of the episode anchor (last activity),
     # so a new inactivity episode can send them again.
     episode_key = models.CharField(max_length=32, blank=True, default="")
-    status = models.CharField(max_length=8, choices=Status.choices)
+    status = models.CharField(max_length=12, choices=Status.choices)
     dry_run = models.BooleanField(default=True)
     resend_message_id = models.CharField(max_length=255, blank=True, default="")
     error = models.TextField(blank=True, default="")

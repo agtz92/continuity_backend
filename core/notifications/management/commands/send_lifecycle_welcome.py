@@ -5,9 +5,9 @@ happens post-verification — so every AccountProfile without a real welcome sen
 is a candidate. beta_cohort picks the template. Idempotency, dry_run and the
 ledger are handled by `lifecycle.deliver`.
 
-Candidates exclude only users with a status=SENT welcome (real), NOT dry_run
-previews — so when dry_run is flipped off, previewed users still get the real
-email.
+Candidates exclude users with a status=SENT (real) or SUPPRESSED welcome — NOT
+dry_run previews — so when dry_run is flipped off, previewed users still get the
+real email, but launch-time existing users (marked SUPPRESSED) never do.
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ class Command(BaseCommand):
 
         welcomed = EmailSend.objects.filter(
             email_id__in=["welcome_beta", "welcome_regular"],
-            status=EmailSend.Status.SENT,
+            status__in=[EmailSend.Status.SENT, EmailSend.Status.SUPPRESSED],
         ).values_list("user_id", flat=True)
 
         candidates = (

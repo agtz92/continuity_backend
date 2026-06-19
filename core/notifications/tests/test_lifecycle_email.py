@@ -97,6 +97,35 @@ def test_missing_recipient_is_a_failure(monkeypatch):
 
 
 @pytest.mark.django_db
+def test_welcome_skips_suppressed_users():
+    from django.core.management import call_command
+
+    from core.assistant.models import AccountProfile
+
+    existing = uuid.uuid4()
+    fresh = uuid.uuid4()
+    AccountProfile.objects.create(user_id=existing, beta_cohort=True, beta_status="active")
+    AccountProfile.objects.create(user_id=fresh, beta_cohort=True, beta_status="active")
+    # `existing` marked SUPPRESSED at launch (as migration 0011 would).
+    EmailSend.objects.create(
+        user_id=existing,
+        email_id="welcome_beta",
+        status=EmailSend.Status.SUPPRESSED,
+        dry_run=False,
+    )
+
+    call_command("send_lifecycle_welcome")
+
+    # Suppressed user got no welcome (not even a dry_run preview).
+    assert EmailSend.objects.filter(user_id=existing).count() == 1
+    assert not EmailSend.objects.filter(user_id=existing, dry_run=True).exists()
+    # Fresh user got the welcome preview.
+    assert EmailSend.objects.filter(
+        user_id=fresh, email_id="welcome_beta", dry_run=True
+    ).exists()
+
+
+@pytest.mark.django_db
 def test_render_respects_locale():
     from core.notifications.email_templates import render
 
