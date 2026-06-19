@@ -40,6 +40,10 @@ services:
       # key for MCP access tokens is generated once and kept stable.
       - key: FRONTEND_BASE_URL
         sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        value: "Alfredo <alfredo@continuu.it>"
       - key: MCP_OAUTH_SIGNING_KEY
         generateValue: true
       - key: PYTHON_VERSION

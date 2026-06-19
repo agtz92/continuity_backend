@@ -29,7 +29,7 @@ from core.services import app_config, beta_lifecycle
 
 from .audit import record as audit_record
 from .permissions import _admin_user_id
-from .supabase_admin import SupabaseAdminError, get_users_map
+from .supabase_admin import SupabaseAdminError, get_user, get_users_map
 
 
 @strawberry.type
@@ -311,6 +311,52 @@ class AdminBetaMutation:
             payload={"before": before, "after": is_billing_exempt, "reason": reason},
         )
         return _single_row(uid, timezone.now())
+
+    @strawberry.mutation(name="adminSendTestEmail")
+    def admin_send_test_email(
+        self, info: Info, email_id: str, locale: str = "en"
+    ) -> str:
+        """Send one rendered template to the calling admin's own email. Bypasses
+        dry_run and the email_sends ledger (it's a deliverability test, not a
+        real lifecycle send). Subject is prefixed with [TEST]."""
+        from core.notifications import lifecycle
+        from core.notifications.email_templates import TEMPLATES, render
+        from core.notifications.providers.base import ProviderError
+        from core.notifications.providers.resend import ResendEmailProvider
+
+        actor = _admin_user_id(info)
+        if email_id not in TEMPLATES:
+            raise GraphQLError(
+                f"Unknown email_id: {email_id}", extensions={"code": "BAD_INPUT"}
+            )
+        loc = "es" if str(locale).lower().startswith("es") else "en"
+        try:
+            user = get_user(actor)
+        except SupabaseAdminError:
+            user = None
+        to = user.email if user else ""
+        if not to:
+            raise GraphQLError(
+                "Could not resolve your email", extensions={"code": "NO_EMAIL"}
+            )
+
+        ctx = lifecycle._build_context(actor, {"days_inactive": 7}, loc)
+        subject, html, text = render(email_id, ctx, loc)
+        try:
+            result = ResendEmailProvider().send(to, f"[TEST] {subject}", html, text)
+        except ProviderError as e:
+            raise GraphQLError(str(e), extensions={"code": "PROVIDER_ERROR"})
+        if not result.success:
+            raise GraphQLError(result.error, extensions={"code": "SEND_FAILED"})
+
+        audit_record(
+            actor_user_id=actor,
+            action="beta.test_email",
+            target_type="email",
+            target_id=email_id,
+            payload={"to": to, "locale": loc},
+        )
+        return f"Enviado a {to} ({email_id} · {loc})"
 
     @strawberry.mutation(name="adminSetAppConfig")
     def admin_set_app_config(

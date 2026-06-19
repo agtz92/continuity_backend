@@ -125,3 +125,29 @@ def test_set_app_config_rejects_unknown_key(execute_query, admin_id):
     doc = 'mutation { adminSetAppConfig(key: "nope", valueJson: "1") { key } }'
     res = execute_query(doc, user_id=admin_id)
     assert res.errors is not None
+
+
+@pytest.mark.django_db
+def test_send_test_email_to_self(execute_query, admin_id, monkeypatch):
+    from core.notifications.providers.base import DeliveryResult
+
+    monkeypatch.setattr(
+        "core.admin_api.beta_schema.get_user",
+        lambda uid: type("U", (), {"email": "me@x.com"})(),
+    )
+    sent = {}
+
+    class _P:
+        def send(self, to, subject, html, text="", **kw):
+            sent["to"] = to
+            sent["subject"] = subject
+            return DeliveryResult(success=True, external_message_id="m1")
+
+    monkeypatch.setattr(
+        "core.notifications.providers.resend.ResendEmailProvider", _P
+    )
+    doc = 'mutation { adminSendTestEmail(emailId: "welcome_beta", locale: "es") }'
+    res = execute_query(doc, user_id=admin_id)
+    assert res.errors is None, res.errors
+    assert "me@x.com" in res.data["adminSendTestEmail"]
+    assert sent["subject"].startswith("[TEST]")
