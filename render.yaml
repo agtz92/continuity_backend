@@ -52,7 +52,7 @@ services:
     plan: starter
     schedule: "0 * * * *"
     buildCommand: "./build.sh"
-    startCommand: "python manage.py send_weekly_digest && python manage.py send_daily_digest && python manage.py send_due_reminders && python manage.py send_announcement_push && python manage.py cleanup_oauth_tokens && python manage.py detect_stalled_projects"
+    startCommand: "python manage.py send_lifecycle_welcome ; python manage.py send_weekly_digest && python manage.py send_daily_digest && python manage.py send_due_reminders && python manage.py send_announcement_push && python manage.py cleanup_oauth_tokens && python manage.py detect_stalled_projects"
     envVars:
       - key: DJANGO_SECRET_KEY
         sync: false
@@ -74,7 +74,45 @@ services:
         sync: false
       - key: TELEGRAM_WEBHOOK_SECRET
         sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        value: "Alfredo <alfredo@continuu.it>"
+      - key: FRONTEND_BASE_URL
+        sync: false
       - key: NOTIFICATIONS_DEFAULT_TIMEZONE
         value: America/Mexico_City
+      - key: PYTHON_VERSION
+        value: "3.12.4"
+
+  - type: cron
+    name: continuity-beta-lifecycle-daily
+    runtime: python
+    rootDir: backend
+    plan: starter
+    schedule: "0 15 * * *"
+    buildCommand: "./build.sh"
+    startCommand: "python manage.py run_beta_lifecycle"
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        sync: false
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        value: "Alfredo <alfredo@continuu.it>"
+      - key: FRONTEND_BASE_URL
+        sync: false
       - key: PYTHON_VERSION
         value: "3.12.4"

@@ -70,21 +70,44 @@ def test_record_increments_counters(user_a, make_profile):
 
 
 @pytest.mark.django_db
-def test_get_or_create_profile_lazy_grants_early_adopter_cortesia(user_a):
-    assert AccountProfile.objects.filter(user_id=user_a).count() == 0
+def test_signup_enrollment_closed_is_regular(user_a):
+    from core.services import app_config
+
+    app_config.set("beta_enrollment_open", False)
     profile = quotas.get_or_create_profile(user_a)
-    assert profile.plan == "pro"
-    assert profile.is_billing_exempt is True
+    assert profile.beta_cohort is False
+    assert profile.is_billing_exempt is False
+    assert profile.plan == "free"
 
 
 @pytest.mark.django_db
-def test_get_or_create_profile_skips_cortesia_past_cap(user_a):
+def test_signup_enrollment_open_enrolls_beta(user_a):
+    from core.services import app_config
+
+    app_config.set("beta_enrollment_open", True)
+    profile = quotas.get_or_create_profile(user_a)
+    assert profile.beta_cohort is True
+    assert profile.beta_status == "active"
+    assert profile.beta_enrolled_at is not None
+    assert profile.is_billing_exempt is True
+    assert profile.billing_exempt_reason == "beta"
+    assert profile.plan == "pro"
+
+
+@pytest.mark.django_db
+def test_signup_enrollment_open_cap_reached_is_regular(user_a):
     import uuid as _uuid
 
-    for _ in range(quotas.EARLY_ADOPTER_CAP):
-        AccountProfile.objects.create(user_id=_uuid.uuid4())
+    from core.services import app_config
+
+    app_config.set("beta_enrollment_open", True)
+    app_config.set("beta_spot_cap", 1)
+    # Fill the single spot with an active beta member.
+    AccountProfile.objects.create(
+        user_id=_uuid.uuid4(), beta_cohort=True, beta_status="active"
+    )
     profile = quotas.get_or_create_profile(user_a)
-    assert profile.plan == "free"
+    assert profile.beta_cohort is False
     assert profile.is_billing_exempt is False
 
 

@@ -12,6 +12,12 @@ SUPABASE_URL = config("SUPABASE_URL", default="").rstrip("/")
 SUPABASE_JWT_SECRET = config("SUPABASE_JWT_SECRET", default="")  # legacy HS256 fallback
 SUPABASE_SERVICE_ROLE_KEY = config("SUPABASE_SERVICE_ROLE_KEY", default="")  # admin-only
 
+# Resend — product/lifecycle emails (welcome + beta lifecycle). Auth emails
+# (confirm/magic-link/reset) stay in Supabase. Empty key = no real sends
+# (only dry_run rows are logged).
+RESEND_API_KEY = config("RESEND_API_KEY", default="")
+EMAIL_FROM = config("EMAIL_FROM", default="Alfredo <alfredo@continuu.it>")
+
 # Google Tasks (plugin: importa tareas desde Google Tasks)
 GOOGLE_OAUTH_CLIENT_ID = config("GOOGLE_OAUTH_CLIENT_ID", default="")
 GOOGLE_OAUTH_CLIENT_SECRET = config("GOOGLE_OAUTH_CLIENT_SECRET", default="")

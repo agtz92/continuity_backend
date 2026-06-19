@@ -29,6 +29,7 @@ from .models import (
 )
 from .notifications.schema import NotificationsQuery, NotificationsMutation
 from .admin_api.schema import AdminQuery, AdminMutation
+from .admin_api.beta_schema import AdminBetaQuery, AdminBetaMutation
 from .cms.schema_admin import CmsAdminQuery, CmsAdminMutation
 from .billing.schema import BillingMutation
 from .feedback.schema import (
@@ -1696,6 +1697,7 @@ CombinedQuery = merge_types(
         Query,
         NotificationsQuery,
         AdminQuery,
+        AdminBetaQuery,
         CmsAdminQuery,
         InAppNotificationsQuery,
         AdminAnnouncementsQuery,
@@ -1708,6 +1710,7 @@ CombinedMutation = merge_types(
         Mutation,
         NotificationsMutation,
         AdminMutation,
+        AdminBetaMutation,
         CmsAdminMutation,
         BillingMutation,
         AdminAnnouncementsMutation,

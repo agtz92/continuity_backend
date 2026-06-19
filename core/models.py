@@ -29,6 +29,20 @@ class TimestampedModel(models.Model):
         abstract = True
 
 
+class AppConfig(models.Model):
+    """Global key/value config, typed via JSON. Powers the beta lifecycle
+    knobs (enrollment_open, spot_cap, thresholds, dry_run, significant event
+    kinds). Read through `core.services.app_config` (cached). NOT user-scoped.
+    """
+
+    key = models.CharField(max_length=64, primary_key=True)
+    value = models.JSONField()
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self) -> str:  # pragma: no cover - admin/debug convenience
+        return f"{self.key}={self.value!r}"
+
+
 class Category(TimestampedModel):
     name = models.CharField(max_length=100)
     color = models.CharField(max_length=20, default="emerald")

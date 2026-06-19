@@ -110,3 +110,16 @@ wireframes y detalle: `../docs/quick-notes/PLAN.md`.
   `core/tests/test_seed.py`.
 - El **tour** (paso de Notes) y la **vista**/pantallas viven en los clientes — ver sus
   `CLAUDE.md`. No se tocó `TOTAL_STEPS` (es un paso del tour, no del onboarding).
+
+## Beta lifecycle (cohorte beta vs exención de billing)
+
+Separa **`beta_cohort`** (ocupa cupo, lifetime deal) de **`is_billing_exempt`** (no se le
+cobra), ambos en `AccountProfile`. El signup (`quotas.py:_apply_enrollment_decision`) enrola
+según `beta_enrollment_open` + cupo. Welcome + secuencia de inactividad (tiers
+fantasma/breve/establecido, ventana rodante) van por **Resend** bilingüe (en/es por
+`NotificationSettings.locale`), con idempotencia en `EmailSend` y `dry_run` (default true).
+Cron diario `run_beta_lifecycle` (Render 15:00 UTC) clasifica y reclama cupos; admin en
+`core/admin_api/beta_schema.py` + `/admin/beta`. Ojo: la inactividad usa `significant_events_q()`
+que **excluye** el auto-stall de Graveyard (si no, resetearía el reloj). Config en `app_config`.
+
+**Detalle completo:** [`docs/beta-lifecycle.md`](docs/beta-lifecycle.md).

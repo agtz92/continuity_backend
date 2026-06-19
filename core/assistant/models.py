@@ -32,6 +32,31 @@ class MessageRole(models.TextChoices):
     TOOL = "tool", "Tool"
 
 
+class BetaStatus(models.TextChoices):
+    """Lifecycle state of a beta-cohort member. Empty ("") for non-beta users.
+
+    Independent of billing: `manually_paused` / `manually_killed` are admin
+    actions that never touch `is_billing_exempt`; only the automatic reclaim
+    flips exemption off. See docs/PROPOSAL.md.
+    """
+
+    ACTIVE = "active", "Active"
+    RECLAIMED = "reclaimed", "Reclaimed"
+    MANUALLY_PAUSED = "manually_paused", "Manually paused"
+    MANUALLY_KILLED = "manually_killed", "Manually killed"
+
+
+class BillingExemptReason(models.TextChoices):
+    """Why an account is billing-exempt. Decoupled from beta cohort — a user
+    can be exempt as a friend/investor/partner without occupying a beta spot."""
+
+    BETA = "beta", "Beta"
+    FRIEND = "friend", "Friend"
+    INVESTOR = "investor", "Investor"
+    PARTNER = "partner", "Partner"
+    MANUAL = "manual", "Manual"
+
+
 class AccountProfile(models.Model):
     """Per-user billing / quota / cache-version row.
 
@@ -57,6 +82,24 @@ class AccountProfile(models.Model):
     cancel_at_period_end = models.BooleanField(default=False)
     is_admin = models.BooleanField(default=False, db_index=True)
     is_billing_exempt = models.BooleanField(default=False, db_index=True)
+    # --- Billing exemption metadata (independent of beta cohort) ---
+    billing_exempt_reason = models.CharField(
+        max_length=16, choices=BillingExemptReason.choices, blank=True, default=""
+    )
+    # NULL = indefinite.
+    billing_exempt_until = models.DateTimeField(null=True, blank=True)
+    # --- Beta cohort (occupies a spot, owes feedback, lifetime deal) ---
+    # Independent of is_billing_exempt: a beta member is exempt with
+    # reason="beta", but exemption can also be granted for other reasons.
+    beta_cohort = models.BooleanField(default=False, db_index=True)
+    # "" for non-beta; "active" the moment beta_cohort flips true.
+    beta_status = models.CharField(
+        max_length=16, choices=BetaStatus.choices, blank=True, default="", db_index=True
+    )
+    beta_enrolled_at = models.DateTimeField(null=True, blank=True)
+    # Set when the reclaim warning email is sent; cleared when the user becomes
+    # active again. Reclaim only fires once this is >= grace days old.
+    reclaim_warned_at = models.DateTimeField(null=True, blank=True)
     # True once a retention coupon has been offered+applied to this user.
     # Prevents repeat coupon abuse: if the user tries to cancel again later,
     # the offer step is skipped.

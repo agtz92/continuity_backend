@@ -12,7 +12,13 @@ from django.db import transaction
 from django.db.models import F, Sum
 from django.utils import timezone
 
-from .models import AccountProfile, Plan, UsageDay
+from .models import (
+    AccountProfile,
+    BetaStatus,
+    BillingExemptReason,
+    Plan,
+    UsageDay,
+)
 
 
 PLAN_QUOTAS = {
@@ -49,16 +55,59 @@ class UsageSnapshot:
     reset_at: dt.datetime
 
 
-EARLY_ADOPTER_CAP = 50
-
-
 def get_or_create_profile(user_id: uuid.UUID) -> AccountProfile:
     profile, created = AccountProfile.objects.get_or_create(user_id=user_id)
-    if created and AccountProfile.objects.count() <= EARLY_ADOPTER_CAP:
-        profile.plan = "pro"
-        profile.is_billing_exempt = True
-        profile.save(update_fields=["plan", "is_billing_exempt", "updated_at"])
+    if created:
+        _apply_enrollment_decision(profile)
     return profile
+
+
+def _apply_enrollment_decision(profile: AccountProfile) -> None:
+    """On first profile creation, decide beta enrollment vs regular signup.
+
+    Separates two concepts that used to be conflated (the old EARLY_ADOPTER_CAP
+    block that auto-granted is_billing_exempt to the first 50 users):
+
+    - beta_cohort: occupies a capped beta spot, owes feedback, lifetime deal.
+    - is_billing_exempt: simply "not charged". For a beta member it's True with
+      reason='beta'; a non-beta user pays normally.
+
+    Enrolls into the cohort iff enrollment is open AND there's a free spot.
+    Welcome email is sent separately (see send_lifecycle_welcome). Does NOT
+    touch Supabase's confirm/magic-link flow.
+    """
+    from core.services import app_config
+
+    now = timezone.now()
+    with transaction.atomic():
+        open_ = app_config.get_bool("beta_enrollment_open")
+        cap = app_config.get_int("beta_spot_cap")
+        active = AccountProfile.objects.filter(
+            beta_cohort=True, beta_status=BetaStatus.ACTIVE
+        ).count()
+        if open_ and active < cap:
+            profile.beta_cohort = True
+            profile.beta_status = BetaStatus.ACTIVE
+            profile.beta_enrolled_at = now
+            profile.plan = Plan.PRO.value  # beta gets Pro features
+            profile.is_billing_exempt = True
+            profile.billing_exempt_reason = BillingExemptReason.BETA
+            profile.billing_exempt_until = None
+        else:
+            profile.beta_cohort = False
+            profile.is_billing_exempt = False
+        profile.save(
+            update_fields=[
+                "beta_cohort",
+                "beta_status",
+                "beta_enrolled_at",
+                "plan",
+                "is_billing_exempt",
+                "billing_exempt_reason",
+                "billing_exempt_until",
+                "updated_at",
+            ]
+        )
 
 
 def _start_of_next_day(now: dt.datetime) -> dt.datetime:

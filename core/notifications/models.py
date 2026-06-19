@@ -140,3 +140,49 @@ class ExpoPushToken(models.Model):
                 fields=["user_id", "device_id"], name="unique_expo_token_per_device"
             )
         ]
+
+
+class EmailSend(models.Model):
+    """Ledger of every product email (welcome + beta lifecycle) sent via Resend.
+
+    Source of truth for idempotency: before a real send we check there is no
+    row with dry_run=False for (user_id, email_id, episode_key). dry_run rows
+    are written for admin preview only and NEVER block a later real send (the
+    unique constraint is partial: WHERE dry_run = false). See docs/PROPOSAL.md.
+    """
+
+    class Status(models.TextChoices):
+        SENT = "sent", "Sent"
+        FAILED = "failed", "Failed"
+        DRY_RUN = "dry_run", "Dry run"
+
+    # email_id values: welcome_beta, welcome_regular, inactivity_1..4,
+    # reengage_1, reengage_2, reclaim_warn, reclaim_final.
+    id = models.BigAutoField(primary_key=True)
+    user_id = models.UUIDField(db_index=True)
+    email_id = models.CharField(max_length=32)
+    # "" for one-time emails (welcome_*, inactivity_1..4). For re-armable emails
+    # (reengage_*, reclaim_*) = ISO date of the episode anchor (last activity),
+    # so a new inactivity episode can send them again.
+    episode_key = models.CharField(max_length=32, blank=True, default="")
+    status = models.CharField(max_length=8, choices=Status.choices)
+    dry_run = models.BooleanField(default=True)
+    resend_message_id = models.CharField(max_length=255, blank=True, default="")
+    error = models.TextField(blank=True, default="")
+    # Consecutive real-send failures; surfaced in admin at >= 3.
+    attempts = models.PositiveSmallIntegerField(default=0)
+    created = models.DateTimeField(auto_now_add=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["user_id", "email_id"]),
+            models.Index(fields=["status", "-created"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user_id", "email_id", "episode_key"],
+                condition=models.Q(dry_run=False),
+                name="uniq_real_email_send",
+            )
+        ]
