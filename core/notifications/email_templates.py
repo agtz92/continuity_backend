@@ -27,6 +27,8 @@ You're in. One of {{spot_cap}} people in the continuu beta.
 
 The deal in plain terms: lifetime access, free, for as long as continuu exists. No trial clock, no upsell. In exchange, I ask one thing. Use it, and tell me what's broken. Every reply comes straight to me, and I read them all.
 
+There are only {{spot_cap}} of these, so the spot stays yours as long as you're putting it to use. No rush. Just don't let it go cold.
+
 The first step is small. Create one project. A title is enough.
 
 One question before you go: what's the project you keep escaping from? Reply with one line.
@@ -42,6 +44,8 @@ Alfredo""",
 Estás dentro. Eres uno de {{spot_cap}} en la beta de continuu.
 
 El trato, sin rodeos: acceso de por vida, gratis, mientras continuu exista. Sin reloj de prueba, sin venta escondida. A cambio te pido una cosa. Úsala y dime qué falla. Cada respuesta me llega directo a mí, y las leo todas.
+
+Solo hay {{spot_cap}}, así que el lugar es tuyo mientras le des uso. Sin prisa. Solo no lo dejes enfriar.
 
 El primer paso es pequeño. Crea un proyecto. Con el título basta.
 
