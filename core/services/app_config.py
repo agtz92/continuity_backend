@@ -46,6 +46,10 @@ DEFAULTS: dict[str, Any] = {
     "established_min_activity_days": 30,
     # Reclaim only fires once reclaim_warned_at is this many days old.
     "reclaim_warn_grace_days": 7,
+    # Gradual launch: the inactivity clock never counts from before this date
+    # (ISO "YYYY-MM-DD"). Empty = no floor (cold-start from real dates). Set to
+    # the launch day so everyone ramps from day 0 instead of being mid-sequence.
+    "lifecycle_start_at": "",
 }
 
 

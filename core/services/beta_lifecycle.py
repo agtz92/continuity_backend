@@ -23,6 +23,7 @@ from typing import Optional
 
 from django.db.models import Max, Min, Q
 from django.utils import timezone
+from django.utils.dateparse import parse_date, parse_datetime
 
 from core.notifications import lifecycle
 
@@ -47,6 +48,22 @@ def significant_events_q() -> Q:
     return Q(kind__in=sig) & ~Q(kind="project_status_changed", new_value="stalled")
 
 
+def _parse_start(val) -> Optional[dt.datetime]:
+    """Parse lifecycle_start_at ("YYYY-MM-DD" or full ISO) into an aware
+    datetime. Empty/invalid -> None (no floor)."""
+    if not val:
+        return None
+    parsed = parse_datetime(str(val))
+    if parsed is None:
+        d = parse_date(str(val))
+        if d is None:
+            return None
+        parsed = dt.datetime(d.year, d.month, d.day)
+    if timezone.is_naive(parsed):
+        parsed = timezone.make_aware(parsed, dt.timezone.utc)
+    return parsed
+
+
 def _load_config() -> dict:
     from core.services import app_config
 
@@ -58,6 +75,8 @@ def _load_config() -> dict:
         "dormant_reclaim_days": app_config.get_int("dormant_reclaim_days"),
         "established_min_activity_days": app_config.get_int("established_min_activity_days"),
         "reclaim_warn_grace_days": app_config.get_int("reclaim_warn_grace_days"),
+        # Gradual-launch floor: nobody counts as inactive from before this date.
+        "lifecycle_start_at": _parse_start(app_config.get("lifecycle_start_at")),
     }
 
 
@@ -76,6 +95,11 @@ def classify(user_id: uuid.UUID, beta_enrolled_at, now: dt.datetime, cfg: dict):
         span_days = (last - first).days
         tier = "established" if span_days >= cfg["established_min_activity_days"] else "brief"
         anchor = last
+    # Gradual-launch floor: the clock never starts before lifecycle_start_at, so
+    # backfilled users ramp from day 0 instead of being mid-sequence at launch.
+    floor = cfg.get("lifecycle_start_at")
+    if floor is not None and (anchor is None or anchor < floor):
+        anchor = floor
     if anchor is None:
         return tier, None, None, last
     days_inactive = (now - anchor).days

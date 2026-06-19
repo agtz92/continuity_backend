@@ -177,6 +177,17 @@ def test_dry_run_applies_no_side_effects():
 
 
 @pytest.mark.django_db
+def test_lifecycle_start_floor_caps_inactivity():
+    # Gradual launch: a ghost enrolled 25 days ago would normally cold-start at
+    # the reclaim threshold. With the floor at "today", days_inactive = 0.
+    app_config.set("lifecycle_start_at", NOW.date().isoformat())
+    p = _profile(25)
+    assert beta_lifecycle.process_profile(p, now=NOW) == "active_no_action"
+    p.refresh_from_db()
+    assert p.beta_status == BetaStatus.ACTIVE  # nothing reclaimed/warned
+
+
+@pytest.mark.django_db
 def test_active_user_clears_stale_warn(monkeypatch):
     _go_live(monkeypatch)
     # Enrolled 1 day ago (days_inactive=1 < first threshold) but has a stale warn.
