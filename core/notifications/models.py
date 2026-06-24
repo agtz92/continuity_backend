@@ -52,6 +52,18 @@ class NotificationSettings(models.Model):
     push_enabled = models.BooleanField(default=True)  # mobile push (Expo) channel
     is_admin = models.BooleanField(default=False)
 
+    # Calendar integration (plugin). Master toggle + per-entity-type toggles.
+    # calendar_feed_token is the secret in the public ICS feed URL (works for
+    # iCloud/iOS, Google Calendar and Outlook by subscription). google_calendar_id
+    # is the destination calendar for the direct Google Calendar API push.
+    calendar_sync_enabled = models.BooleanField(default=False)
+    calendar_sync_tasks = models.BooleanField(default=True)
+    calendar_sync_routines = models.BooleanField(default=True)
+    calendar_feed_token = models.CharField(
+        max_length=64, blank=True, default="", db_index=True
+    )
+    google_calendar_id = models.CharField(max_length=128, blank=True, default="")
+
     updated_at = models.DateTimeField(auto_now=True)
 
 

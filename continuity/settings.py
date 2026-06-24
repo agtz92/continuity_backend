@@ -26,6 +26,22 @@ GOOGLE_OAUTH_FRONTEND_BASE_URL = config(
     "GOOGLE_OAUTH_FRONTEND_BASE_URL", default="http://localhost:3000"
 )
 
+# Public base URL of THIS backend — used to build the absolute ICS calendar
+# feed URL the user subscribes to (iCloud/iOS, Google, Outlook).
+BACKEND_PUBLIC_URL = config(
+    "BACKEND_PUBLIC_URL", default="http://localhost:8000"
+)
+# Scopes for the Google Calendar push (plugin). Separate from Google Tasks.
+GOOGLE_CALENDAR_SCOPES = [
+    "https://www.googleapis.com/auth/calendar.events",
+]
+# Incremental auth means the token Google returns may carry MORE scopes than the
+# single flow requested (tasks + calendar combined). Relax oauthlib's strict
+# scope-equality check so the code exchange doesn't raise on that.
+import os as _os  # noqa: E402
+
+_os.environ.setdefault("OAUTHLIB_RELAX_TOKEN_SCOPE", "1")
+
 # Notifications
 TELEGRAM_BOT_TOKEN = config("TELEGRAM_BOT_TOKEN", default="")
 TELEGRAM_BOT_USERNAME = config("TELEGRAM_BOT_USERNAME", default="")

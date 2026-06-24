@@ -15,6 +15,8 @@ google-auth-oauthlib==1.2.1
 google-api-python-client==2.151.0
 stripe==11.4.1
 Pillow==11.0.0
+# Calendar plugin: ICS subscription feed (iCloud/iOS + Google + Outlook).
+icalendar==6.1.0
 # Pin: anthropic 0.40.0 doesn't constrain pydantic, but strawberry-graphql 0.253.1
 # imports `is_new_type` from pydantic's private API, removed in pydantic 2.11.
 pydantic<2.11

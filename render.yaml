@@ -46,6 +46,18 @@ services:
         value: "Alfredo <alfredo@continuu.it>"
       - key: MCP_OAUTH_SIGNING_KEY
         generateValue: true
+      # Absolute URL of this backend — used to build the ICS calendar feed URL.
+      - key: BACKEND_PUBLIC_URL
+        sync: false
+      # Google Calendar/Tasks OAuth (shared client). Set in the dashboard.
+      - key: GOOGLE_OAUTH_CLIENT_ID
+        sync: false
+      - key: GOOGLE_OAUTH_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_OAUTH_REDIRECT_URI
+        sync: false
+      - key: GOOGLE_OAUTH_FRONTEND_BASE_URL
+        sync: false
       - key: PYTHON_VERSION
         value: "3.12.4"
 

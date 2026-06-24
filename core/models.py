@@ -123,6 +123,13 @@ class Task(TimestampedModel):
     google_task_id = models.CharField(
         max_length=128, null=True, blank=True, db_index=True
     )
+    # Calendar integration. Tasks have no time by default; when due_time is NULL
+    # the task maps to an all-day calendar event on due_date. duration_minutes
+    # only applies when due_time is set (start → start+duration). calendar_event_id
+    # is the external event id (Google Calendar) for idempotent push/update.
+    due_time = models.TimeField(null=True, blank=True)
+    duration_minutes = models.PositiveSmallIntegerField(null=True, blank=True)
+    calendar_event_id = models.CharField(max_length=256, blank=True, default="")
 
     class Meta:
         ordering = ["done", "due_date", "-created"]
@@ -335,6 +342,23 @@ class GoogleOAuthCredential(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 
+class ICloudCalendarCredential(models.Model):
+    """iCloud CalDAV credentials for the optional native-write integration.
+
+    Apple has no calendar OAuth, so the user supplies their Apple ID + an
+    app-specific password (generated at appleid.apple.com). The password is
+    stored Fernet-encrypted (same scheme as GoogleOAuthCredential tokens).
+    ``calendar_url`` is the chosen CalDAV calendar href to write into.
+    """
+
+    user_id = models.UUIDField(primary_key=True)
+    apple_id = models.CharField(max_length=320, blank=True, default="")
+    app_password = models.TextField()  # Fernet-encrypted
+    calendar_url = models.CharField(max_length=500, blank=True, default="")
+    created = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
 class ActivityKind(models.TextChoices):
     NOTE = "note", "Note"
     PROJECT_CREATED = "project_created", "Project created"
@@ -384,6 +408,12 @@ class Routine(TimestampedModel):
     monthly_day = models.PositiveSmallIntegerField(null=True, blank=True)
     effort_hours = models.FloatField(null=True, blank=True)
     archived = models.BooleanField(default=False)
+    # Calendar integration. NULL time_of_day → all-day recurring event; the
+    # recurrence maps to a calendar RRULE. duration_minutes only applies when a
+    # time is set. calendar_event_id is the external recurring-event id.
+    time_of_day = models.TimeField(null=True, blank=True)
+    duration_minutes = models.PositiveSmallIntegerField(null=True, blank=True)
+    calendar_event_id = models.CharField(max_length=256, blank=True, default="")
     project = models.ForeignKey(
         Project,
         null=True,

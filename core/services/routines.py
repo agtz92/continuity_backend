@@ -120,6 +120,8 @@ def create_routine(
     monthly_day: Optional[int] = None,
     effort_hours: Optional[float] = None,
     project_id: Optional[uuid.UUID] = None,
+    time_of_day: Optional[dt.time] = None,
+    duration_minutes: Optional[int] = None,
 ) -> Routine:
     assert_owned(user_id, project_id)
     check_entity_quota(user_id, "routines")
@@ -150,6 +152,8 @@ def create_routine(
         end_date=end_date,
         effort_hours=effort_hours,
         project_id=project_id or None,
+        time_of_day=time_of_day,
+        duration_minutes=duration_minutes,
         **cleaned,
     )
     log_event(
@@ -177,6 +181,8 @@ def update_routine(
     monthly_day: Optional[int] = None,
     effort_hours: Optional[float] = None,
     project_id: Optional[uuid.UUID] = None,
+    time_of_day: Optional[dt.time] = None,
+    duration_minutes: Optional[int] = None,
 ) -> Routine:
     assert_owned(user_id, project_id)
     routine = get_routine(user_id, routine_id)
@@ -209,6 +215,8 @@ def update_routine(
     routine.monthly_day = cleaned["monthly_day"]
     routine.effort_hours = effort_hours
     routine.project_id = project_id or None
+    routine.time_of_day = time_of_day
+    routine.duration_minutes = duration_minutes
     routine.save()
     bump_context_version(user_id)
     return routine

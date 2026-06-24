@@ -44,8 +44,11 @@ from .announcements.schema import (
 )
 from .services import (
     activities as activities_svc,
+    calendar_feed as calendar_feed_svc,
     categories as categories_svc,
+    google_calendar as google_calendar_svc,
     google_tasks as google_tasks_svc,
+    icloud_calendar as icloud_calendar_svc,
     ideas as ideas_svc,
     mcp_connections as mcp_connections_svc,
     notes as notes_svc,
@@ -216,6 +219,8 @@ class Task:
     completed_at: Optional[dt.datetime]
     created: dt.datetime
     effort_hours: Optional[float] = None
+    due_time: Optional[dt.time] = None
+    duration_minutes: Optional[int] = None
     blockers: List["TaskBlocker"] = strawberry.field(default_factory=list)
 
     @classmethod
@@ -229,6 +234,8 @@ class Task:
             completed_at=m.completed_at,
             created=m.created,
             effort_hours=m.effort_hours,
+            due_time=m.due_time,
+            duration_minutes=m.duration_minutes,
             blockers=blockers or [],
         )
 
@@ -398,6 +405,8 @@ class Routine:
     archived: bool
     created: dt.datetime
     project_id: Optional[strawberry.ID] = None
+    time_of_day: Optional[dt.time] = None
+    duration_minutes: Optional[int] = None
 
     @classmethod
     def from_model(cls, m: RoutineModel) -> "Routine":
@@ -416,6 +425,8 @@ class Routine:
             archived=m.archived,
             created=m.created,
             project_id=strawberry.ID(str(m.project_id)) if m.project_id else None,
+            time_of_day=m.time_of_day,
+            duration_minutes=m.duration_minutes,
         )
 
 
@@ -502,6 +513,8 @@ class TaskInput:
     due_date: Optional[dt.datetime] = None
     done: Optional[bool] = False
     effort_hours: Optional[float] = None
+    due_time: Optional[dt.time] = None
+    duration_minutes: Optional[int] = None
 
 
 @strawberry.input
@@ -540,6 +553,8 @@ class RoutineInput:
     monthly_day: Optional[int] = None
     effort_hours: Optional[float] = None
     project_id: Optional[strawberry.ID] = None
+    time_of_day: Optional[dt.time] = None
+    duration_minutes: Optional[int] = None
 
 
 @strawberry.input
@@ -592,6 +607,40 @@ class GoogleTasksImportResult:
     imported: int
     skipped: int
     created_projects: List[str]
+
+
+# ---------- Calendar integration plugin ----------
+
+
+@strawberry.type
+class GoogleCalendarItem:
+    id: str
+    title: str
+    primary: bool
+
+
+@strawberry.type
+class CalendarIntegration:
+    """Aggregated state for the calendar plugin UI: the subscribe-by-URL ICS
+    feed (covers iCloud/iOS, Google, Outlook) + the direct Google Calendar
+    push connection + the sync toggles."""
+
+    feed_url: str
+    sync_enabled: bool
+    sync_tasks: bool
+    sync_routines: bool
+    google_connected: bool
+    google_email: Optional[str] = None
+    google_calendar_id: str = ""
+    icloud_connected: bool = False
+    icloud_apple_id: Optional[str] = None
+
+
+@strawberry.type
+class CalendarSyncResult:
+    created: int
+    updated: int
+    deleted: int
 
 
 # ---------- Analytics types ----------
@@ -1010,6 +1059,43 @@ class Query:
         return [GoogleTaskList(id=it["id"], title=it["title"]) for it in items]
 
     @strawberry.field
+    def calendar_integration(self, info: Info) -> CalendarIntegration:
+        uid = _user_id(info)
+        from .notifications.models import NotificationSettings as _NS
+
+        s = _NS.objects.filter(user_id=uid).first()
+        gstatus = google_calendar_svc.get_connection_status(uid)
+        istatus = icloud_calendar_svc.get_connection_status(uid)
+        return CalendarIntegration(
+            feed_url=calendar_feed_svc.feed_url(uid),
+            sync_enabled=bool(s.calendar_sync_enabled) if s else False,
+            sync_tasks=bool(s.calendar_sync_tasks) if s else True,
+            sync_routines=bool(s.calendar_sync_routines) if s else True,
+            google_connected=gstatus is not None,
+            google_email=(gstatus or {}).get("email") or None,
+            google_calendar_id=(s.google_calendar_id if s else "") or "",
+            icloud_connected=istatus is not None,
+            icloud_apple_id=(istatus or {}).get("apple_id") or None,
+        )
+
+    @strawberry.field
+    def google_calendars(self, info: Info) -> List[GoogleCalendarItem]:
+        uid = _user_id(info)
+        try:
+            items = google_calendar_svc.list_calendars(uid)
+        except google_calendar_svc.NotConnectedError:
+            raise GraphQLError(
+                "Google Calendar is not connected",
+                extensions={"code": "NOT_CONNECTED"},
+            )
+        except google_calendar_svc.GoogleTasksError as e:
+            raise GraphQLError(str(e), extensions={"code": "GOOGLE_CALENDAR_ERROR"})
+        return [
+            GoogleCalendarItem(id=it["id"], title=it["title"], primary=it["primary"])
+            for it in items
+        ]
+
+    @strawberry.field
     def mcp_connections(self, info: Info) -> List[McpConnection]:
         uid = _user_id(info)
         return [
@@ -1141,6 +1227,8 @@ class Mutation:
                 due_date=data.due_date,
                 done=bool(data.done),
                 effort_hours=data.effort_hours,
+                due_time=data.due_time,
+                duration_minutes=data.duration_minutes,
             )
         except NotFoundError:
             raise _not_found("Project")
@@ -1160,6 +1248,8 @@ class Mutation:
                 due_date=data.due_date,
                 done=bool(data.done),
                 effort_hours=data.effort_hours,
+                due_time=data.due_time,
+                duration_minutes=data.duration_minutes,
             )
         except NotFoundError as e:
             raise _not_found(str(e).split(" ", 1)[0])
@@ -1413,6 +1503,8 @@ class Mutation:
                 monthly_day=data.monthly_day,
                 effort_hours=data.effort_hours,
                 project_id=data.project_id or None,
+                time_of_day=data.time_of_day,
+                duration_minutes=data.duration_minutes,
             )
         except ValidationError as e:
             raise GraphQLError(
@@ -1445,6 +1537,8 @@ class Mutation:
                 monthly_day=data.monthly_day,
                 effort_hours=data.effort_hours,
                 project_id=data.project_id or None,
+                time_of_day=data.time_of_day,
+                duration_minutes=data.duration_minutes,
             )
         except NotFoundError:
             raise _not_found("Routine")
@@ -1658,6 +1752,83 @@ class Mutation:
         uid = _user_id(info)
         google_tasks_svc.disconnect(uid)
         return True
+
+    # Calendar integration plugin
+    @strawberry.mutation
+    def regenerate_calendar_feed_token(self, info: Info) -> str:
+        """Rotate the ICS feed token and return the new subscription URL.
+        Any previously shared URL stops working."""
+        uid = _user_id(info)
+        calendar_feed_svc.regenerate_feed_token(uid)
+        return calendar_feed_svc.feed_url(uid)
+
+    @strawberry.mutation
+    def google_calendar_auth_url(self, info: Info, return_to: str) -> str:
+        uid = _user_id(info)
+        safe_return = (
+            return_to
+            if return_to.startswith("/")
+            else "/settings/plugins/google-calendar"
+        )
+        try:
+            return google_calendar_svc.build_authorization_url(uid, safe_return)
+        except google_calendar_svc.GoogleTasksError as e:
+            raise GraphQLError(str(e), extensions={"code": "GOOGLE_CALENDAR_ERROR"})
+
+    @strawberry.mutation
+    def disconnect_google_calendar(self, info: Info) -> bool:
+        uid = _user_id(info)
+        google_calendar_svc.disconnect(uid)
+        return True
+
+    @strawberry.mutation
+    def sync_google_calendar_now(self, info: Info) -> CalendarSyncResult:
+        uid = _user_id(info)
+        try:
+            res = google_calendar_svc.sync_user(uid)
+        except google_calendar_svc.NotConnectedError:
+            raise GraphQLError(
+                "Google Calendar is not connected",
+                extensions={"code": "NOT_CONNECTED"},
+            )
+        except google_calendar_svc.GoogleTasksError as e:
+            raise GraphQLError(str(e), extensions={"code": "GOOGLE_CALENDAR_ERROR"})
+        return CalendarSyncResult(
+            created=res.get("created", 0),
+            updated=res.get("updated", 0),
+            deleted=res.get("deleted", 0),
+        )
+
+    @strawberry.mutation
+    def connect_icloud_calendar(
+        self, info: Info, apple_id: str, app_password: str
+    ) -> bool:
+        uid = _user_id(info)
+        try:
+            icloud_calendar_svc.connect(uid, apple_id, app_password)
+        except icloud_calendar_svc.ICloudCalendarError as e:
+            raise GraphQLError(str(e), extensions={"code": "ICLOUD_CALENDAR_ERROR"})
+        return True
+
+    @strawberry.mutation
+    def disconnect_icloud_calendar(self, info: Info) -> bool:
+        uid = _user_id(info)
+        icloud_calendar_svc.disconnect(uid)
+        return True
+
+    @strawberry.mutation
+    def sync_icloud_calendar_now(self, info: Info) -> int:
+        uid = _user_id(info)
+        try:
+            res = icloud_calendar_svc.sync_user(uid)
+        except icloud_calendar_svc.NotConnectedError:
+            raise GraphQLError(
+                "iCloud Calendar is not connected",
+                extensions={"code": "NOT_CONNECTED"},
+            )
+        except icloud_calendar_svc.ICloudCalendarError as e:
+            raise GraphQLError(str(e), extensions={"code": "ICLOUD_CALENDAR_ERROR"})
+        return res.get("pushed", 0)
 
     # Task blockers
     @strawberry.mutation(name="addTaskBlocker")

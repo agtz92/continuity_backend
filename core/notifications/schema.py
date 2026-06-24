@@ -70,6 +70,11 @@ class NotificationSettingsType:
     manual_enabled: bool
     push_enabled: bool
     is_admin: bool
+    calendar_sync_enabled: bool
+    calendar_sync_tasks: bool
+    calendar_sync_routines: bool
+    calendar_feed_token: str
+    google_calendar_id: str
     links: List[NotificationLinkType]
 
 
@@ -97,6 +102,10 @@ class NotificationSettingsInput:
     due_reminder_hour: Optional[int] = None
     manual_enabled: Optional[bool] = None
     push_enabled: Optional[bool] = None
+    calendar_sync_enabled: Optional[bool] = None
+    calendar_sync_tasks: Optional[bool] = None
+    calendar_sync_routines: Optional[bool] = None
+    google_calendar_id: Optional[str] = None
 
 
 SUPPORTED_LOCALES = {"en", "es"}
@@ -138,6 +147,11 @@ def _to_gql(s: SettingsModel) -> NotificationSettingsType:
         manual_enabled=s.manual_enabled,
         push_enabled=s.push_enabled,
         is_admin=s.is_admin,
+        calendar_sync_enabled=s.calendar_sync_enabled,
+        calendar_sync_tasks=s.calendar_sync_tasks,
+        calendar_sync_routines=s.calendar_sync_routines,
+        calendar_feed_token=s.calendar_feed_token,
+        google_calendar_id=s.google_calendar_id,
         links=[
             NotificationLinkType(
                 channel=link.channel,
@@ -228,6 +242,14 @@ class NotificationsMutation:
             s.manual_enabled = data.manual_enabled
         if data.push_enabled is not None:
             s.push_enabled = data.push_enabled
+        if data.calendar_sync_enabled is not None:
+            s.calendar_sync_enabled = data.calendar_sync_enabled
+        if data.calendar_sync_tasks is not None:
+            s.calendar_sync_tasks = data.calendar_sync_tasks
+        if data.calendar_sync_routines is not None:
+            s.calendar_sync_routines = data.calendar_sync_routines
+        if data.google_calendar_id is not None:
+            s.google_calendar_id = data.google_calendar_id.strip()[:128]
         s.save()
         return _to_gql(s)
 

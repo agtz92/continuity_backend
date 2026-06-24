@@ -67,6 +67,8 @@ def create_task(
     due_date: Optional[dt.datetime] = None,
     done: bool = False,
     effort_hours: Optional[float] = None,
+    due_time: Optional[dt.time] = None,
+    duration_minutes: Optional[int] = None,
 ) -> Task:
     assert_owned(user_id, project_id)
     check_entity_quota(user_id, "tasks_total")
@@ -79,6 +81,8 @@ def create_task(
         due_date=due_date,
         done=bool(done),
         effort_hours=effort_hours,
+        due_time=due_time,
+        duration_minutes=duration_minutes,
     )
     log_event(
         user_id,
@@ -102,6 +106,8 @@ def update_task(
     due_date: Optional[dt.datetime] = None,
     done: bool = False,
     effort_hours: Optional[float] = None,
+    due_time: Optional[dt.time] = None,
+    duration_minutes: Optional[int] = None,
 ) -> Task:
     assert_owned(user_id, project_id)
     task = get_task(user_id, task_id)
@@ -111,6 +117,8 @@ def update_task(
     task.due_date = due_date
     task.done = bool(done)
     task.effort_hours = effort_hours
+    task.due_time = due_time
+    task.duration_minutes = duration_minutes
     if task.done and not task.completed_at:
         task.completed_at = timezone.now()
     if not task.done:

@@ -9,6 +9,7 @@ from core.cms.views import PublicGraphQLView, public_schema
 from core.mcp.views import McpView
 from core.mcp.oauth import views as oauth_views
 from core import google_tasks_views
+from core import calendar_views
 
 
 def healthcheck(_request):
@@ -49,6 +50,11 @@ urlpatterns = [
         "api/google/oauth/callback",
         google_tasks_views.oauth_callback,
         name="google-oauth-callback",
+    ),
+    path(
+        "api/calendar/feed/<str:token>.ics",
+        calendar_views.ics_feed,
+        name="calendar-ics-feed",
     ),
     path("healthz", healthcheck),
     path("", healthcheck),
