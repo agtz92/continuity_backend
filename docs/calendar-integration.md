@@ -34,6 +34,29 @@ Una sola implementación cubre las tres plataformas. Es **de una sola vía**
 hora salen como eventos all-day; las rutinas salen como **un único evento
 recurrente con RRULE** (el calendario expande las ocurrencias).
 
+#### iOS — no requiere nada especial
+Suscribirse en iPhone/iPad **no** necesita Apple ID ni contraseña de aplicación
+(eso era solo para el CalDAV directo, que no se ofrece). Solo se añade un
+calendario suscrito con la URL. Requisitos prácticos: la URL debe ser **pública
+por HTTPS** (`BACKEND_PUBLIC_URL`, no localhost). iOS soporta el esquema
+`webcal://`, que abre el diálogo de suscripción con un toque.
+
+#### Limitación importante: NO es tiempo real
+El `.ics` siempre refleja el estado actual **en el momento en que se pide** (se
+genera al vuelo desde la BD). Pero **el cliente decide cada cuánto vuelve a
+leer la URL**, y ese intervalo no lo controlamos:
+
+- **Google Calendar:** refresca calendarios por URL cada ~8–24 h (no
+  configurable).
+- **iPhone/iCloud:** según el "Obtener datos" de la cuenta; típicamente de una a
+  varias horas.
+
+Es decir: si el usuario mueve, completa o borra una tarea, el cambio está en el
+feed al instante, pero **puede tardar horas en verse** en su calendario. La UI
+del plugin muestra una nota advirtiendo esto (`settings.plugins.calendar.latencyNote`).
+El único camino a reflejo casi inmediato sería el push directo por API (ver
+abajo), descartado a propósito.
+
 Código: `core/services/calendar_export.py` (mapeo task/rutina → evento + RRULE),
 `core/services/calendar_feed.py` (genera el `.ics` + token),
 `core/calendar_views.py` (vista pública). Tests: `core/tests/test_calendar.py`.
