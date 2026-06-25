@@ -192,6 +192,7 @@ def _get_project_detail(user_id: uuid.UUID, args: dict) -> dict:
                 "title": short_text(t.title),
                 "done": t.done,
                 "due_date": t.due_date.isoformat() if t.due_date else None,
+                "due_time": t.due_time.isoformat() if t.due_time else None,
                 "effort_hours": t.effort_hours,
                 "blocked": (not t.done) and (t.id in blocked_ids),
             }
@@ -262,6 +263,7 @@ def _list_tasks(user_id: uuid.UUID, args: dict) -> dict:
                 "project_id": str(t.project_id) if t.project_id else None,
                 "done": t.done,
                 "due_date": t.due_date.isoformat() if t.due_date else None,
+                "due_time": t.due_time.isoformat() if t.due_time else None,
                 "effort_hours": t.effort_hours,
                 "blockers": _blocker_summaries(t),
             }

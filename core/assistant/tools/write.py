@@ -69,6 +69,14 @@ _ROUTINE_RULE_PROPS = {
         "description": "For monthly_day only: day of the month.",
     },
     "effort_hours": {"type": "number", "minimum": 0},
+    "time_of_day": {
+        "type": "string",
+        "description": (
+            "Optional clock time 'HH:MM' (24h) for the routine; omit for "
+            "all-day. When set, occurrences land on the calendar's hourly day view."
+        ),
+    },
+    "duration_minutes": {"type": "integer", "minimum": 0},
 }
 
 
@@ -117,6 +125,28 @@ def _parse_due_dt(value, user_id: uuid.UUID) -> dt.datetime | None:
     if tz is not None:
         return dt.datetime.combine(d, dt.time.min, tzinfo=tz)
     return dt.datetime.combine(d, dt.time(12, 0), tzinfo=dt.timezone.utc)
+
+
+def _parse_time(value) -> dt.time | None:
+    """'HH:MM' or 'HH:MM:SS' -> time; empty / unparseable -> None.
+
+    Tasks (`due_time`) and routines (`time_of_day`) carry an OPTIONAL clock
+    time. When set, the item is placed on the calendar's hourly day view;
+    when omitted it stays all-day.
+    """
+    if not value:
+        return None
+    try:
+        parts = [int(x) for x in str(value).split(":")]
+    except ValueError:
+        return None
+    if not parts:
+        return None
+    hour = parts[0]
+    minute = parts[1] if len(parts) > 1 else 0
+    if not (0 <= hour <= 23 and 0 <= minute <= 59):
+        return None
+    return dt.time(hour=hour, minute=minute)
 
 
 # ================= Projects =================
@@ -347,8 +377,10 @@ def _delete_project(user_id: uuid.UUID, args: dict) -> dict:
     description=(
         "Create a task. `title` is required. `project_id` links it to a "
         "project (omit for a standalone task). `due_date` is 'YYYY-MM-DD'. "
-        "`effort_hours` is an estimate. When structuring a project, call "
-        "this once per task."
+        "`effort_hours` is an estimate. Optionally set `due_time` ('HH:MM', "
+        "24-hour) to give the task a clock time — it then shows on the "
+        "calendar's hourly day view; omit it for an all-day task. When "
+        "structuring a project, call this once per task."
     ),
     plan_required="pro",
     mutates=True,
@@ -358,7 +390,12 @@ def _delete_project(user_id: uuid.UUID, args: dict) -> dict:
             "title": {"type": "string", "minLength": 1, "maxLength": 500},
             "project_id": {"type": "string", "format": "uuid"},
             "due_date": {"type": "string", "description": "YYYY-MM-DD"},
+            "due_time": {
+                "type": "string",
+                "description": "Optional clock time 'HH:MM' (24h). Omit for all-day.",
+            },
             "effort_hours": {"type": "number", "minimum": 0},
+            "duration_minutes": {"type": "integer", "minimum": 0},
             "done": {"type": "boolean"},
         },
         "required": ["title"],
@@ -374,6 +411,8 @@ def _create_task(user_id: uuid.UUID, args: dict) -> dict:
             due_date=_parse_due_dt(args.get("due_date"), user_id),
             done=bool(args.get("done", False)),
             effort_hours=args.get("effort_hours"),
+            due_time=_parse_time(args.get("due_time")),
+            duration_minutes=args.get("duration_minutes"),
         )
     except NotFoundError:
         return {"error": "Project not found"}
@@ -390,7 +429,8 @@ def _create_task(user_id: uuid.UUID, args: dict) -> dict:
     description=(
         "Update a task. `id` is required; omitted fields keep their value. "
         "Set `done` to mark it complete/incomplete. Use `clear_due_date` / "
-        "`clear_project` to unset those. `due_date` is 'YYYY-MM-DD'."
+        "`clear_project` / `clear_due_time` to unset those. `due_date` is "
+        "'YYYY-MM-DD'; `due_time` is 'HH:MM' (24h)."
     ),
     plan_required="pro",
     mutates=True,
@@ -403,7 +443,13 @@ def _create_task(user_id: uuid.UUID, args: dict) -> dict:
             "clear_project": {"type": "boolean"},
             "due_date": {"type": "string", "description": "YYYY-MM-DD"},
             "clear_due_date": {"type": "boolean"},
+            "due_time": {
+                "type": "string",
+                "description": "Clock time 'HH:MM' (24h).",
+            },
+            "clear_due_time": {"type": "boolean"},
             "effort_hours": {"type": "number", "minimum": 0},
+            "duration_minutes": {"type": "integer", "minimum": 0},
             "done": {"type": "boolean"},
         },
         "required": ["id"],
@@ -423,6 +469,13 @@ def _update_task(user_id: uuid.UUID, args: dict) -> dict:
     else:
         due = t.due_date
 
+    if args.get("clear_due_time"):
+        due_time = None
+    elif "due_time" in args:
+        due_time = _parse_time(args["due_time"])
+    else:
+        due_time = t.due_time
+
     project_id = None if args.get("clear_project") else (
         args.get("project_id") or t.project_id
     )
@@ -439,6 +492,12 @@ def _update_task(user_id: uuid.UUID, args: dict) -> dict:
                 args["effort_hours"]
                 if "effort_hours" in args
                 else t.effort_hours
+            ),
+            due_time=due_time,
+            duration_minutes=(
+                args["duration_minutes"]
+                if "duration_minutes" in args
+                else t.duration_minutes
             ),
         )
     except NotFoundError:
@@ -534,6 +593,8 @@ def _create_routine(user_id: uuid.UUID, args: dict) -> dict:
             monthly_day=args.get("monthly_day"),
             effort_hours=args.get("effort_hours"),
             project_id=args.get("project_id"),
+            time_of_day=_parse_time(args.get("time_of_day")),
+            duration_minutes=args.get("duration_minutes"),
         )
     except NotFoundError:
         return {"error": "Project not found"}
@@ -573,6 +634,7 @@ def _create_routine(user_id: uuid.UUID, args: dict) -> dict:
                 "description": "Set true to remove the project association.",
             },
             "clear_end_date": {"type": "boolean"},
+            "clear_time_of_day": {"type": "boolean"},
             **_ROUTINE_RULE_PROPS,
         },
         "required": ["id"],
@@ -597,6 +659,13 @@ def _update_routine(user_id: uuid.UUID, args: dict) -> dict:
         if "start_date" in args
         else r.start_date
     )
+
+    if args.get("clear_time_of_day"):
+        time_of_day = None
+    elif "time_of_day" in args:
+        time_of_day = _parse_time(args["time_of_day"])
+    else:
+        time_of_day = r.time_of_day
 
     project_id = None if args.get("clear_project") else (
         args.get("project_id") or r.project_id
@@ -627,6 +696,12 @@ def _update_routine(user_id: uuid.UUID, args: dict) -> dict:
                 else r.effort_hours
             ),
             project_id=project_id,
+            time_of_day=time_of_day,
+            duration_minutes=(
+                args["duration_minutes"]
+                if "duration_minutes" in args
+                else r.duration_minutes
+            ),
         )
     except NotFoundError:
         return {"error": "Project not found"}

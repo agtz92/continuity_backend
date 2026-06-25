@@ -47,9 +47,9 @@ def _describe_recurrence(r) -> str:
     description=(
         "List the user's routines — recurring or one-off activities that "
         "are NOT tied to a project (distinct from project tasks). Returns "
-        "id, title, the recurrence rule, start/end dates, effort, and "
-        "whether the routine is archived. Set include_archived=false to "
-        "hide archived routines."
+        "id, title, the recurrence rule, start/end dates, effort, optional "
+        "time_of_day (clock time, null = all-day), and whether the routine is "
+        "archived. Set include_archived=false to hide archived routines."
     ),
     input_schema={
         "type": "object",
@@ -74,6 +74,9 @@ def _list_routines(user_id: uuid.UUID, args: dict) -> dict:
                 "start_date": r.start_date.isoformat(),
                 "end_date": r.end_date.isoformat() if r.end_date else None,
                 "effort_hours": r.effort_hours,
+                "time_of_day": (
+                    r.time_of_day.isoformat() if r.time_of_day else None
+                ),
                 "archived": r.archived,
             }
             for r in rows
