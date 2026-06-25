@@ -48,7 +48,7 @@ services:
         generateValue: true
       # Absolute URL of this backend — used to build the ICS calendar feed URL.
       - key: BACKEND_PUBLIC_URL
-        sync: false
+        value: https://continuity-backend.onrender.com
       # Google Calendar/Tasks OAuth (shared client). Set in the dashboard.
       - key: GOOGLE_OAUTH_CLIENT_ID
         sync: false
