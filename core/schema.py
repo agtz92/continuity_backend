@@ -15,6 +15,7 @@ cms, billing, feedback, announcements) se fusionan con `merge_types()` en un
 único `schema` raíz.
 """
 
+import functools
 import uuid
 import datetime as dt
 from typing import Optional, List
@@ -63,6 +64,7 @@ from .services import (
     activities as activities_svc,
     calendar_feed as calendar_feed_svc,
     categories as categories_svc,
+    dashboard as dashboard_svc,
     google_calendar as google_calendar_svc,
     google_tasks as google_tasks_svc,
     icloud_calendar as icloud_calendar_svc,
@@ -106,16 +108,6 @@ def _user_id(info: Info) -> uuid.UUID:
     return user_id
 
 
-def _not_found(label: str) -> GraphQLError:
-    """Traduce un `NotFoundError` de servicio a un error GraphQL uniforme.
-
-    Se centraliza para que el cliente reciba siempre el mismo
-    `extensions.code = "NOT_FOUND"` con independencia de la entidad. `label`
-    nombra la entidad solo para el mensaje legible.
-    """
-    return GraphQLError(f"{label} not found", extensions={"code": "NOT_FOUND"})
-
-
 def _quota_error(e: EntityQuotaExceeded) -> GraphQLError:
     """Traduce un tope de cuota a `GraphQLError` con los datos para la UI.
 
@@ -145,6 +137,33 @@ def _closure_error(e: ValidationError) -> GraphQLError:
     """
     msg = "; ".join(e.messages) if hasattr(e, "messages") else str(e)
     return GraphQLError(msg, extensions={"code": "CLOSURE_NOTES_REQUIRED"})
+
+
+def gql_error_handler(fn):
+    """Traduce las excepciones de dominio UNIFORMES a `GraphQLError`.
+
+    Centraliza el mapeo que se repetía en ~30 mutations:
+    ``NotFoundError`` → ``NOT_FOUND`` (preservando el mensaje del servicio, que
+    siempre es ``"<Entidad> not found"``) y ``EntityQuotaExceeded`` →
+    ``QUOTA_EXCEEDED`` (vía :func:`_quota_error`).
+
+    Deliberadamente NO captura ``ValidationError``: su mapeo es heterogéneo
+    (``CLOSURE_NOTES_REQUIRED`` en cierre de proyecto vs. ``BAD_INPUT`` en
+    rutinas/perfil/preferencias), así que cada resolver que lo necesita lo
+    maneja explícito. ``UNAUTHENTICATED`` lo levanta ``_user_id`` antes de
+    entrar al cuerpo, así que tampoco aplica aquí.
+    """
+
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        try:
+            return fn(*args, **kwargs)
+        except NotFoundError as e:
+            raise GraphQLError(str(e), extensions={"code": "NOT_FOUND"})
+        except EntityQuotaExceeded as e:
+            raise _quota_error(e)
+
+    return wrapper
 
 
 @strawberry.type
@@ -954,45 +973,31 @@ class Query:
     def dashboard(self, info: Info) -> Dashboard:
         """Carga inicial de la app: todo el estado del usuario en un round-trip.
 
-        A diferencia del resto de resolvers (que delegan en services), este
-        consulta varios modelos directamente y los ensambla en un solo pase. La
-        razón es de producto/red: el cliente arranca con una única query en vez
-        de una por colección. El coste es que mezcla acceso a datos con el
-        resolver (de ahí el TODO de extraerlo a un servicio).
+        A diferencia del resto de resolvers, el acceso a datos se delega al
+        servicio ``dashboard`` (que junta todo en un pase, un round-trip de
+        producto); aquí solo se proyectan los modelos crudos a los tipos
+        GraphQL con los conversores ``from_model``.
         """
         uid = _user_id(info)
-        projects = list(ProjectModel.objects.filter(user_id=uid))
-        tasks = list(TaskModel.objects.filter(user_id=uid))
-        ideas = list(IdeaModel.objects.filter(user_id=uid))
-        activities = list(ActivityModel.objects.filter(user_id=uid))
-        categories = list(CategoryModel.objects.filter(user_id=uid))
-        project_notes = list(ProjectNoteModel.objects.filter(user_id=uid))
-        routines = routines_svc.list_routines(uid, include_archived=True)
-        routine_occurrences = routines_svc.list_recent_occurrences(uid, days=90)
-        meta = BackupMeta.objects.filter(user_id=uid).first()
-        # Bloqueadores agrupados por tarea bloqueada en una sola consulta, para
-        # adjuntarlos en memoria a cada Task y evitar un N+1 al proyectar.
-        blocker_map: dict = {}
-        for b in TaskBlockerModel.objects.filter(user_id=uid):
-            blocker_map.setdefault(b.blocked_task_id, []).append(b)
+        d = dashboard_svc.get_dashboard(uid)
         return Dashboard(
-            projects=[Project.from_model(p) for p in projects],
+            projects=[Project.from_model(p) for p in d.projects],
             tasks=[
                 Task.from_model(
                     t,
-                    blockers=[TaskBlocker.from_model(b) for b in blocker_map.get(t.id, [])],
+                    blockers=[TaskBlocker.from_model(b) for b in d.blocker_map.get(t.id, [])],
                 )
-                for t in tasks
+                for t in d.tasks
             ],
-            ideas=[Idea.from_model(i) for i in ideas],
-            activities=[Activity.from_model(a) for a in activities],
-            categories=[Category.from_model(c) for c in categories],
-            project_notes=[ProjectNote.from_model(n) for n in project_notes],
-            routines=[Routine.from_model(r) for r in routines],
+            ideas=[Idea.from_model(i) for i in d.ideas],
+            activities=[Activity.from_model(a) for a in d.activities],
+            categories=[Category.from_model(c) for c in d.categories],
+            project_notes=[ProjectNote.from_model(n) for n in d.project_notes],
+            routines=[Routine.from_model(r) for r in d.routines],
             routine_occurrences=[
-                RoutineOccurrence.from_model(o) for o in routine_occurrences
+                RoutineOccurrence.from_model(o) for o in d.routine_occurrences
             ],
-            last_backup=meta.last_backup if meta else None,
+            last_backup=d.last_backup,
         )
 
     @strawberry.field
@@ -1219,27 +1224,25 @@ class Mutation:
         return revoked > 0
 
     # ===== Mutations: Proyectos =====
-    # NOTE: traducción de errores duplicada en ~50 mutations — candidato a decorador @gql_error_handler
     @strawberry.mutation
+    @gql_error_handler
     def create_project(self, info: Info, data: ProjectInput) -> Project:
         uid = _user_id(info)
-        try:
-            m = projects_svc.create_project(
-                uid,
-                name=data.name,
-                description=data.description or "",
-                why=data.why or "",
-                next_step=data.next_step or "",
-                status=data.status or "idea",
-                priority=data.priority or "medium",
-                category_id=data.category_id,
-                due_date=data.due_date,
-            )
-        except EntityQuotaExceeded as e:
-            raise _quota_error(e)
+        m = projects_svc.create_project(
+            uid,
+            name=data.name,
+            description=data.description or "",
+            why=data.why or "",
+            next_step=data.next_step or "",
+            status=data.status or "idea",
+            priority=data.priority or "medium",
+            category_id=data.category_id,
+            due_date=data.due_date,
+        )
         return Project.from_model(m)
 
     @strawberry.mutation
+    @gql_error_handler
     def update_project(self, info: Info, id: strawberry.ID, data: ProjectInput) -> Project:
         uid = _user_id(info)
         try:
@@ -1262,11 +1265,8 @@ class Mutation:
                 killed_learnings=data.killed_learnings,
                 killed_would_restart=data.killed_would_restart,
             )
-        except NotFoundError:
-            raise _not_found("Project")
-        except EntityQuotaExceeded as e:
-            raise _quota_error(e)
         except ValidationError as e:
+            # ValidationError aquí significa "faltan notas de cierre" → código propio.
             raise _closure_error(e)
         return Project.from_model(m)
 
@@ -1280,32 +1280,26 @@ class Mutation:
 
     # ===== Mutations: Notas de proyecto (varias por proyecto) =====
     @strawberry.mutation
+    @gql_error_handler
     def create_project_note(self, info: Info, data: ProjectNoteInput) -> ProjectNote:
         uid = _user_id(info)
-        try:
-            m = notes_svc.create_note(
-                uid,
-                project_id=data.project_id,
-                title=data.title or "",
-                body=data.body or "",
-            )
-        except NotFoundError:
-            raise _not_found("Project")
-        except EntityQuotaExceeded as e:
-            raise _quota_error(e)
+        m = notes_svc.create_note(
+            uid,
+            project_id=data.project_id,
+            title=data.title or "",
+            body=data.body or "",
+        )
         return ProjectNote.from_model(m)
 
     @strawberry.mutation
+    @gql_error_handler
     def update_project_note(
         self, info: Info, id: strawberry.ID, data: ProjectNoteInput
     ) -> ProjectNote:
         uid = _user_id(info)
-        try:
-            m = notes_svc.update_note(
-                uid, id, title=data.title or "", body=data.body or ""
-            )
-        except NotFoundError:
-            raise _not_found("ProjectNote")
+        m = notes_svc.update_note(
+            uid, id, title=data.title or "", body=data.body or ""
+        )
         return ProjectNote.from_model(m)
 
     @strawberry.mutation
@@ -1322,51 +1316,43 @@ class Mutation:
 
     # ===== Mutations: Tareas =====
     @strawberry.mutation
+    @gql_error_handler
     def create_task(self, info: Info, data: TaskInput) -> Task:
         uid = _user_id(info)
-        try:
-            m = tasks_svc.create_task(
-                uid,
-                title=data.title,
-                project_id=data.project_id or None,
-                due_date=data.due_date,
-                done=bool(data.done),
-                effort_hours=data.effort_hours,
-                due_time=data.due_time,
-                duration_minutes=data.duration_minutes,
-            )
-        except NotFoundError:
-            raise _not_found("Project")
-        except EntityQuotaExceeded as e:
-            raise _quota_error(e)
+        m = tasks_svc.create_task(
+            uid,
+            title=data.title,
+            project_id=data.project_id or None,
+            due_date=data.due_date,
+            done=bool(data.done),
+            effort_hours=data.effort_hours,
+            due_time=data.due_time,
+            duration_minutes=data.duration_minutes,
+        )
         return Task.from_model(m)
 
     @strawberry.mutation
+    @gql_error_handler
     def update_task(self, info: Info, id: strawberry.ID, data: TaskInput) -> Task:
         uid = _user_id(info)
-        try:
-            m = tasks_svc.update_task(
-                uid,
-                id,
-                title=data.title,
-                project_id=data.project_id or None,
-                due_date=data.due_date,
-                done=bool(data.done),
-                effort_hours=data.effort_hours,
-                due_time=data.due_time,
-                duration_minutes=data.duration_minutes,
-            )
-        except NotFoundError as e:
-            raise _not_found(str(e).split(" ", 1)[0])
+        m = tasks_svc.update_task(
+            uid,
+            id,
+            title=data.title,
+            project_id=data.project_id or None,
+            due_date=data.due_date,
+            done=bool(data.done),
+            effort_hours=data.effort_hours,
+            due_time=data.due_time,
+            duration_minutes=data.duration_minutes,
+        )
         return Task.from_model(m)
 
     @strawberry.mutation
+    @gql_error_handler
     def toggle_task(self, info: Info, id: strawberry.ID) -> Task:
         uid = _user_id(info)
-        try:
-            m = tasks_svc.toggle_task(uid, id)
-        except NotFoundError:
-            raise _not_found("Task")
+        m = tasks_svc.toggle_task(uid, id)
         return Task.from_model(m)
 
     @strawberry.mutation
@@ -1393,32 +1379,28 @@ class Mutation:
 
     # ===== Mutations: Ideas =====
     @strawberry.mutation
+    @gql_error_handler
     def create_idea(self, info: Info, data: IdeaInput) -> Idea:
         uid = _user_id(info)
-        try:
-            m = ideas_svc.create_idea(
-                uid,
-                title=data.title,
-                description=data.description or "",
-                why=data.why or "",
-            )
-        except EntityQuotaExceeded as e:
-            raise _quota_error(e)
+        m = ideas_svc.create_idea(
+            uid,
+            title=data.title,
+            description=data.description or "",
+            why=data.why or "",
+        )
         return Idea.from_model(m)
 
     @strawberry.mutation
+    @gql_error_handler
     def update_idea(self, info: Info, id: strawberry.ID, data: IdeaInput) -> Idea:
         uid = _user_id(info)
-        try:
-            m = ideas_svc.update_idea(
-                uid,
-                id,
-                title=data.title,
-                description=data.description or "",
-                why=data.why or "",
-            )
-        except NotFoundError:
-            raise _not_found("Idea")
+        m = ideas_svc.update_idea(
+            uid,
+            id,
+            title=data.title,
+            description=data.description or "",
+            why=data.why or "",
+        )
         return Idea.from_model(m)
 
     @strawberry.mutation
@@ -1428,61 +1410,49 @@ class Mutation:
         return True
 
     @strawberry.mutation
+    @gql_error_handler
     def promote_idea(self, info: Info, id: strawberry.ID) -> Project:
         uid = _user_id(info)
-        try:
-            p = ideas_svc.promote_idea(uid, id)
-        except NotFoundError:
-            raise _not_found("Idea")
-        except EntityQuotaExceeded as e:
-            raise _quota_error(e)
+        p = ideas_svc.promote_idea(uid, id)
         return Project.from_model(p)
 
     # ===== Mutations: Quick Notes (notas con secciones) =====
     @strawberry.mutation
+    @gql_error_handler
     def create_quick_note(self, info: Info, data: QuickNoteInput) -> QuickNote:
         uid = _user_id(info)
-        try:
-            m = quick_notes_svc.create_quick_note(
-                uid,
-                title=data.title or "",
-                category_id=data.category_id,
-                project_id=data.project_id,
-                pinned=bool(data.pinned),
-            )
-        except NotFoundError as e:
-            raise _not_found(str(e).split(" ", 1)[0])
-        except EntityQuotaExceeded as e:
-            raise _quota_error(e)
+        m = quick_notes_svc.create_quick_note(
+            uid,
+            title=data.title or "",
+            category_id=data.category_id,
+            project_id=data.project_id,
+            pinned=bool(data.pinned),
+        )
         return QuickNote.from_model(m)
 
     @strawberry.mutation
+    @gql_error_handler
     def update_quick_note(
         self, info: Info, id: strawberry.ID, data: QuickNoteInput
     ) -> QuickNote:
         uid = _user_id(info)
-        try:
-            m = quick_notes_svc.update_quick_note(
-                uid,
-                id,
-                title=data.title or "",
-                category_id=data.category_id,
-                project_id=data.project_id,
-                pinned=bool(data.pinned),
-            )
-        except NotFoundError as e:
-            raise _not_found(str(e).split(" ", 1)[0])
+        m = quick_notes_svc.update_quick_note(
+            uid,
+            id,
+            title=data.title or "",
+            category_id=data.category_id,
+            project_id=data.project_id,
+            pinned=bool(data.pinned),
+        )
         return QuickNote.from_model(m)
 
     @strawberry.mutation
+    @gql_error_handler
     def set_quick_note_pinned(
         self, info: Info, id: strawberry.ID, pinned: bool
     ) -> QuickNote:
         uid = _user_id(info)
-        try:
-            m = quick_notes_svc.set_pin(uid, id, pinned)
-        except NotFoundError:
-            raise _not_found("QuickNote")
+        m = quick_notes_svc.set_pin(uid, id, pinned)
         return QuickNote.from_model(m)
 
     @strawberry.mutation
@@ -1492,40 +1462,34 @@ class Mutation:
         return True
 
     @strawberry.mutation
+    @gql_error_handler
     def add_note_section(
         self, info: Info, note_id: strawberry.ID, data: NoteSectionInput
     ) -> NoteSection:
         uid = _user_id(info)
-        try:
-            m = quick_notes_svc.add_section(
-                uid,
-                note_id,
-                heading=data.heading or "",
-                body=data.body or "",
-                position=data.position,
-                collapsed=bool(data.collapsed),
-            )
-        except NotFoundError:
-            raise _not_found("QuickNote")
-        except EntityQuotaExceeded as e:
-            raise _quota_error(e)
+        m = quick_notes_svc.add_section(
+            uid,
+            note_id,
+            heading=data.heading or "",
+            body=data.body or "",
+            position=data.position,
+            collapsed=bool(data.collapsed),
+        )
         return NoteSection.from_model(m)
 
     @strawberry.mutation
+    @gql_error_handler
     def update_note_section(
         self, info: Info, id: strawberry.ID, data: NoteSectionInput
     ) -> NoteSection:
         uid = _user_id(info)
-        try:
-            m = quick_notes_svc.update_section(
-                uid,
-                id,
-                heading=data.heading or "",
-                body=data.body or "",
-                collapsed=data.collapsed,
-            )
-        except NotFoundError:
-            raise _not_found("NoteSection")
+        m = quick_notes_svc.update_section(
+            uid,
+            id,
+            heading=data.heading or "",
+            body=data.body or "",
+            collapsed=data.collapsed,
+        )
         return NoteSection.from_model(m)
 
     @strawberry.mutation
@@ -1535,67 +1499,53 @@ class Mutation:
         return True
 
     @strawberry.mutation
+    @gql_error_handler
     def reorder_note_sections(
         self, info: Info, note_id: strawberry.ID, ordered_ids: List[strawberry.ID]
     ) -> QuickNote:
         uid = _user_id(info)
-        try:
-            m = quick_notes_svc.reorder_sections(uid, note_id, list(ordered_ids))
-        except NotFoundError:
-            raise _not_found("QuickNote")
+        m = quick_notes_svc.reorder_sections(uid, note_id, list(ordered_ids))
         return QuickNote.from_model(m)
 
     # ===== Mutations: Notas de actividad (kind=NOTE) =====
     @strawberry.mutation
+    @gql_error_handler
     def add_note(self, info: Info, project_id: strawberry.ID, note: str) -> Activity:
         uid = _user_id(info)
-        try:
-            m = activities_svc.add_note(uid, project_id=project_id, note=note)
-        except NotFoundError:
-            raise _not_found("Project")
-        except EntityQuotaExceeded as e:
-            raise _quota_error(e)
+        m = activities_svc.add_note(uid, project_id=project_id, note=note)
         return Activity.from_model(m)
 
     @strawberry.mutation
+    @gql_error_handler
     def update_note(self, info: Info, id: strawberry.ID, note: str) -> Activity:
         uid = _user_id(info)
-        try:
-            m = activities_svc.update_note(uid, id, note=note)
-        except NotFoundError:
-            raise _not_found("Note")
+        m = activities_svc.update_note(uid, id, note=note)
         return Activity.from_model(m)
 
     @strawberry.mutation
+    @gql_error_handler
     def delete_note(self, info: Info, id: strawberry.ID) -> bool:
         uid = _user_id(info)
-        try:
-            activities_svc.delete_note(uid, id)
-        except NotFoundError:
-            raise _not_found("Note")
+        activities_svc.delete_note(uid, id)
         return True
 
     # ===== Mutations: Categorías =====
     @strawberry.mutation
+    @gql_error_handler
     def create_category(self, info: Info, data: CategoryInput) -> Category:
         uid = _user_id(info)
-        try:
-            m = categories_svc.create_category(
-                uid, name=data.name, color=data.color or "emerald"
-            )
-        except EntityQuotaExceeded as e:
-            raise _quota_error(e)
+        m = categories_svc.create_category(
+            uid, name=data.name, color=data.color or "emerald"
+        )
         return Category.from_model(m)
 
     @strawberry.mutation
+    @gql_error_handler
     def update_category(self, info: Info, id: strawberry.ID, data: CategoryInput) -> Category:
         uid = _user_id(info)
-        try:
-            m = categories_svc.update_category(
-                uid, id, name=data.name, color=data.color or ""
-            )
-        except NotFoundError:
-            raise _not_found("Category")
+        m = categories_svc.update_category(
+            uid, id, name=data.name, color=data.color or ""
+        )
         return Category.from_model(m)
 
     @strawberry.mutation
@@ -1606,6 +1556,7 @@ class Mutation:
 
     # ===== Mutations: Rutinas =====
     @strawberry.mutation
+    @gql_error_handler
     def create_routine(self, info: Info, data: RoutineInput) -> Routine:
         from django.core.exceptions import ValidationError
 
@@ -1628,15 +1579,15 @@ class Mutation:
                 duration_minutes=data.duration_minutes,
             )
         except ValidationError as e:
+            # ValidationError aquí = regla de recurrencia inválida → BAD_INPUT.
             raise GraphQLError(
                 str(e.messages[0] if e.messages else "Invalid input"),
                 extensions={"code": "BAD_INPUT"},
             )
-        except EntityQuotaExceeded as e:
-            raise _quota_error(e)
         return Routine.from_model(m)
 
     @strawberry.mutation
+    @gql_error_handler
     def update_routine(
         self, info: Info, id: strawberry.ID, data: RoutineInput
     ) -> Routine:
@@ -1661,9 +1612,8 @@ class Mutation:
                 time_of_day=data.time_of_day,
                 duration_minutes=data.duration_minutes,
             )
-        except NotFoundError:
-            raise _not_found("Routine")
         except ValidationError as e:
+            # ValidationError aquí = regla de recurrencia inválida → BAD_INPUT.
             raise GraphQLError(
                 str(e.messages[0] if e.messages else "Invalid input"),
                 extensions={"code": "BAD_INPUT"},
@@ -1671,14 +1621,12 @@ class Mutation:
         return Routine.from_model(m)
 
     @strawberry.mutation
+    @gql_error_handler
     def archive_routine(
         self, info: Info, id: strawberry.ID, archived: bool
     ) -> Routine:
         uid = _user_id(info)
-        try:
-            m = routines_svc.archive_routine(uid, id, archived=archived)
-        except NotFoundError:
-            raise _not_found("Routine")
+        m = routines_svc.archive_routine(uid, id, archived=archived)
         return Routine.from_model(m)
 
     @strawberry.mutation
@@ -1688,6 +1636,7 @@ class Mutation:
         return True
 
     @strawberry.mutation(name="completeRoutineOccurrence")
+    @gql_error_handler
     def complete_routine_occurrence(
         self,
         info: Info,
@@ -1696,12 +1645,9 @@ class Mutation:
         note: Optional[str] = "",
     ) -> RoutineOccurrence:
         uid = _user_id(info)
-        try:
-            m = routines_svc.complete_occurrence(
-                uid, routine_id, scheduled_date=scheduled_date, note=note or ""
-            )
-        except NotFoundError:
-            raise _not_found("Routine")
+        m = routines_svc.complete_occurrence(
+            uid, routine_id, scheduled_date=scheduled_date, note=note or ""
+        )
         return RoutineOccurrence.from_model(m)
 
     @strawberry.mutation(name="uncompleteRoutineOccurrence")

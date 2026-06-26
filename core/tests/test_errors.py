@@ -200,3 +200,54 @@ def test_delete_silently_succeeds_for_foreign_id(
     # A's project is still there.
     project.refresh_from_db()
     assert project.name == "A's"
+
+
+# ---------- Quota exceeded ----------
+
+
+@pytest.mark.django_db
+def test_create_project_over_quota_is_quota_exceeded(
+    execute_query, user_a, project_factory
+):
+    """Free plan caps projects at 3; the 4th createProject → QUOTA_EXCEEDED.
+
+    Pins that the resolver translates the service's `EntityQuotaExceeded` into
+    `extensions.code == "QUOTA_EXCEEDED"` (plus the paywall metadata the UI
+    reads). Characterization test for the error-handler refactor.
+    """
+    for _ in range(3):
+        project_factory(user_a)  # 3 active projects = free cap
+    result = execute_query(
+        "mutation($data: ProjectInput!) { createProject(data: $data) { id } }",
+        user_id=user_a,
+        variable_values={"data": {"name": "fourth"}},
+    )
+    assert _first_error_code(result) == "QUOTA_EXCEEDED"
+    ext = result.errors[0].extensions or {}
+    assert ext.get("kind") == "projects"
+    assert ext.get("cap") == 3
+
+
+# ---------- Closure notes required ----------
+
+
+@pytest.mark.django_db
+def test_pause_without_context_is_closure_notes_required(
+    execute_query, user_a, project_factory
+):
+    """Pausing a project without `paused_context` → CLOSURE_NOTES_REQUIRED.
+
+    The frontend uses this exact code to open the closure-notes modal instead
+    of showing a generic error. Characterization test for the refactor.
+    """
+    project = project_factory(user_a, status="active")
+    result = execute_query(
+        "mutation($id: ID!, $data: ProjectInput!) {"
+        " updateProject(id: $id, data: $data) { id } }",
+        user_id=user_a,
+        variable_values={
+            "id": str(project.id),
+            "data": {"name": project.name, "status": "paused"},
+        },
+    )
+    assert _first_error_code(result) == "CLOSURE_NOTES_REQUIRED"
