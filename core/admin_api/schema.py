@@ -14,7 +14,7 @@ import uuid
 from typing import Optional
 
 import strawberry
-from django.db.models import Count, Max, Q
+from django.db.models import Q
 from django.utils import timezone
 from graphql import GraphQLError
 from strawberry.types import Info
@@ -23,9 +23,6 @@ from core.assistant.models import AccountProfile, Plan, UsageDay
 from core.services import interactions as interactions_svc
 from core.services import mcp_connections as mcp_connections_svc
 from core.models import Activity as ActivityModel
-from core.models import Idea as IdeaModel
-from core.models import Project as ProjectModel
-from core.models import Task as TaskModel
 from core.notifications.models import (
     Notification,
     NotificationLink,
@@ -36,10 +33,11 @@ from core.notifications.models import (
 from .audit import record as audit_record
 from .models import AdminAuditLog
 from .permissions import _admin_user_id
+from .services import stats as stats_svc
+from .services import user_stats as user_stats_svc
 from .supabase_admin import (
     SupabaseAdminError,
     SupabaseUser,
-    fetch_all_users,
     get_user as supabase_get_user,
     get_users_map,
     list_users as supabase_list_users,
@@ -363,115 +361,33 @@ def _parse_dt(value: Optional[str]) -> Optional[dt.datetime]:
         return None
 
 
-# FIXME: capas — ORM directo en helper de resolver; mover a admin_api/services/user_stats.py
-def _build_counts_for(user_id: uuid.UUID) -> UserCounts:
-    """Cuenta los objetos de producto de un solo usuario (vista de detalle).
-
-    Variante por-usuario que emite una query ``COUNT`` por entidad. Se usa en
-    los caminos de un único usuario (``adminUser``, mutaciones que devuelven el
-    summary); para listas usar ``_bulk_counts`` y evitar el N+1.
-
-    Args:
-        user_id: UUID del usuario a contar.
-
-    Returns:
-        ``UserCounts`` con proyectos, tareas abiertas/hechas, ideas y notas.
-    """
-    projects = ProjectModel.objects.filter(user_id=user_id).count()
-    tasks_open = TaskModel.objects.filter(user_id=user_id, done=False).count()
-    tasks_done = TaskModel.objects.filter(user_id=user_id, done=True).count()
-    ideas = IdeaModel.objects.filter(user_id=user_id).count()
-    notes = ActivityModel.objects.filter(user_id=user_id, kind="note").count()
+def _counts_to_gql(c: user_stats_svc.EntityCounts) -> UserCounts:
+    """Mapea el dataclass plano del servicio al tipo GraphQL ``UserCounts``."""
     return UserCounts(
-        projects=projects,
-        tasks_open=tasks_open,
-        tasks_done=tasks_done,
-        ideas=ideas,
-        notes=notes,
+        projects=c.projects,
+        tasks_open=c.tasks_open,
+        tasks_done=c.tasks_done,
+        ideas=c.ideas,
+        notes=c.notes,
     )
 
 
-# FIXME: capas — ORM directo en helper de resolver; mover a admin_api/services/user_stats.py
+def _build_counts_for(user_id: uuid.UUID) -> UserCounts:
+    """Conteos de producto de un usuario (delega en ``user_stats`` service)."""
+    return _counts_to_gql(user_stats_svc.counts_for(user_id))
+
+
 def _bulk_counts(user_ids: list[uuid.UUID]) -> dict[uuid.UUID, UserCounts]:
-    """Cuenta objetos de producto de muchos usuarios de una vez (lista admin).
-
-    Versión bulk de ``_build_counts_for``: agrupa con ``annotate(Count)`` para
-    resolver cada entidad en UNA query en vez de una por usuario, lo que evita
-    el N+1 al pintar la tabla paginada de ``adminUsers``.
-
-    Args:
-        user_ids: UUIDs de la página actual de usuarios.
-
-    Returns:
-        Mapa ``user_id -> UserCounts``; los usuarios sin filas en una entidad
-        quedan en 0 vía ``.get(uid, 0)``. Vacío si ``user_ids`` está vacío.
-    """
-    if not user_ids:
-        return {}
-    projects = dict(
-        ProjectModel.objects.filter(user_id__in=user_ids)
-        .values_list("user_id")
-        .annotate(c=Count("id"))
-        .values_list("user_id", "c")
-    )
-    tasks_open = dict(
-        TaskModel.objects.filter(user_id__in=user_ids, done=False)
-        .values_list("user_id")
-        .annotate(c=Count("id"))
-        .values_list("user_id", "c")
-    )
-    tasks_done = dict(
-        TaskModel.objects.filter(user_id__in=user_ids, done=True)
-        .values_list("user_id")
-        .annotate(c=Count("id"))
-        .values_list("user_id", "c")
-    )
-    ideas = dict(
-        IdeaModel.objects.filter(user_id__in=user_ids)
-        .values_list("user_id")
-        .annotate(c=Count("id"))
-        .values_list("user_id", "c")
-    )
-    notes = dict(
-        ActivityModel.objects.filter(user_id__in=user_ids, kind="note")
-        .values_list("user_id")
-        .annotate(c=Count("id"))
-        .values_list("user_id", "c")
-    )
+    """Conteos en bulk para la lista admin (delega en ``user_stats`` service)."""
     return {
-        uid: UserCounts(
-            projects=projects.get(uid, 0),
-            tasks_open=tasks_open.get(uid, 0),
-            tasks_done=tasks_done.get(uid, 0),
-            ideas=ideas.get(uid, 0),
-            notes=notes.get(uid, 0),
-        )
-        for uid in user_ids
+        uid: _counts_to_gql(c)
+        for uid, c in user_stats_svc.bulk_counts(user_ids).items()
     }
 
 
 def _last_activity_map(user_ids: list[uuid.UUID]) -> dict[uuid.UUID, dt.datetime]:
-    """Última actividad por usuario, bulk, para la lista admin.
-
-    Resuelve el ``MAX(created)`` de Activity de todos los usuarios de la página
-    en UNA query (mismo motivo que ``_bulk_counts``: evitar N+1).
-
-    Args:
-        user_ids: UUIDs de la página actual.
-
-    Returns:
-        Mapa ``user_id -> datetime`` de la actividad más reciente. Los usuarios
-        sin actividad se omiten (no aparecen en el dict).
-    """
-    if not user_ids:
-        return {}
-    rows = (
-        ActivityModel.objects.filter(user_id__in=user_ids)
-        .values_list("user_id")
-        .annotate(latest=Max("created"))
-        .values_list("user_id", "latest")
-    )
-    return {uid: latest for uid, latest in rows if latest is not None}
+    """Última actividad por usuario (delega en ``user_stats`` service)."""
+    return user_stats_svc.last_activity_map(user_ids)
 
 
 def _build_summary(
@@ -871,192 +787,54 @@ class AdminQuery:
                 Un fallo de Supabase NO lanza: se loguea y degrada.
         """
         _admin_user_id(info)
-        now = timezone.now()
-        today = now.date()
-        # Ventanas de engagement: DAU/WAU/MAU = actividad en los últimos 1/7/30 días.
-        d1 = now - dt.timedelta(days=1)
-        d7 = now - dt.timedelta(days=7)
-        d30 = now - dt.timedelta(days=30)
-        day0 = today - dt.timedelta(days=29)  # 30-day window inclusive of today
-
-        # --- Users (real source: Supabase auth) ----------------------------
-        try:
-            supabase_users = fetch_all_users()
-        except SupabaseAdminError as e:
-            logger.warning("adminSystemStats: supabase fetch failed: %s", e)
-            supabase_users = []
-        total_users = len(supabase_users)
-
-        signup_buckets: dict[dt.date, int] = {
-            day0 + dt.timedelta(days=i): 0 for i in range(30)
-        }
-        for u in supabase_users:
-            if not u.created_at:
-                continue
-            try:
-                created = dt.datetime.fromisoformat(
-                    u.created_at.replace("Z", "+00:00")
-                )
-            except ValueError:
-                continue
-            d = created.date()
-            if d in signup_buckets:
-                signup_buckets[d] += 1
-        signups_series = [
-            SeriesPoint(date=d, value=signup_buckets[d])
-            for d in sorted(signup_buckets)
-        ]
-
-        # Recent signups: top 10 by created_at desc, joined with plan.
-        sorted_users = sorted(
-            supabase_users,
-            key=lambda u: u.created_at or "",
-            reverse=True,
-        )[:10]
-        recent_uids = [u.id for u in sorted_users]
-        plan_by_uid = {
-            p.user_id: p.plan
-            for p in AccountProfile.objects.filter(user_id__in=recent_uids)
-        }
-        recent_signups: list[RecentSignup] = []
-        for u in sorted_users:
-            created_dt: Optional[dt.datetime] = None
-            if u.created_at:
-                try:
-                    created_dt = dt.datetime.fromisoformat(
-                        u.created_at.replace("Z", "+00:00")
-                    )
-                except ValueError:
-                    created_dt = None
-            recent_signups.append(
-                RecentSignup(
-                    user_id=strawberry.ID(str(u.id)),
-                    email=u.email,
-                    created_at=created_dt,
-                    plan=plan_by_uid.get(u.id, Plan.FREE.value),
-                )
-            )
-
-        # --- Local accounts / plans ---------------------------------------
-        total_accounts = AccountProfile.objects.count()
-        admins = AccountProfile.objects.filter(is_admin=True).count()
-        plan_rows = (
-            AccountProfile.objects.values("plan")
-            .annotate(c=Count("user_id"))
-            .order_by("plan")
-        )
-        plan_counts = [
-            PlanCount(plan=row["plan"], count=row["c"]) for row in plan_rows
-        ]
-
-        # --- Engagement ---------------------------------------------------
-        # DAU/WAU/MAU = usuarios DISTINTOS con actividad en la ventana 1/7/30 días.
-        dau = (
-            ActivityModel.objects.filter(created__gte=d1)
-            .values("user_id")
-            .distinct()
-            .count()
-        )
-        wau = (
-            ActivityModel.objects.filter(created__gte=d7)
-            .values("user_id")
-            .distinct()
-            .count()
-        )
-        mau = (
-            ActivityModel.objects.filter(created__gte=d30)
-            .values("user_id")
-            .distinct()
-            .count()
-        )
-
-        # DAU per day for the last 30 days. Se usa un set por día para deduplicar
-        # usuarios en Python (un solo recorrido) en lugar de 30 queries distinct.
-        activity_buckets: dict[dt.date, set[uuid.UUID]] = {
-            day0 + dt.timedelta(days=i): set() for i in range(30)
-        }
-        for row in ActivityModel.objects.filter(created__gte=d30).values(
-            "user_id", "created"
-        ):
-            d = row["created"].date()
-            if d in activity_buckets:
-                activity_buckets[d].add(row["user_id"])
-        activity_series = [
-            SeriesPoint(date=d, value=len(activity_buckets[d]))
-            for d in sorted(activity_buckets)
-        ]
-
-        # Activity-by-kind in the last 30 days.
-        kind_rows = (
-            ActivityModel.objects.filter(created__gte=d30)
-            .values("kind")
-            .annotate(c=Count("id"))
-            .order_by("-c")
-        )
-        activity_by_kind = [
-            LabeledCount(label=row["kind"], count=row["c"]) for row in kind_rows
-        ]
-
-        # --- Product objects ----------------------------------------------
-        proj_rows = (
-            ProjectModel.objects.values("status")
-            .annotate(c=Count("id"))
-            .order_by("status")
-        )
-        project_state_counts = [
-            LabeledCount(label=row["status"], count=row["c"]) for row in proj_rows
-        ]
-        tasks_open = TaskModel.objects.filter(done=False).count()
-        tasks_done_30d = TaskModel.objects.filter(
-            done=True, completed_at__gte=d30
-        ).count()
-        ideas_total = IdeaModel.objects.count()
-
-        # --- CMS -----------------------------------------------------------
-        from core.cms.models import BlogPost, Page, PostStatus as CmsStatus
-
-        blog_published = BlogPost.objects.filter(status=CmsStatus.PUBLISHED).count()
-        blog_draft = BlogPost.objects.filter(status=CmsStatus.DRAFT).count()
-        pages_published = Page.objects.filter(status=CmsStatus.PUBLISHED).count()
-
-        # --- System health -------------------------------------------------
-        pending_jobs = Notification.objects.filter(
-            status=NotificationStatus.PENDING
-        ).count()
-        failed_jobs = Notification.objects.filter(
-            status=NotificationStatus.FAILED
-        ).count()
-        status_rows = (
-            Notification.objects.values("status")
-            .annotate(c=Count("id"))
-            .order_by("status")
-        )
-        job_status_counts = [
-            JobStatusCount(status=r["status"], count=r["c"]) for r in status_rows
-        ]
-
+        s = stats_svc.compute_system_stats()
         return AdminSystemStats(
-            total_users=total_users,
-            total_accounts=total_accounts,
-            admins=admins,
-            plan_counts=plan_counts,
-            dau=dau,
-            wau=wau,
-            mau=mau,
-            signups_series=signups_series,
-            activity_series=activity_series,
-            activity_by_kind=activity_by_kind,
-            project_state_counts=project_state_counts,
-            tasks_open=tasks_open,
-            tasks_done_30d=tasks_done_30d,
-            ideas_total=ideas_total,
-            blog_posts_published=blog_published,
-            blog_posts_draft=blog_draft,
-            pages_published=pages_published,
-            pending_jobs=pending_jobs,
-            failed_jobs=failed_jobs,
-            job_status_counts=job_status_counts,
-            recent_signups=recent_signups,
+            total_users=s.total_users,
+            total_accounts=s.total_accounts,
+            admins=s.admins,
+            plan_counts=[
+                PlanCount(plan=p.label, count=p.count) for p in s.plan_counts
+            ],
+            dau=s.dau,
+            wau=s.wau,
+            mau=s.mau,
+            signups_series=[
+                SeriesPoint(date=p.date, value=p.value)
+                for p in s.signups_series
+            ],
+            activity_series=[
+                SeriesPoint(date=p.date, value=p.value)
+                for p in s.activity_series
+            ],
+            activity_by_kind=[
+                LabeledCount(label=lc.label, count=lc.count)
+                for lc in s.activity_by_kind
+            ],
+            project_state_counts=[
+                LabeledCount(label=lc.label, count=lc.count)
+                for lc in s.project_state_counts
+            ],
+            tasks_open=s.tasks_open,
+            tasks_done_30d=s.tasks_done_30d,
+            ideas_total=s.ideas_total,
+            blog_posts_published=s.blog_posts_published,
+            blog_posts_draft=s.blog_posts_draft,
+            pages_published=s.pages_published,
+            pending_jobs=s.pending_jobs,
+            failed_jobs=s.failed_jobs,
+            job_status_counts=[
+                JobStatusCount(status=lc.label, count=lc.count)
+                for lc in s.job_status_counts
+            ],
+            recent_signups=[
+                RecentSignup(
+                    user_id=strawberry.ID(str(r.user_id)),
+                    email=r.email,
+                    created_at=r.created_at,
+                    plan=r.plan,
+                )
+                for r in s.recent_signups
+            ],
         )
 
     @strawberry.field(name="adminBillingOverview")
