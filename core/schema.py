@@ -221,6 +221,11 @@ class Task:
     effort_hours: Optional[float] = None
     due_time: Optional[dt.time] = None
     duration_minutes: Optional[int] = None
+    # State-closure parking: the due-date snapshot kept while the parent project
+    # is closed. Non-null means "this task had a due date" → the revive UI offers
+    # to restore it. None on live tasks.
+    parked_due_date: Optional[dt.datetime] = None
+    parked_due_time: Optional[dt.time] = None
     blockers: List["TaskBlocker"] = strawberry.field(default_factory=list)
 
     @classmethod
@@ -236,6 +241,8 @@ class Task:
             effort_hours=m.effort_hours,
             due_time=m.due_time,
             duration_minutes=m.duration_minutes,
+            parked_due_date=m.parked_due_date,
+            parked_due_time=m.parked_due_time,
             blockers=blockers or [],
         )
 
@@ -1268,6 +1275,22 @@ class Mutation:
     def delete_task(self, info: Info, id: strawberry.ID) -> bool:
         uid = _user_id(info)
         tasks_svc.delete_task(uid, id)
+        return True
+
+    @strawberry.mutation
+    def restore_parked_due_dates(self, info: Info, project_id: strawberry.ID) -> bool:
+        """Revive 'restore original dates': re-apply the parked due-date
+        snapshots for a project's tasks (skips ones rescheduled meanwhile)."""
+        uid = _user_id(info)
+        tasks_svc.restore_parked_due_dates(uid, project_id)
+        return True
+
+    @strawberry.mutation
+    def dismiss_parked_due_dates(self, info: Info, project_id: strawberry.ID) -> bool:
+        """Revive 'keep unscheduled': drop the reschedule suggestion, leaving the
+        project's tasks without a due date."""
+        uid = _user_id(info)
+        tasks_svc.dismiss_parked_due_dates(uid, project_id)
         return True
 
     # Ideas

@@ -35,6 +35,16 @@ COUNTING_STATUSES = [
     ProjectStatus.LAUNCHED,
 ]
 NONCOUNTING_STATUSES = [ProjectStatus.KILLED, ProjectStatus.ARCHIVED]
+# Explicit closures that withdraw a project's tasks from daily surfaces AND
+# snapshot/clear their due dates (state-closure parking). STALLED is excluded on
+# purpose: it is auto-detected by the cron, so it only filters daily views and
+# must never silently mutate task data. Revive/resume does NOT auto-restore the
+# dates (suggest, not auto) — the snapshot stays as the reschedule hint.
+PARKING_STATUSES = [
+    ProjectStatus.PAUSED,
+    ProjectStatus.KILLED,
+    ProjectStatus.ARCHIVED,
+]
 
 
 def list_projects(
@@ -211,6 +221,7 @@ def _apply_status_transition(
     """Validate required closure notes, enforce the cap when re-entering a
     counting state (e.g. revive), set timestamps, and assign the new status.
     The project is NOT saved here — the caller saves once."""
+    previous_status = project.status
     if project.status in NONCOUNTING_STATUSES and new_status in COUNTING_STATUSES:
         # Revive / unarchive into a state that counts -> revalidate the plan cap.
         check_entity_quota(user_id, "projects")
@@ -254,6 +265,16 @@ def _apply_status_transition(
         project.killed_at = None
 
     project.status = new_status
+
+    # State-closure parking: entering a closed state snapshots + clears its
+    # tasks' due dates so they leave the daily surfaces. Idempotent and only on
+    # the live -> closed edge (paused -> killed keeps the existing snapshots).
+    # Revive (closed -> live) intentionally does NOT auto-restore: the snapshot
+    # remains as a reschedule suggestion surfaced by the revive/welcome UI.
+    if new_status in PARKING_STATUSES and previous_status not in PARKING_STATUSES:
+        from .tasks import park_project_tasks  # local import avoids import cycle
+
+        park_project_tasks(user_id, project.id)
 
 
 def _closure_note_summary(project: Project) -> str:

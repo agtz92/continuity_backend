@@ -119,6 +119,11 @@ def update_task(
     task.effort_hours = effort_hours
     task.due_time = due_time
     task.duration_minutes = duration_minutes
+    if due_date is not None:
+        # A real reschedule supersedes any parked snapshot (state-closure):
+        # giving the task a date again consumes the "restore?" suggestion.
+        task.parked_due_date = None
+        task.parked_due_time = None
     if task.done and not task.completed_at:
         task.completed_at = timezone.now()
     if not task.done:
@@ -138,6 +143,76 @@ def update_task(
         )
     bump_context_version(user_id)
     return task
+
+
+# ---------- State-closure parking (due-date snapshot) ----------
+
+
+def park_project_tasks(user_id: uuid.UUID, project_id) -> int:
+    """Snapshot + clear the due dates of a project's OPEN tasks when the project
+    enters a closed state (paused/killed/archived), so they stop surfacing in
+    daily views. Idempotent: only tasks that still carry a due_date are parked
+    (already-parked tasks have due_date=None and are skipped). Returns count.
+
+    NOTE (calendar integration, not yet built): we clear calendar_event_id here
+    so a parked task no longer maps to a pushed event. When the Google/iCloud
+    push lands, park/restore must also delete/recreate the remote event.
+    """
+    qs = Task.objects.filter(
+        user_id=user_id,
+        project_id=project_id,
+        done=False,
+        due_date__isnull=False,
+    )
+    parked = 0
+    for task in qs:
+        task.parked_due_date = task.due_date
+        task.parked_due_time = task.due_time
+        task.due_date = None
+        task.due_time = None
+        task.calendar_event_id = ""
+        task.save()
+        parked += 1
+    if parked:
+        bump_context_version(user_id)
+    return parked
+
+
+def restore_parked_due_dates(user_id: uuid.UUID, project_id) -> int:
+    """User-initiated 'restore original dates' on revive: re-apply each parked
+    task's snapshot to its live due_date and clear the snapshot. Skips tasks the
+    user already rescheduled while parked (those have a due_date already).
+    Returns the number of tasks whose snapshot was consumed."""
+    qs = Task.objects.filter(
+        user_id=user_id,
+        project_id=project_id,
+        parked_due_date__isnull=False,
+    )
+    restored = 0
+    for task in qs:
+        if task.due_date is None:
+            task.due_date = task.parked_due_date
+            task.due_time = task.parked_due_time
+        task.parked_due_date = None
+        task.parked_due_time = None
+        task.save()
+        restored += 1
+    if restored:
+        bump_context_version(user_id)
+    return restored
+
+
+def dismiss_parked_due_dates(user_id: uuid.UUID, project_id) -> int:
+    """User-initiated 'keep unscheduled' on revive: drop the reschedule
+    suggestion, leaving the tasks without a due date. Returns count cleared."""
+    updated = Task.objects.filter(
+        user_id=user_id,
+        project_id=project_id,
+        parked_due_date__isnull=False,
+    ).update(parked_due_date=None, parked_due_time=None)
+    if updated:
+        bump_context_version(user_id)
+    return updated
 
 
 def toggle_task(user_id: uuid.UUID, task_id) -> Task:

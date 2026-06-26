@@ -14,6 +14,7 @@ import uuid
 from typing import Optional
 
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 from django.utils import timezone
 
 from ..models import (
@@ -23,6 +24,7 @@ from ..models import (
     Routine,
     RoutineOccurrence,
 )
+from .projects import DAILY_VIEW_PROJECT_STATUSES
 from ..quotas import check_entity_quota
 from ._cache import bump_context_version
 from ._common import NotFoundError
@@ -341,10 +343,18 @@ def list_due_in_range(
     user_id: uuid.UUID, from_date: dt.date, to_date: dt.date
 ) -> list[dict]:
     """For each active routine, list its due dates in the range and pair
-    them with the matching RoutineOccurrence (if already completed)."""
+    them with the matching RoutineOccurrence (if already completed).
+
+    Routines tied to a closed project (paused/stalled/killed/archived) are
+    excluded — only routines with no project or a live one surface in daily
+    views, mirroring the task filter (DAILY_VIEW_PROJECT_STATUSES). Their
+    recurrence rule is preserved, so they resume on revive automatically."""
     routines = [
         r
-        for r in Routine.objects.filter(user_id=user_id, archived=False)
+        for r in Routine.objects.filter(user_id=user_id, archived=False).filter(
+            Q(project__isnull=True)
+            | Q(project__status__in=DAILY_VIEW_PROJECT_STATUSES)
+        )
     ]
     if not routines:
         return []

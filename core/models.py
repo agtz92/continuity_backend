@@ -130,6 +130,14 @@ class Task(TimestampedModel):
     due_time = models.TimeField(null=True, blank=True)
     duration_minutes = models.PositiveSmallIntegerField(null=True, blank=True)
     calendar_event_id = models.CharField(max_length=256, blank=True, default="")
+    # State-closure parking: when a task's project is paused/killed/archived its
+    # due date is snapshotted here and due_date/due_time are cleared, so the task
+    # stops surfacing in daily views (Today / Tasks). On revive the UI offers to
+    # restore from these columns (suggest, not auto). Cleared once the task is
+    # rescheduled (a real due_date supersedes the snapshot) or the suggestion is
+    # dismissed. See core/services/tasks.py park/restore helpers.
+    parked_due_date = models.DateTimeField(null=True, blank=True)
+    parked_due_time = models.TimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["done", "due_date", "-created"]
