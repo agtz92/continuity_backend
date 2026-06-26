@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 from decouple import config, Csv
 import dj_database_url
@@ -102,14 +103,28 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "continuity.wsgi.application"
 
-_DATABASE_URL = config("DATABASE_URL", default="sqlite:///db.sqlite3")
-DATABASES = {
-    "default": dj_database_url.config(
-        default=_DATABASE_URL,
-        conn_max_age=600,
-        ssl_require=_DATABASE_URL.startswith("postgres") and not DEBUG,
-    )
-}
+# Tests must NEVER touch the real (Supabase) database. conftest.py sets an
+# in-memory SQLite DATABASE_URL, but pytest-django imports this settings module
+# before the project conftest runs, so that env override can lose the race and
+# DATABASES would get built against Postgres. Detecting pytest here pins SQLite
+# regardless of import order — `pytest` is only in sys.modules during test runs
+# (never under gunicorn/runserver in production).
+if "pytest" in sys.modules:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": ":memory:",
+        }
+    }
+else:
+    _DATABASE_URL = config("DATABASE_URL", default="sqlite:///db.sqlite3")
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=_DATABASE_URL,
+            conn_max_age=600,
+            ssl_require=_DATABASE_URL.startswith("postgres") and not DEBUG,
+        )
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},

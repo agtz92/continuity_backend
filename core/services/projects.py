@@ -7,6 +7,8 @@ import uuid
 from typing import Optional
 
 from django.core.exceptions import ValidationError
+from django.db import transaction
+from django.db.models import Max
 from django.utils import timezone
 
 from ..models import ActivityKind, Category, Project, ProjectStatus
@@ -98,6 +100,10 @@ def create_project(
     category = None
     if category_id:
         category = Category.objects.filter(pk=category_id, user_id=user_id).first()
+    # New projects land at the end of the manual order ("Mi orden").
+    next_position = (
+        Project.objects.filter(user_id=user_id).aggregate(m=Max("position"))["m"] or 0
+    ) + 1
     project = Project.objects.create(
         user_id=user_id,
         name=name,
@@ -108,6 +114,7 @@ def create_project(
         priority=priority or "medium",
         category=category,
         due_date=due_date,
+        position=next_position,
     )
     log_event(
         user_id,
@@ -314,6 +321,22 @@ def delete_project(user_id: uuid.UUID, project_id) -> None:
             project_id=project.id,
         )
     _bump_context_version(user_id)
+
+
+def reorder_projects(user_id: uuid.UUID, ordered_ids: list) -> list[Project]:
+    """Persist the manual order ("Mi orden"). Assigns dense 0..N `position`
+    values following `ordered_ids`; ids not owned by the user are ignored, and
+    any owned project missing from the list keeps its previous position. Does
+    NOT touch `last_activity` — reordering is not "activity" on a project."""
+    projects = {str(p.id): p for p in Project.objects.filter(user_id=user_id)}
+    with transaction.atomic():
+        for idx, pid in enumerate(ordered_ids):
+            p = projects.get(str(pid))
+            if p is not None and p.position != idx:
+                p.position = idx
+                p.save(update_fields=["position"])
+    _bump_context_version(user_id)
+    return list(Project.objects.filter(user_id=user_id))
 
 
 def touch_last_activity(user_id: uuid.UUID, project_id, *, when: Optional[dt.datetime] = None) -> None:

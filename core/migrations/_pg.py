@@ -17,10 +17,15 @@ def postgres_only(sql, reverse_sql=""):
 
     def _forward(apps, schema_editor):
         if schema_editor.connection.vendor == "postgresql":
-            schema_editor.execute(sql)
+            # params=None makes the PostgreSQL schema editor skip client-side
+            # mogrify, so literal '%' in the DDL (e.g. plpgsql format()'s %I
+            # identifier placeholders) is passed straight through. Otherwise
+            # psycopg3 parses '%I' as a bind placeholder and raises
+            # ProgrammingError on a fresh migrate.
+            schema_editor.execute(sql, None)
 
     def _reverse(apps, schema_editor):
         if reverse_sql and schema_editor.connection.vendor == "postgresql":
-            schema_editor.execute(reverse_sql)
+            schema_editor.execute(reverse_sql, None)
 
     return migrations.RunPython(_forward, _reverse)

@@ -141,6 +141,7 @@ class Project:
     killed_at: Optional[dt.datetime] = None
     killed_ai_reflection: Optional[str] = None
     stalled_at: Optional[dt.datetime] = None
+    position: int = 0
 
     @classmethod
     def from_model(cls, m: ProjectModel) -> "Project":
@@ -166,6 +167,7 @@ class Project:
             killed_at=m.killed_at,
             killed_ai_reflection=m.killed_ai_reflection,
             stalled_at=m.stalled_at,
+            position=m.position,
         )
 
 
@@ -1179,6 +1181,14 @@ class Mutation:
         except ValidationError as e:
             raise _closure_error(e)
         return Project.from_model(m)
+
+    @strawberry.mutation
+    def reorder_projects(
+        self, info: Info, ordered_ids: List[strawberry.ID]
+    ) -> List[Project]:
+        uid = _user_id(info)
+        rows = projects_svc.reorder_projects(uid, list(ordered_ids))
+        return [Project.from_model(m) for m in rows]
 
     # Project notes (multiple per project)
     @strawberry.mutation

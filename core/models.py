@@ -97,6 +97,11 @@ class Project(TimestampedModel):
     # Stalled auto-detection (cron, 14 days; only active projects).
     stalled_at = models.DateTimeField(null=True, blank=True)
 
+    # Manual ordering ("Mi orden" sort mode). 0 by default; the frontend's
+    # reorder action assigns dense 0..N positions. Not used by Meta.ordering —
+    # the clients sort client-side and only read `position` for the manual mode.
+    position = models.PositiveIntegerField(default=0)
+
     class Meta:
         ordering = ["-last_activity"]
         indexes = [
