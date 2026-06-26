@@ -35,6 +35,17 @@ ANALYTICS_QUERY = """
                 tasksWithEffortPct
                 effortHoursByProject { projectId name hours }
             }
+            loop {
+                messagesSent
+                messagesDeltaVsPrev
+                conversations
+                actionsTaken
+                activeDays
+                deepMessages
+                connectorInteractions
+                daily { day messages deepMessages }
+                topTools { tool count }
+            }
         }
     }
 """
@@ -436,3 +447,76 @@ def test_effort_stats_sum_and_coverage(
     by_proj = eff["effortHoursByProject"]
     assert len(by_proj) == 1
     assert by_proj[0]["hours"] == 3.5
+
+
+# ---------- Loop (AI assistant) usage
+
+
+@pytest.mark.django_db
+def test_loop_stats_counts_messages_actions_and_surfaces(
+    execute_query, user_a
+):
+    from core.assistant.models import Conversation, Message, UsageDay
+    from core.models import InteractionDay, InteractionSource
+
+    today = timezone.now().date()
+    # In-app messages over two days (one with a deep/Sonnet message).
+    UsageDay.objects.create(
+        user_id=user_a, date=today, messages_sent=3, deep_messages=1
+    )
+    UsageDay.objects.create(
+        user_id=user_a,
+        date=today - dt.timedelta(days=1),
+        messages_sent=2,
+        deep_messages=0,
+    )
+    # A conversation with one assistant turn carrying two tool_use blocks.
+    conv = Conversation.objects.create(user_id=user_a, title="c")
+    Message.objects.create(
+        conversation=conv,
+        role="assistant",
+        content=[
+            {"type": "text", "text": "ok"},
+            {"type": "tool_use", "id": "1", "name": "create_task", "input": {}},
+            {"type": "tool_use", "id": "2", "name": "create_task", "input": {}},
+        ],
+    )
+    # Connector (Claude.ai) interactions live in InteractionDay.
+    InteractionDay.objects.create(
+        user_id=user_a, date=today, source=InteractionSource.CONNECTOR, count=4
+    )
+    # A non-connector source must NOT be counted as Loop connector usage.
+    InteractionDay.objects.create(
+        user_id=user_a, date=today, source=InteractionSource.WEB, count=9
+    )
+
+    res = execute_query(
+        ANALYTICS_QUERY, user_id=user_a,
+        variable_values={"range": "LAST_30_DAYS"},
+    )
+    assert res.errors is None
+    loop = res.data["analytics"]["loop"]
+    assert loop["messagesSent"] == 5
+    assert loop["deepMessages"] == 1
+    assert loop["activeDays"] == 2
+    assert loop["conversations"] == 1
+    assert loop["actionsTaken"] == 2
+    assert loop["connectorInteractions"] == 4
+    assert loop["topTools"] == [{"tool": "create_task", "count": 2}]
+    # Daily series is gap-filled across the window and sums to messagesSent.
+    assert sum(p["messages"] for p in loop["daily"]) == 5
+
+
+@pytest.mark.django_db
+def test_loop_stats_isolated_per_user(execute_query, user_a, user_b):
+    from core.assistant.models import UsageDay
+
+    today = timezone.now().date()
+    UsageDay.objects.create(user_id=user_a, date=today, messages_sent=7)
+    UsageDay.objects.create(user_id=user_b, date=today, messages_sent=99)
+
+    res = execute_query(
+        ANALYTICS_QUERY, user_id=user_a,
+        variable_values={"range": "LAST_30_DAYS"},
+    )
+    assert res.data["analytics"]["loop"]["messagesSent"] == 7

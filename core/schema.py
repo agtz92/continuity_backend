@@ -823,6 +823,32 @@ class EffortStats:
 
 
 @strawberry.type
+class LoopToolRow:
+    tool: str
+    count: int
+
+
+@strawberry.type
+class LoopDailyPoint:
+    day: dt.date
+    messages: int
+    deep_messages: int
+
+
+@strawberry.type
+class LoopStats:
+    messages_sent: int
+    messages_delta_vs_prev: int
+    conversations: int
+    actions_taken: int
+    active_days: int
+    deep_messages: int
+    connector_interactions: int
+    daily: List[LoopDailyPoint]
+    top_tools: List[LoopToolRow]
+
+
+@strawberry.type
 class Analytics:
     range: AnalyticsRange
     range_start: Optional[dt.datetime]
@@ -839,6 +865,7 @@ class Analytics:
     stale_ideas: List[StaleIdeaRow]
     idea_funnel: IdeaFunnel
     effort: EffortStats
+    loop: LoopStats
 
 
 @strawberry.type
@@ -958,6 +985,27 @@ def _to_analytics_gql(r: analytics_mod.AnalyticsResult) -> Analytics:
                     hours=e.hours,
                 )
                 for e in r.effort.effort_hours_by_project
+            ],
+        ),
+        loop=LoopStats(
+            messages_sent=r.loop.messages_sent,
+            messages_delta_vs_prev=r.loop.messages_delta_vs_prev,
+            conversations=r.loop.conversations,
+            actions_taken=r.loop.actions_taken,
+            active_days=r.loop.active_days,
+            deep_messages=r.loop.deep_messages,
+            connector_interactions=r.loop.connector_interactions,
+            daily=[
+                LoopDailyPoint(
+                    day=p.day,
+                    messages=p.messages,
+                    deep_messages=p.deep_messages,
+                )
+                for p in r.loop.daily
+            ],
+            top_tools=[
+                LoopToolRow(tool=tr.tool, count=tr.count)
+                for tr in r.loop.top_tools
             ],
         ),
     )

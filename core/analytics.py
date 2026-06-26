@@ -29,6 +29,7 @@ STALE_IDEA_DAYS = 30
 DUE_SOON_DAYS = 7
 TOP_N_PROJECTS = 5
 TOP_N_EFFORT_PROJECTS = 5
+TOP_N_LOOP_TOOLS = 8
 SLEEPING_LIMIT = 20
 STALE_LIMIT = 20
 
@@ -163,6 +164,40 @@ class EffortStats:
 
 
 @dataclass
+class LoopToolRow:
+    tool: str
+    count: int
+
+
+@dataclass
+class LoopDailyPoint:
+    day: dt.date
+    messages: int
+    deep_messages: int
+
+
+@dataclass
+class LoopStats:
+    """Usage of the AI assistant ("Loop") for one user over the range.
+
+    Counts only — never message content. Two surfaces are tracked:
+    in-app chat (``UsageDay`` / ``Message``) and the Claude.ai connector
+    (``InteractionDay`` source=connector). ``actions_taken`` is the number
+    of tool_use blocks Loop emitted in-app (what it *did*, not just chatted).
+    """
+
+    messages_sent: int
+    messages_delta_vs_prev: int
+    conversations: int
+    actions_taken: int
+    active_days: int
+    deep_messages: int
+    connector_interactions: int
+    daily: list[LoopDailyPoint] = field(default_factory=list)
+    top_tools: list[LoopToolRow] = field(default_factory=list)
+
+
+@dataclass
 class AnalyticsResult:
     range: AnalyticsRange
     range_start: Optional[dt.datetime]
@@ -179,6 +214,7 @@ class AnalyticsResult:
     stale_ideas: list[StaleIdeaRow]
     idea_funnel: IdeaFunnel
     effort: EffortStats
+    loop: LoopStats
 
 
 # ---------- Pure helpers
@@ -226,6 +262,7 @@ def compute_analytics(user_id: uuid.UUID, rng: AnalyticsRange) -> AnalyticsResul
     stale_ideas = _stale_ideas(ideas_qs, now)
     idea_funnel = _idea_funnel(ideas_qs, projects_qs, start, end)
     effort = _effort(tasks_qs, ranged_tasks_done, projects_qs, start, end)
+    loop = _loop_stats(user_id, start, end, prev_start, prev_end)
 
     return AnalyticsResult(
         range=rng,
@@ -243,6 +280,7 @@ def compute_analytics(user_id: uuid.UUID, rng: AnalyticsRange) -> AnalyticsResul
         stale_ideas=stale_ideas,
         idea_funnel=idea_funnel,
         effort=effort,
+        loop=loop,
     )
 
 
@@ -590,4 +628,139 @@ def _effort(
         effort_hours_total=round(float(total), 2),
         tasks_with_effort_pct=round(coverage, 4),
         effort_hours_by_project=by_project,
+    )
+
+
+def _loop_daily_series(
+    by_day: dict[dt.date, dict],
+    start: Optional[dt.datetime],
+    end: dt.datetime,
+) -> list[LoopDailyPoint]:
+    """Gap-filled per-day Loop message series (mirrors `_activity_series`)."""
+    if start is None:
+        if not by_day:
+            return []
+        all_days = sorted(by_day.keys())
+        first = all_days[0]
+        last = end.date()
+        if (last - first).days > 365:
+            first = last - dt.timedelta(days=365)
+        cursor = first
+    else:
+        cursor = start.date()
+
+    points: list[LoopDailyPoint] = []
+    end_date = end.date()
+    while cursor <= end_date:
+        row = by_day.get(cursor)
+        points.append(
+            LoopDailyPoint(
+                day=cursor,
+                messages=int(row["m"] or 0) if row else 0,
+                deep_messages=int(row["d"] or 0) if row else 0,
+            )
+        )
+        cursor += dt.timedelta(days=1)
+    return points
+
+
+def _loop_stats(
+    user_id: uuid.UUID,
+    start: Optional[dt.datetime],
+    end: dt.datetime,
+    prev_start: Optional[dt.datetime],
+    prev_end: Optional[dt.datetime],
+) -> LoopStats:
+    """Aggregate the user's AI-assistant ("Loop") usage for the range.
+
+    Counts only — privacy by design. Reads three sources, all user-scoped:
+    `UsageDay` (in-app messages per day), `Message` (tool_use blocks =
+    actions Loop took), and `InteractionDay` source=connector (Claude.ai).
+    Imports are local to avoid a cross-app import at module load.
+    """
+    # Local imports: assistant is a sibling app; keep load order simple.
+    from .assistant.models import Conversation, Message, UsageDay
+    from .models import InteractionDay, InteractionSource
+
+    # ---- In-app messages (UsageDay, per day) ----
+    usage_qs = UsageDay.objects.filter(user_id=user_id)
+    if start is not None:
+        ranged_usage = usage_qs.filter(date__gte=start.date(), date__lte=end.date())
+    else:
+        ranged_usage = usage_qs
+
+    agg = ranged_usage.aggregate(m=Sum("messages_sent"), d=Sum("deep_messages"))
+    messages_sent = int(agg["m"] or 0)
+    deep_messages = int(agg["d"] or 0)
+    active_days = ranged_usage.filter(messages_sent__gt=0).count()
+
+    messages_delta = 0
+    if prev_start is not None and prev_end is not None:
+        prev_m = (
+            usage_qs.filter(
+                date__gte=prev_start.date(), date__lte=prev_end.date()
+            ).aggregate(m=Sum("messages_sent"))["m"]
+            or 0
+        )
+        messages_delta = messages_sent - int(prev_m)
+
+    # ---- Conversations touched in the range ----
+    conv_qs = Conversation.objects.filter(user_id=user_id)
+    if start is not None:
+        conversations = conv_qs.filter(
+            updated_at__gte=start, updated_at__lt=end
+        ).count()
+    else:
+        conversations = conv_qs.count()
+
+    # ---- Actions Loop took: tool_use blocks in assistant messages ----
+    msg_qs = Message.objects.filter(
+        conversation__user_id=user_id, role="assistant"
+    )
+    if start is not None:
+        msg_qs = msg_qs.filter(created__gte=start, created__lt=end)
+    tool_counts: dict[str, int] = {}
+    actions_taken = 0
+    for content in msg_qs.values_list("content", flat=True):
+        if not isinstance(content, list):
+            continue
+        for block in content:
+            if isinstance(block, dict) and block.get("type") == "tool_use":
+                actions_taken += 1
+                name = block.get("name") or "unknown"
+                tool_counts[name] = tool_counts.get(name, 0) + 1
+    top_tools = [
+        LoopToolRow(tool=name, count=c)
+        for name, c in sorted(
+            tool_counts.items(), key=lambda kv: kv[1], reverse=True
+        )[:TOP_N_LOOP_TOOLS]
+    ]
+
+    # ---- Connector interactions (Claude.ai MCP) ----
+    conn_qs = InteractionDay.objects.filter(
+        user_id=user_id, source=InteractionSource.CONNECTOR
+    )
+    if start is not None:
+        conn_qs = conn_qs.filter(date__gte=start.date(), date__lte=end.date())
+    connector_interactions = int(conn_qs.aggregate(s=Sum("count"))["s"] or 0)
+
+    # ---- Daily message series (gap-filled) ----
+    by_day = {
+        r["date"]: r
+        for r in ranged_usage.values("date").annotate(
+            m=Sum("messages_sent"), d=Sum("deep_messages")
+        )
+    }
+    daily = _loop_daily_series(by_day, start, end)
+
+    return LoopStats(
+        messages_sent=messages_sent,
+        messages_delta_vs_prev=messages_delta,
+        conversations=conversations,
+        actions_taken=actions_taken,
+        active_days=active_days,
+        deep_messages=deep_messages,
+        connector_interactions=connector_interactions,
+        daily=daily,
+        top_tools=top_tools,
     )
