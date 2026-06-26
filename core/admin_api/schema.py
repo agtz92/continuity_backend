@@ -340,6 +340,19 @@ class AdminAuditPage:
 
 
 def _parse_dt(value: Optional[str]) -> Optional[dt.datetime]:
+    """Parsea timestamps ISO 8601 que llegan de Supabase auth.
+
+    Supabase devuelve las fechas como texto (created_at, last_sign_in_at, etc.),
+    a veces con sufijo ``Z`` que ``fromisoformat`` no acepta antes de 3.11; por
+    eso lo normalizamos a ``+00:00``. Devuelve ``None`` ante valor vacío o mal
+    formado para que un timestamp corrupto nunca tumbe el resolver.
+
+    Args:
+        value: Cadena de fecha ISO 8601 de Supabase, o ``None``.
+
+    Returns:
+        El ``datetime`` parseado, o ``None`` si está vacío o es inválido.
+    """
     if not value:
         return None
     try:
@@ -350,7 +363,20 @@ def _parse_dt(value: Optional[str]) -> Optional[dt.datetime]:
         return None
 
 
+# FIXME: capas — ORM directo en helper de resolver; mover a admin_api/services/user_stats.py
 def _build_counts_for(user_id: uuid.UUID) -> UserCounts:
+    """Cuenta los objetos de producto de un solo usuario (vista de detalle).
+
+    Variante por-usuario que emite una query ``COUNT`` por entidad. Se usa en
+    los caminos de un único usuario (``adminUser``, mutaciones que devuelven el
+    summary); para listas usar ``_bulk_counts`` y evitar el N+1.
+
+    Args:
+        user_id: UUID del usuario a contar.
+
+    Returns:
+        ``UserCounts`` con proyectos, tareas abiertas/hechas, ideas y notas.
+    """
     projects = ProjectModel.objects.filter(user_id=user_id).count()
     tasks_open = TaskModel.objects.filter(user_id=user_id, done=False).count()
     tasks_done = TaskModel.objects.filter(user_id=user_id, done=True).count()
@@ -365,7 +391,21 @@ def _build_counts_for(user_id: uuid.UUID) -> UserCounts:
     )
 
 
+# FIXME: capas — ORM directo en helper de resolver; mover a admin_api/services/user_stats.py
 def _bulk_counts(user_ids: list[uuid.UUID]) -> dict[uuid.UUID, UserCounts]:
+    """Cuenta objetos de producto de muchos usuarios de una vez (lista admin).
+
+    Versión bulk de ``_build_counts_for``: agrupa con ``annotate(Count)`` para
+    resolver cada entidad en UNA query en vez de una por usuario, lo que evita
+    el N+1 al pintar la tabla paginada de ``adminUsers``.
+
+    Args:
+        user_ids: UUIDs de la página actual de usuarios.
+
+    Returns:
+        Mapa ``user_id -> UserCounts``; los usuarios sin filas en una entidad
+        quedan en 0 vía ``.get(uid, 0)``. Vacío si ``user_ids`` está vacío.
+    """
     if not user_ids:
         return {}
     projects = dict(
@@ -411,6 +451,18 @@ def _bulk_counts(user_ids: list[uuid.UUID]) -> dict[uuid.UUID, UserCounts]:
 
 
 def _last_activity_map(user_ids: list[uuid.UUID]) -> dict[uuid.UUID, dt.datetime]:
+    """Última actividad por usuario, bulk, para la lista admin.
+
+    Resuelve el ``MAX(created)`` de Activity de todos los usuarios de la página
+    en UNA query (mismo motivo que ``_bulk_counts``: evitar N+1).
+
+    Args:
+        user_ids: UUIDs de la página actual.
+
+    Returns:
+        Mapa ``user_id -> datetime`` de la actividad más reciente. Los usuarios
+        sin actividad se omiten (no aparecen en el dict).
+    """
     if not user_ids:
         return {}
     rows = (
@@ -429,6 +481,24 @@ def _build_summary(
     last_activity: Optional[dt.datetime],
     interactions_30d: int = 0,
 ) -> AdminUserSummary:
+    """Ensambla el ``AdminUserSummary`` cruzando Supabase auth y el perfil local.
+
+    La identidad (email, fechas de alta/login) vive en Supabase mientras que el
+    plan/flags viven en ``AccountProfile``; este helper combina ambas fuentes y
+    asume defaults de cuenta gratuita (plan FREE, flags ``False``) cuando el
+    usuario aún no tiene perfil local. Counts/last_activity/interactions se pasan
+    ya calculados (en bulk) para no re-consultar por usuario.
+
+    Args:
+        s_user: Usuario de Supabase auth (fuente de identidad).
+        profile: ``AccountProfile`` local, o ``None`` si no existe todavía.
+        counts: Conteos de objetos ya resueltos para este usuario.
+        last_activity: Timestamp de última actividad, o ``None``.
+        interactions_30d: Total de interacciones de 30 días (todos los canales).
+
+    Returns:
+        El ``AdminUserSummary`` listo para la respuesta GraphQL.
+    """
     return AdminUserSummary(
         user_id=strawberry.ID(str(s_user.id)),
         email=s_user.email,
@@ -450,6 +520,21 @@ def _build_summary(
 class AdminQuery:
     @strawberry.field
     def me(self, info: Info) -> Me:
+        """Devuelve la identidad del solicitante y si es admin.
+
+        Es el único campo de este schema que NO exige ser admin: el frontend lo
+        consulta primero para decidir si pinta el panel de administración. Por
+        eso solo requiere estar autenticado.
+
+        Args:
+            info: Contexto GraphQL; debe traer ``user_id`` (JWT de Supabase).
+
+        Returns:
+            ``Me`` con el ``user_id`` y el flag ``is_admin``.
+
+        Raises:
+            GraphQLError: ``UNAUTHENTICATED`` si no hay usuario en el contexto.
+        """
         user_id = getattr(info.context, "user_id", None)
         if not user_id:
             raise GraphQLError(
@@ -472,7 +557,33 @@ class AdminQuery:
         plan: Optional[str] = None,
         admins_only: bool = False,
     ) -> AdminUserPage:
+        """Lista paginada de usuarios para el panel admin.
+
+        Pagina sobre Supabase auth (fuente de verdad de usuarios) y enriquece
+        cada fila con plan/flags del perfil local y conteos/actividad/interac-
+        ciones resueltos en bulk para evitar N+1. Los filtros ``email_contains``,
+        ``plan`` y ``admins_only`` se aplican EN MEMORIA sobre la página ya
+        traída: Supabase no ofrece búsqueda bulk por esos campos, así que el
+        filtrado es local a la página (tradeoff conocido, mismo patrón que
+        ``adminSubscribers``).
+
+        Args:
+            info: Contexto GraphQL; debe ser admin.
+            page: Página 1-based.
+            per_page: Tamaño de página (acotado a 1..100).
+            email_contains: Subcadena case-insensitive para filtrar por email.
+            plan: Filtra por plan exacto (los sin perfil cuentan como FREE).
+            admins_only: Si ``True``, solo usuarios con perfil admin.
+
+        Returns:
+            ``AdminUserPage`` con los summaries y metadatos de paginación.
+
+        Raises:
+            GraphQLError: si el solicitante no es admin (vía ``_admin_user_id``)
+                o ``SUPABASE_ADMIN_ERROR`` si falla la API admin de Supabase.
+        """
         _admin_user_id(info)
+        # NOTE: paginación duplicada — extraer paginate() + constantes
         per_page = max(1, min(per_page, 100))
         page = max(1, page)
 
@@ -530,6 +641,8 @@ class AdminQuery:
             for u in s_users
         ]
 
+        # has_next se decide con la página CRUDA de Supabase (antes de filtrar en
+        # memoria): si Supabase devolvió la página llena asumimos que hay más.
         has_next = len(page_result.users) >= per_page
 
         return AdminUserPage(
@@ -541,6 +654,27 @@ class AdminQuery:
 
     @strawberry.field(name="adminUser")
     def admin_user(self, info: Info, user_id: strawberry.ID) -> AdminUserDetail:
+        """Ficha completa de un usuario para el detalle admin.
+
+        Reúne en una sola respuesta todo lo disperso de un usuario: identidad de
+        Supabase auth, plan/flags/datos de Stripe del perfil local, conteos de
+        objetos, uso de los últimos 30 días, preferencias de notificaciones e
+        interacciones desglosadas por canal. Más pesado que el summary de lista,
+        por eso es un resolver de un solo usuario.
+
+        Args:
+            info: Contexto GraphQL; debe ser admin.
+            user_id: ID del usuario a inspeccionar.
+
+        Returns:
+            ``AdminUserDetail`` con todas las secciones de la ficha.
+
+        Raises:
+            GraphQLError: ``BAD_INPUT`` si el ``user_id`` no es UUID válido;
+                ``SUPABASE_ADMIN_ERROR`` si falla la API admin de Supabase;
+                ``NOT_FOUND`` si el usuario no existe en Supabase; o el error de
+                ``_admin_user_id`` si el solicitante no es admin.
+        """
         _admin_user_id(info)
         try:
             uid = uuid.UUID(str(user_id))
@@ -649,7 +783,30 @@ class AdminQuery:
         kind: Optional[str] = None,
         user_id: Optional[strawberry.ID] = None,
     ) -> AdminNotificationJobPage:
+        """Cola de notificaciones paginada y filtrable para depurar envíos.
+
+        Permite al admin inspeccionar los jobs de la tabla ``Notification`` (su
+        estado, intentos, error, etc.) filtrando por estado/canal/tipo/usuario.
+        Pide ``per_page + 1`` filas para saber si hay página siguiente sin un
+        ``COUNT`` extra.
+
+        Args:
+            info: Contexto GraphQL; debe ser admin.
+            page: Página 1-based.
+            per_page: Tamaño de página (acotado a 1..200).
+            status: Filtra por estado (se normaliza a minúsculas).
+            channel: Filtra por canal exacto.
+            kind: Filtra por tipo exacto.
+            user_id: Filtra por destinatario.
+
+        Returns:
+            ``AdminNotificationJobPage`` con los jobs y paginación.
+
+        Raises:
+            GraphQLError: si el solicitante no es admin (vía ``_admin_user_id``).
+        """
         _admin_user_id(info)
+        # NOTE: paginación duplicada — extraer paginate() + constantes
         per_page = max(1, min(per_page, 200))
         page = max(1, page)
         offset = (page - 1) * per_page
@@ -691,11 +848,32 @@ class AdminQuery:
             has_next=has_next,
         )
 
+    # TODO: refactor — mover esta agregación (186 líneas, 5 niveles) a admin_api/services/stats.py (ver AUDITORIA_CODIGO.md)
     @strawberry.field(name="adminSystemStats")
     def admin_system_stats(self, info: Info) -> AdminSystemStats:
+        """Panel global de métricas del sistema (la "home" del admin).
+
+        Agrega de golpe todas las cifras del dashboard: usuarios y planes,
+        engagement (DAU/WAU/MAU + series diarias), objetos de producto, CMS y
+        salud de la cola de notificaciones. Es deliberadamente caro y se sirve a
+        una sola pantalla; los usuarios salen de Supabase auth (fuente real) y el
+        resto del ORM local. Si Supabase falla se degrada a una lista vacía en
+        vez de romper toda la query.
+
+        Args:
+            info: Contexto GraphQL; debe ser admin.
+
+        Returns:
+            ``AdminSystemStats`` con todas las secciones del panel.
+
+        Raises:
+            GraphQLError: si el solicitante no es admin (vía ``_admin_user_id``).
+                Un fallo de Supabase NO lanza: se loguea y degrada.
+        """
         _admin_user_id(info)
         now = timezone.now()
         today = now.date()
+        # Ventanas de engagement: DAU/WAU/MAU = actividad en los últimos 1/7/30 días.
         d1 = now - dt.timedelta(days=1)
         d7 = now - dt.timedelta(days=7)
         d30 = now - dt.timedelta(days=30)
@@ -772,6 +950,7 @@ class AdminQuery:
         ]
 
         # --- Engagement ---------------------------------------------------
+        # DAU/WAU/MAU = usuarios DISTINTOS con actividad en la ventana 1/7/30 días.
         dau = (
             ActivityModel.objects.filter(created__gte=d1)
             .values("user_id")
@@ -791,7 +970,8 @@ class AdminQuery:
             .count()
         )
 
-        # DAU per day for the last 30 days.
+        # DAU per day for the last 30 days. Se usa un set por día para deduplicar
+        # usuarios en Python (un solo recorrido) en lugar de 30 queries distinct.
         activity_buckets: dict[dt.date, set[uuid.UUID]] = {
             day0 + dt.timedelta(days=i): set() for i in range(30)
         }
@@ -881,6 +1061,24 @@ class AdminQuery:
 
     @strawberry.field(name="adminBillingOverview")
     def admin_billing_overview(self, info: Info) -> AdminBillingOverview:
+        """Resumen de ingresos recurrentes y churn próxima.
+
+        Calcula MRR/ARR y el desglose por (plan, periodo) sumando el equivalente
+        mensual de cada suscripción de pago activa (excluye exentos y sin
+        ``stripe_subscription_id``). El ``price_id`` se colapsa en periodo vía
+        ``period_for_price`` para que la UI vea una matriz limpia de 4 filas. Los
+        emails de la churn próxima se traen en bloque (best-effort) y quedan ""
+        si Supabase falla, para no tumbar el panel.
+
+        Args:
+            info: Contexto GraphQL; debe ser admin.
+
+        Returns:
+            ``AdminBillingOverview`` con MRR/ARR, conteos y churn próxima.
+
+        Raises:
+            GraphQLError: si el solicitante no es admin (vía ``_admin_user_id``).
+        """
         _admin_user_id(info)
 
         from django.conf import settings as dj_settings
@@ -985,6 +1183,29 @@ class AdminQuery:
         email_contains: Optional[str] = None,
         include_exempt: bool = False,
     ) -> AdminSubscriberPage:
+        """Lista paginada de suscriptores de pago con filtros.
+
+        Pagina sobre ``AccountProfile`` (donde vive el estado de billing) y trae
+        los emails de la página en bloque desde Supabase. Filtros por plan y
+        periodo se hacen en SQL; el de email se aplica EN MEMORIA post-fetch
+        porque Supabase no expone búsqueda bulk por email (mismo tradeoff que
+        ``adminUsers``).
+
+        Args:
+            info: Contexto GraphQL; debe ser admin.
+            page: Página 1-based.
+            per_page: Tamaño de página (acotado a 1..200).
+            plan: Filtra por plan válido (se ignora si no es un Plan conocido).
+            period: ``"monthly"``/``"annual"``, mapeado a price_ids de settings.
+            email_contains: Subcadena case-insensitive (filtrado local).
+            include_exempt: Si ``True``, incluye exentos y sin suscripción.
+
+        Returns:
+            ``AdminSubscriberPage`` con las filas, paginación y total.
+
+        Raises:
+            GraphQLError: si el solicitante no es admin (vía ``_admin_user_id``).
+        """
         _admin_user_id(info)
 
         from core.billing.plans import (
@@ -992,6 +1213,7 @@ class AdminQuery:
             period_for_price,
         )
 
+        # NOTE: paginación duplicada — extraer paginate() + constantes
         per_page = max(1, min(per_page, 200))
         page = max(1, page)
 
@@ -1084,7 +1306,29 @@ class AdminQuery:
         action_contains: Optional[str] = None,
         target_user_id: Optional[strawberry.ID] = None,
     ) -> AdminAuditPage:
+        """Bitácora de auditoría admin, paginada y filtrable.
+
+        Expone las entradas de ``AdminAuditLog`` (qué admin hizo qué, sobre qué
+        objeto) para investigar acciones. El filtro por usuario objetivo cubre
+        tanto ``target_type="user"`` como ``"account_profile"`` porque distintas
+        acciones registran el mismo UUID bajo uno u otro tipo.
+
+        Args:
+            info: Contexto GraphQL; debe ser admin.
+            page: Página 1-based.
+            per_page: Tamaño de página (acotado a 1..200).
+            actor_user_id: Filtra por el admin que ejecutó la acción.
+            action_contains: Subcadena (icontains) sobre el nombre de acción.
+            target_user_id: Filtra por usuario objetivo (user o account_profile).
+
+        Returns:
+            ``AdminAuditPage`` con las entradas y paginación.
+
+        Raises:
+            GraphQLError: si el solicitante no es admin (vía ``_admin_user_id``).
+        """
         _admin_user_id(info)
+        # NOTE: paginación duplicada — extraer paginate() + constantes
         per_page = max(1, min(per_page, 200))
         page = max(1, page)
         offset = (page - 1) * per_page
@@ -1174,6 +1418,23 @@ class AdminMutation:
     def admin_revoke_mcp_connection(
         self, info: Info, user_id: strawberry.ID, client_id: str
     ) -> bool:
+        """Revoca una conexión MCP de un usuario (acción de admin).
+
+        Fuerza la desconexión de un cliente MCP por seguridad/soporte y deja
+        rastro en la bitácora de auditoría.
+
+        Args:
+            info: Contexto GraphQL; debe ser admin.
+            user_id: Dueño de la conexión a revocar.
+            client_id: Cliente MCP a desconectar.
+
+        Returns:
+            ``True`` si se revocó al menos una conexión.
+
+        Raises:
+            GraphQLError: ``BAD_INPUT`` si ``user_id`` no es UUID válido, o el
+                error de ``_admin_user_id`` si el solicitante no es admin.
+        """
         actor = _admin_user_id(info)
         import uuid as _uuid
 
@@ -1195,6 +1456,24 @@ class AdminMutation:
     def admin_set_user_plan(
         self, info: Info, user_id: strawberry.ID, plan: str
     ) -> AdminUserSummary:
+        """Cambia manualmente el plan de un usuario (override admin).
+
+        Permite forzar el plan sin pasar por Stripe (soporte, cortesías, etc.).
+        Crea el ``AccountProfile`` si no existe y audita el antes/después. NO
+        toca Stripe: solo el estado local del plan.
+
+        Args:
+            info: Contexto GraphQL; debe ser admin.
+            user_id: Usuario a modificar.
+            plan: Plan destino (validado contra el enum ``Plan``).
+
+        Returns:
+            El ``AdminUserSummary`` actualizado del usuario.
+
+        Raises:
+            GraphQLError: ``BAD_INPUT`` si el ``user_id`` no es UUID válido o el
+                plan no es válido; o el error de ``_admin_user_id`` si no es admin.
+        """
         actor = _admin_user_id(info)
         try:
             uid = uuid.UUID(str(user_id))
@@ -1256,6 +1535,24 @@ class AdminMutation:
     def admin_notification_job_retry(
         self, info: Info, id: strawberry.ID
     ) -> AdminNotificationJob:
+        """Re-encola un job de notificación fallido o saltado.
+
+        Lo devuelve a estado PENDING y limpia el error para que el worker lo
+        reintente. Solo aplica a jobs FAILED o SKIPPED: reintentar uno enviado o
+        pendiente no tiene sentido y se rechaza.
+
+        Args:
+            info: Contexto GraphQL; debe ser admin.
+            id: ID del job de notificación.
+
+        Returns:
+            El ``AdminNotificationJob`` ya en estado PENDING.
+
+        Raises:
+            GraphQLError: ``NOT_FOUND`` si el job no existe (o id inválido);
+                ``BAD_INPUT`` si el job no está en estado reintenta­ble; o el
+                error de ``_admin_user_id`` si el solicitante no es admin.
+        """
         actor = _admin_user_id(info)
         try:
             job = Notification.objects.get(id=uuid.UUID(str(id)))
@@ -1300,6 +1597,25 @@ class AdminMutation:
     def admin_set_user_is_admin(
         self, info: Info, user_id: strawberry.ID, is_admin: bool
     ) -> AdminUserSummary:
+        """Concede o revoca el rol de admin a un usuario.
+
+        Crea el perfil si hace falta y audita el cambio. Salvaguarda clave: un
+        admin no puede quitarse el rol a sí mismo, para no provocar un lockout
+        accidental (debe pedírselo a otro admin).
+
+        Args:
+            info: Contexto GraphQL; debe ser admin.
+            user_id: Usuario a modificar.
+            is_admin: Nuevo valor del flag.
+
+        Returns:
+            El ``AdminUserSummary`` actualizado.
+
+        Raises:
+            GraphQLError: ``BAD_INPUT`` si el ``user_id`` no es UUID válido o si
+                el actor intenta revocarse su propio admin; o el error de
+                ``_admin_user_id`` si el solicitante no es admin.
+        """
         actor = _admin_user_id(info)
         try:
             uid = uuid.UUID(str(user_id))
@@ -1360,6 +1676,24 @@ class AdminMutation:
     def admin_set_user_is_billing_exempt(
         self, info: Info, user_id: strawberry.ID, is_billing_exempt: bool
     ) -> AdminUserSummary:
+        """Marca o desmarca a un usuario como exento de cobro.
+
+        Controla ``is_billing_exempt`` (no se le cobra) de forma independiente
+        del plan y de la cohorte beta. Crea el perfil si no existe y audita el
+        cambio.
+
+        Args:
+            info: Contexto GraphQL; debe ser admin.
+            user_id: Usuario a modificar.
+            is_billing_exempt: Nuevo valor del flag.
+
+        Returns:
+            El ``AdminUserSummary`` actualizado.
+
+        Raises:
+            GraphQLError: ``BAD_INPUT`` si el ``user_id`` no es UUID válido; o el
+                error de ``_admin_user_id`` si el solicitante no es admin.
+        """
         actor = _admin_user_id(info)
         try:
             uid = uuid.UUID(str(user_id))

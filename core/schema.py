@@ -1,3 +1,20 @@
+"""Esquema GraphQL raíz de la app (Strawberry).
+
+Este módulo es la cara pública de la API autenticada: define los **tipos**
+GraphQL y sus `from_model` (proyección modelo Django -> tipo GraphQL), los
+**inputs** de mutación, y los resolvers de `Query`/`Mutation`.
+
+Principio de diseño: los resolvers son finos. Casi toda la lógica vive en
+`core/services/*`; aquí solo se traduce (auth -> `uid`, args -> kwargs del
+servicio, errores de dominio -> `GraphQLError` con `extensions.code`, y modelo
+-> tipo GraphQL). La excepción notable es `dashboard()`, que aún consulta varios
+modelos directamente para servir toda la pantalla inicial en un solo round-trip.
+
+Al final, los tipos de esta app y los de las sub-apps (notifications, admin,
+cms, billing, feedback, announcements) se fusionan con `merge_types()` en un
+único `schema` raíz.
+"""
+
 import uuid
 import datetime as dt
 from typing import Optional, List
@@ -71,6 +88,16 @@ AnalyticsRange = strawberry.enum(AnalyticsRangeEnum, name="AnalyticsRange")
 
 
 def _user_id(info: Info) -> uuid.UUID:
+    """Extrae el `user_id` autenticado del contexto o rechaza la petición.
+
+    Centraliza el gate de auth para que todo resolver empiece con un `uid`
+    fiable. El `user_id` lo inyecta el middleware de auth (Supabase JWT) en
+    `info.context`; su ausencia significa petición sin token válido.
+
+    Raises:
+        GraphQLError: con `extensions.code = "UNAUTHENTICATED"` si no hay
+            usuario en el contexto.
+    """
     user_id = getattr(info.context, "user_id", None)
     if not user_id:
         raise GraphQLError(
@@ -80,10 +107,22 @@ def _user_id(info: Info) -> uuid.UUID:
 
 
 def _not_found(label: str) -> GraphQLError:
+    """Traduce un `NotFoundError` de servicio a un error GraphQL uniforme.
+
+    Se centraliza para que el cliente reciba siempre el mismo
+    `extensions.code = "NOT_FOUND"` con independencia de la entidad. `label`
+    nombra la entidad solo para el mensaje legible.
+    """
     return GraphQLError(f"{label} not found", extensions={"code": "NOT_FOUND"})
 
 
 def _quota_error(e: EntityQuotaExceeded) -> GraphQLError:
+    """Traduce un tope de cuota a `GraphQLError` con los datos para la UI.
+
+    Expone en `extensions` el detalle accionable (qué cuota, uso actual, tope y
+    plan) para que el cliente pueda mostrar el paywall/upsell correcto sin tener
+    que parsear el mensaje.
+    """
     return GraphQLError(
         str(e),
         extensions={
@@ -97,6 +136,13 @@ def _quota_error(e: EntityQuotaExceeded) -> GraphQLError:
 
 
 def _closure_error(e: ValidationError) -> GraphQLError:
+    """Traduce el `ValidationError` de cierre de proyecto a `GraphQLError`.
+
+    Cambiar de estado a pausado/matado exige notas de cierre; cuando faltan, el
+    servicio levanta un `ValidationError` de Django. Aquí se aplana a un código
+    propio (`CLOSURE_NOTES_REQUIRED`) que la UI usa para abrir el modal de notas
+    en vez de tratarlo como error genérico.
+    """
     msg = "; ".join(e.messages) if hasattr(e, "messages") else str(e)
     return GraphQLError(msg, extensions={"code": "CLOSURE_NOTES_REQUIRED"})
 
@@ -232,6 +278,12 @@ class Task:
 
     @classmethod
     def from_model(cls, m: TaskModel, blockers: Optional[List["TaskBlocker"]] = None) -> "Task":
+        """Proyecta una tarea, recibiendo sus bloqueadores ya resueltos.
+
+        Los `blockers` se pasan explícitos (no se consultan aquí) para que el
+        dashboard pueda precargarlos en bloque y evitar un N+1; resolvers que no
+        los necesitan pasan `None` -> lista vacía.
+        """
         return cls(
             id=strawberry.ID(str(m.id)),
             title=m.title,
@@ -308,6 +360,13 @@ class QuickNote:
     def from_model(
         cls, m: QuickNoteModel, sections: Optional[List[NoteSectionModel]] = None
     ) -> "QuickNote":
+        """Proyecta una nota con sus secciones embebidas.
+
+        Acepta `sections` precargadas para evitar el N+1 cuando el llamador ya
+        las trajo; si no, las consulta perezosamente (`m.sections.all()`). Por
+        eso QuickNotes vive fuera del `dashboard`: los cuerpos pueden ser
+        grandes y se cargan al abrir la vista de Notas.
+        """
         if sections is None:
             sections = list(m.sections.all())
         return cls(
@@ -771,7 +830,24 @@ class GraveyardInsightType:
     is_stale: bool
 
 
+# TODO: mover serializador a analytics.py
 def _to_analytics_gql(r: analytics_mod.AnalyticsResult) -> Analytics:
+    """Convierte el resultado de cálculo de analytics a los tipos GraphQL.
+
+    Frontera entre el dominio (`analytics_mod.AnalyticsResult`, dataclasses
+    planas) y el esquema. Es puro mapeo campo a campo y rebote de UUIDs a
+    `strawberry.ID`; mantenerlo aquí evita que el módulo de cálculo dependa de
+    Strawberry. Largo por exhaustivo, no por complejo.
+
+    Nota: `sleeping_projects` se serializa además de `stalled_projects` por
+    compatibilidad — es un alias deprecado (ver el tipo `Analytics`).
+
+    Args:
+        r: Resultado ya calculado por `analytics_mod.compute_analytics`.
+
+    Returns:
+        El tipo `Analytics` listo para devolver al cliente.
+    """
     return Analytics(
         range=r.range,
         range_start=r.range_start,
@@ -873,8 +949,17 @@ def _to_analytics_gql(r: analytics_mod.AnalyticsResult) -> Analytics:
 
 @strawberry.type
 class Query:
+    # TODO: refactor — mover a services/dashboard.py:get_full_dashboard(uid); consulta 7+ modelos en el resolver (ver AUDITORIA_CODIGO.md)
     @strawberry.field
     def dashboard(self, info: Info) -> Dashboard:
+        """Carga inicial de la app: todo el estado del usuario en un round-trip.
+
+        A diferencia del resto de resolvers (que delegan en services), este
+        consulta varios modelos directamente y los ensambla en un solo pase. La
+        razón es de producto/red: el cliente arranca con una única query en vez
+        de una por colección. El coste es que mezcla acceso a datos con el
+        resolver (de ahí el TODO de extraerlo a un servicio).
+        """
         uid = _user_id(info)
         projects = list(ProjectModel.objects.filter(user_id=uid))
         tasks = list(TaskModel.objects.filter(user_id=uid))
@@ -885,6 +970,8 @@ class Query:
         routines = routines_svc.list_routines(uid, include_archived=True)
         routine_occurrences = routines_svc.list_recent_occurrences(uid, days=90)
         meta = BackupMeta.objects.filter(user_id=uid).first()
+        # Bloqueadores agrupados por tarea bloqueada en una sola consulta, para
+        # adjuntarlos en memoria a cada Task y evitar un N+1 al proyectar.
         blocker_map: dict = {}
         for b in TaskBlockerModel.objects.filter(user_id=uid):
             blocker_map.setdefault(b.blocked_task_id, []).append(b)
@@ -1122,7 +1209,7 @@ class Query:
 
 @strawberry.type
 class Mutation:
-    # MCP connector
+    # ===== Mutations: Conector MCP =====
     @strawberry.mutation
     def revoke_mcp_connection(self, info: Info, client_id: strawberry.ID) -> bool:
         """Revoke a connected MCP client (e.g. Claude). Returns True if any
@@ -1131,7 +1218,8 @@ class Mutation:
         revoked = mcp_connections_svc.revoke_connection(uid, str(client_id))
         return revoked > 0
 
-    # Projects
+    # ===== Mutations: Proyectos =====
+    # NOTE: traducción de errores duplicada en ~50 mutations — candidato a decorador @gql_error_handler
     @strawberry.mutation
     def create_project(self, info: Info, data: ProjectInput) -> Project:
         uid = _user_id(info)
@@ -1190,7 +1278,7 @@ class Mutation:
         rows = projects_svc.reorder_projects(uid, list(ordered_ids))
         return [Project.from_model(m) for m in rows]
 
-    # Project notes (multiple per project)
+    # ===== Mutations: Notas de proyecto (varias por proyecto) =====
     @strawberry.mutation
     def create_project_note(self, info: Info, data: ProjectNoteInput) -> ProjectNote:
         uid = _user_id(info)
@@ -1232,7 +1320,7 @@ class Mutation:
         projects_svc.delete_project(uid, id)
         return True
 
-    # Tasks
+    # ===== Mutations: Tareas =====
     @strawberry.mutation
     def create_task(self, info: Info, data: TaskInput) -> Task:
         uid = _user_id(info)
@@ -1303,7 +1391,7 @@ class Mutation:
         tasks_svc.dismiss_parked_due_dates(uid, project_id)
         return True
 
-    # Ideas
+    # ===== Mutations: Ideas =====
     @strawberry.mutation
     def create_idea(self, info: Info, data: IdeaInput) -> Idea:
         uid = _user_id(info)
@@ -1350,7 +1438,7 @@ class Mutation:
             raise _quota_error(e)
         return Project.from_model(p)
 
-    # Quick Notes
+    # ===== Mutations: Quick Notes (notas con secciones) =====
     @strawberry.mutation
     def create_quick_note(self, info: Info, data: QuickNoteInput) -> QuickNote:
         uid = _user_id(info)
@@ -1457,7 +1545,7 @@ class Mutation:
             raise _not_found("QuickNote")
         return QuickNote.from_model(m)
 
-    # Notes (kind=NOTE activities)
+    # ===== Mutations: Notas de actividad (kind=NOTE) =====
     @strawberry.mutation
     def add_note(self, info: Info, project_id: strawberry.ID, note: str) -> Activity:
         uid = _user_id(info)
@@ -1487,7 +1575,7 @@ class Mutation:
             raise _not_found("Note")
         return True
 
-    # Categories
+    # ===== Mutations: Categorías =====
     @strawberry.mutation
     def create_category(self, info: Info, data: CategoryInput) -> Category:
         uid = _user_id(info)
@@ -1516,7 +1604,7 @@ class Mutation:
         categories_svc.delete_category(uid, id)
         return True
 
-    # Routines
+    # ===== Mutations: Rutinas =====
     @strawberry.mutation
     def create_routine(self, info: Info, data: RoutineInput) -> Routine:
         from django.core.exceptions import ValidationError
@@ -1624,7 +1712,7 @@ class Mutation:
         routines_svc.uncomplete_occurrence(uid, id)
         return True
 
-    # Backup metadata
+    # ===== Mutations: Metadatos de backup =====
     @strawberry.mutation
     def mark_backup(self, info: Info) -> dt.datetime:
         uid = _user_id(info)
@@ -1636,7 +1724,7 @@ class Mutation:
         )
         return now
 
-    # Profile
+    # ===== Mutations: Perfil =====
     @strawberry.mutation
     def update_profile(
         self,
@@ -1668,7 +1756,7 @@ class Mutation:
             )
         return Profile.from_model(m)
 
-    # Onboarding
+    # ===== Mutations: Onboarding =====
     @strawberry.mutation
     def set_onboarding_step(self, info: Info, step: int) -> OnboardingState:
         from django.core.exceptions import ValidationError
@@ -1705,7 +1793,7 @@ class Mutation:
         onboarding_svc.mark_tour(uid, seen=seen)
         return Query().onboarding_state(info)
 
-    # Today layout preferences
+    # ===== Mutations: Preferencias de layout de Today =====
     @strawberry.mutation
     def update_today_layout(
         self,
@@ -1733,7 +1821,7 @@ class Mutation:
         layout = preferences_svc.reset_today_layout(uid)
         return TodayLayout(order=layout["order"], hidden=layout["hidden"])
 
-    # Google Tasks plugin
+    # ===== Mutations: Plugin Google Tasks =====
     @strawberry.mutation
     def google_tasks_auth_url(self, info: Info, return_to: str) -> str:
         """Return a URL to Google's OAuth consent screen.
@@ -1786,7 +1874,7 @@ class Mutation:
         google_tasks_svc.disconnect(uid)
         return True
 
-    # Calendar integration plugin
+    # ===== Mutations: Plugin de integración de calendario =====
     @strawberry.mutation
     def regenerate_calendar_feed_token(self, info: Info) -> str:
         """Rotate the ICS feed token and return the new subscription URL.
@@ -1863,7 +1951,7 @@ class Mutation:
             raise GraphQLError(str(e), extensions={"code": "ICLOUD_CALENDAR_ERROR"})
         return res.get("pushed", 0)
 
-    # Task blockers
+    # ===== Mutations: Bloqueadores de tareas =====
     @strawberry.mutation(name="addTaskBlocker")
     def add_task_blocker(self, info: Info, data: TaskBlockerInput) -> TaskBlocker:
         uid = _user_id(info)
@@ -1884,6 +1972,7 @@ class Mutation:
         tasks_svc.remove_task_blocker(uid, id)
         return True
 
+    # ===== Mutations: Cuenta =====
     @strawberry.mutation(name="deleteAccount")
     def delete_account(self, info: Info) -> bool:
         """Permanently delete the authenticated user's account + all their data
