@@ -15,8 +15,15 @@ Los demás trozos viven en módulos dedicados (re-importados con `import *`):
   una mutation nueva** (decorada con `@gql_error_handler` para NotFound/Quota).
 - **Helpers de error/auth** (`_user_id`, `_quota_error`, `_closure_error`,
   `gql_error_handler`) → `core/schema_helpers.py`.
-- Admin: tipos en `core/admin_api/types.py` (resolvers en `admin_api/schema.py`).
-- CMS admin: tipos en `core/cms/types.py` (resolvers en `cms/schema_admin.py`).
+- Admin: tipos en `core/admin_api/types.py`. Resolvers partidos por área y
+  re-fusionados con `merge_types` en `admin_api/schema.py` (que expone
+  `AdminQuery`/`AdminMutation`): **usuarios + helpers** en `schema.py`, **billing**
+  en `schema_billing.py`, **sistema** (jobs/stats/audit/MCP) en `schema_system.py`.
+  Beta sigue en `beta_schema.py`.
+- CMS admin: tipos en `core/cms/types.py`, **lógica de negocio en `core/cms/services.py`**
+  (ORM + validación de slug/path + `render_tiptap` + auditoría; get/create/update/publish/
+  delete por entidad). Los resolvers de `cms/schema_admin.py` son finos:
+  autorizan → `services.*` → `AdminX.from_model`. **Aquí (services.py) va lógica nueva del CMS.**
 - Tools del asistente: parsers de fecha en `core/assistant/tools/datetime_utils.py`.
 Detalle del refactor: `../AUDITORIA_CODIGO.md`.
 
