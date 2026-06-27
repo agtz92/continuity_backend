@@ -1,57 +1,50 @@
-"""GraphQL surface for admin operations.
+"""GraphQL surface for admin operations — área de usuarios + ensamblaje.
 
 All admin fields go through `_admin_user_id(info)` which enforces
 AccountProfile.is_admin == True. The frontend admin layout calls
 `me { isAdmin }` to decide whether to render the panel; this enforces
 the same check on every operation in case anyone hits GraphQL directly.
+
+`AdminQuery`/`AdminMutation` se ensamblan aquí con `merge_types` a partir de las
+clases por área: usuarios (este archivo), billing (`schema_billing.py`) y sistema
+(`schema_system.py`). Ver AUDITORIA_CODIGO.md.
 """
 
 from __future__ import annotations
 
 import datetime as dt
-import logging
 import uuid
 from typing import Optional
 
 import strawberry
-from django.db.models import Q
-from django.utils import timezone
 from graphql import GraphQLError
+from strawberry.tools import merge_types
 from strawberry.types import Info
 
 from core.assistant.models import AccountProfile, Plan, UsageDay
 from core.services import interactions as interactions_svc
-from core.services import mcp_connections as mcp_connections_svc
 from core.models import Activity as ActivityModel
-from core.notifications.models import (
-    Notification,
-    NotificationLink,
-    NotificationSettings,
-    NotificationStatus,
-)
+from core.notifications.models import NotificationLink, NotificationSettings
 
 from .audit import record as audit_record
-from .models import AdminAuditLog
 from .permissions import _admin_user_id
-from .services import stats as stats_svc
 from .services import user_stats as user_stats_svc
 from .supabase_admin import (
     SupabaseAdminError,
     SupabaseUser,
     get_user as supabase_get_user,
-    get_users_map,
     list_users as supabase_list_users,
 )
+from .types import *  # noqa: F401,F403
 
-logger = logging.getLogger(__name__)
+from .schema_billing import AdminBillingQuery
+from .schema_system import AdminSystemMutation, AdminSystemQuery
 
 PlanEnum = strawberry.enum(Plan, name="UserPlan")
 
 
-# ---------- Types (extraídos a types.py, ver AUDITORIA_CODIGO.md) ----------
-from .types import *  # noqa: F401,F403
-
 # ---------- Helpers ----------
+
 
 
 def _parse_dt(value: Optional[str]) -> Optional[dt.datetime]:
@@ -146,11 +139,11 @@ def _build_summary(
     )
 
 
-# ---------- Query ----------
+# ---------- Query (usuarios) ----------
 
 
 @strawberry.type
-class AdminQuery:
+class AdminUsersQuery:
     @strawberry.field
     def me(self, info: Info) -> Me:
         """Devuelve la identidad del solicitante y si es admin.
@@ -405,548 +398,12 @@ class AdminQuery:
             interactions_30d_total=interactions_30d_total,
         )
 
-    @strawberry.field(name="adminNotificationJobs")
-    def admin_notification_jobs(
-        self,
-        info: Info,
-        page: int = 1,
-        per_page: int = 50,
-        status: Optional[str] = None,
-        channel: Optional[str] = None,
-        kind: Optional[str] = None,
-        user_id: Optional[strawberry.ID] = None,
-    ) -> AdminNotificationJobPage:
-        """Cola de notificaciones paginada y filtrable para depurar envíos.
 
-        Permite al admin inspeccionar los jobs de la tabla ``Notification`` (su
-        estado, intentos, error, etc.) filtrando por estado/canal/tipo/usuario.
-        Pide ``per_page + 1`` filas para saber si hay página siguiente sin un
-        ``COUNT`` extra.
-
-        Args:
-            info: Contexto GraphQL; debe ser admin.
-            page: Página 1-based.
-            per_page: Tamaño de página (acotado a 1..200).
-            status: Filtra por estado (se normaliza a minúsculas).
-            channel: Filtra por canal exacto.
-            kind: Filtra por tipo exacto.
-            user_id: Filtra por destinatario.
-
-        Returns:
-            ``AdminNotificationJobPage`` con los jobs y paginación.
-
-        Raises:
-            GraphQLError: si el solicitante no es admin (vía ``_admin_user_id``).
-        """
-        _admin_user_id(info)
-        # NOTE: paginación duplicada — extraer paginate() + constantes
-        per_page = max(1, min(per_page, 200))
-        page = max(1, page)
-        offset = (page - 1) * per_page
-
-        qs = Notification.objects.all()
-        if status:
-            qs = qs.filter(status=status.lower())
-        if channel:
-            qs = qs.filter(channel=channel)
-        if kind:
-            qs = qs.filter(kind=kind)
-        if user_id:
-            qs = qs.filter(user_id=uuid.UUID(str(user_id)))
-
-        rows = list(qs[offset : offset + per_page + 1])
-        has_next = len(rows) > per_page
-        rows = rows[:per_page]
-        return AdminNotificationJobPage(
-            jobs=[
-                AdminNotificationJob(
-                    id=strawberry.ID(str(n.id)),
-                    user_id=strawberry.ID(str(n.user_id)),
-                    channel=n.channel,
-                    kind=n.kind,
-                    dedupe_key=n.dedupe_key,
-                    body=n.body,
-                    scheduled_for=n.scheduled_for,
-                    status=n.status,
-                    attempts=n.attempts,
-                    external_message_id=n.external_message_id,
-                    error=n.error,
-                    created=n.created,
-                    sent_at=n.sent_at,
-                )
-                for n in rows
-            ],
-            page=page,
-            per_page=per_page,
-            has_next=has_next,
-        )
-
-    # TODO: refactor — mover esta agregación (186 líneas, 5 niveles) a admin_api/services/stats.py (ver AUDITORIA_CODIGO.md)
-    @strawberry.field(name="adminSystemStats")
-    def admin_system_stats(self, info: Info) -> AdminSystemStats:
-        """Panel global de métricas del sistema (la "home" del admin).
-
-        Agrega de golpe todas las cifras del dashboard: usuarios y planes,
-        engagement (DAU/WAU/MAU + series diarias), objetos de producto, CMS y
-        salud de la cola de notificaciones. Es deliberadamente caro y se sirve a
-        una sola pantalla; los usuarios salen de Supabase auth (fuente real) y el
-        resto del ORM local. Si Supabase falla se degrada a una lista vacía en
-        vez de romper toda la query.
-
-        Args:
-            info: Contexto GraphQL; debe ser admin.
-
-        Returns:
-            ``AdminSystemStats`` con todas las secciones del panel.
-
-        Raises:
-            GraphQLError: si el solicitante no es admin (vía ``_admin_user_id``).
-                Un fallo de Supabase NO lanza: se loguea y degrada.
-        """
-        _admin_user_id(info)
-        s = stats_svc.compute_system_stats()
-        return AdminSystemStats(
-            total_users=s.total_users,
-            total_accounts=s.total_accounts,
-            admins=s.admins,
-            plan_counts=[
-                PlanCount(plan=p.label, count=p.count) for p in s.plan_counts
-            ],
-            dau=s.dau,
-            wau=s.wau,
-            mau=s.mau,
-            signups_series=[
-                SeriesPoint(date=p.date, value=p.value)
-                for p in s.signups_series
-            ],
-            activity_series=[
-                SeriesPoint(date=p.date, value=p.value)
-                for p in s.activity_series
-            ],
-            activity_by_kind=[
-                LabeledCount(label=lc.label, count=lc.count)
-                for lc in s.activity_by_kind
-            ],
-            project_state_counts=[
-                LabeledCount(label=lc.label, count=lc.count)
-                for lc in s.project_state_counts
-            ],
-            tasks_open=s.tasks_open,
-            tasks_done_30d=s.tasks_done_30d,
-            ideas_total=s.ideas_total,
-            blog_posts_published=s.blog_posts_published,
-            blog_posts_draft=s.blog_posts_draft,
-            pages_published=s.pages_published,
-            pending_jobs=s.pending_jobs,
-            failed_jobs=s.failed_jobs,
-            job_status_counts=[
-                JobStatusCount(status=lc.label, count=lc.count)
-                for lc in s.job_status_counts
-            ],
-            recent_signups=[
-                RecentSignup(
-                    user_id=strawberry.ID(str(r.user_id)),
-                    email=r.email,
-                    created_at=r.created_at,
-                    plan=r.plan,
-                )
-                for r in s.recent_signups
-            ],
-        )
-
-    @strawberry.field(name="adminBillingOverview")
-    def admin_billing_overview(self, info: Info) -> AdminBillingOverview:
-        """Resumen de ingresos recurrentes y churn próxima.
-
-        Calcula MRR/ARR y el desglose por (plan, periodo) sumando el equivalente
-        mensual de cada suscripción de pago activa (excluye exentos y sin
-        ``stripe_subscription_id``). El ``price_id`` se colapsa en periodo vía
-        ``period_for_price`` para que la UI vea una matriz limpia de 4 filas. Los
-        emails de la churn próxima se traen en bloque (best-effort) y quedan ""
-        si Supabase falla, para no tumbar el panel.
-
-        Args:
-            info: Contexto GraphQL; debe ser admin.
-
-        Returns:
-            ``AdminBillingOverview`` con MRR/ARR, conteos y churn próxima.
-
-        Raises:
-            GraphQLError: si el solicitante no es admin (vía ``_admin_user_id``).
-        """
-        _admin_user_id(info)
-
-        from django.conf import settings as dj_settings
-
-        from core.billing.plans import (
-            amount_cents_for_price,
-            is_stripe_test_mode,
-            monthly_cents_for_price,
-            period_for_price,
-        )
-
-        paid_plans = [Plan.PRO.value, Plan.STUDIO.value]
-        paying_qs = AccountProfile.objects.filter(
-            plan__in=paid_plans,
-            is_billing_exempt=False,
-        ).exclude(stripe_subscription_id="")
-
-        # Aggregate breakdown by (plan, price_id) — we collapse price_id into
-        # period via period_for_price() so the UI sees a clean 4-row matrix.
-        bucket: dict[tuple[str, str], dict] = {}
-        mrr_cents = 0
-        paying_count = 0
-        for plan, price_id in paying_qs.values_list("plan", "stripe_price_id"):
-            period = period_for_price(price_id) or "unknown"
-            monthly = monthly_cents_for_price(price_id)
-            key = (plan, period)
-            slot = bucket.setdefault(
-                key,
-                {"count": 0, "monthly_each": monthly, "total": 0},
-            )
-            slot["count"] += 1
-            slot["total"] += monthly
-            # Keep the "each" value stable even if some rows have monthly=0
-            # (unconfigured amount) — prefer the first non-zero we see.
-            if slot["monthly_each"] == 0 and monthly > 0:
-                slot["monthly_each"] = monthly
-            mrr_cents += monthly
-            paying_count += 1
-
-        breakdown = [
-            PlanPeriodBreakdown(
-                plan=plan,
-                period=period,
-                count=slot["count"],
-                monthly_cents_each=slot["monthly_each"],
-                total_monthly_cents=slot["total"],
-            )
-            for (plan, period), slot in sorted(bucket.items())
-        ]
-
-        billing_exempt_count = AccountProfile.objects.filter(
-            is_billing_exempt=True,
-        ).exclude(plan=Plan.FREE.value).count()
-
-        pending_cancel_qs = paying_qs.filter(cancel_at_period_end=True).order_by(
-            "plan_renews_at"
-        )
-        pending_cancellations = pending_cancel_qs.count()
-
-        # Upcoming churn — top 20 by soonest renewal, fetch emails in one go.
-        churn_rows = list(pending_cancel_qs[:20])
-        churn_uids = [r.user_id for r in churn_rows]
-        users_map = {}
-        if churn_uids:
-            try:
-                users_map = get_users_map(churn_uids)
-            except SupabaseAdminError as e:
-                logger.warning("adminBillingOverview: supabase fetch failed: %s", e)
-
-        upcoming_churn = [
-            UpcomingChurnRow(
-                user_id=strawberry.ID(str(r.user_id)),
-                email=(users_map.get(r.user_id).email if users_map.get(r.user_id) else ""),
-                plan=r.plan,
-                period=period_for_price(r.stripe_price_id) or "unknown",
-                plan_renews_at=r.plan_renews_at,
-                monthly_cents=monthly_cents_for_price(r.stripe_price_id),
-            )
-            for r in churn_rows
-        ]
-
-        return AdminBillingOverview(
-            currency=(getattr(dj_settings, "STRIPE_CURRENCY", "usd") or "usd").lower(),
-            is_test_mode=is_stripe_test_mode(),
-            paying_subscribers=paying_count,
-            mrr_cents=mrr_cents,
-            arr_cents=mrr_cents * 12,
-            billing_exempt_count=billing_exempt_count,
-            pending_cancellations=pending_cancellations,
-            breakdown=breakdown,
-            upcoming_churn=upcoming_churn,
-        )
-
-    @strawberry.field(name="adminSubscribers")
-    def admin_subscribers(
-        self,
-        info: Info,
-        page: int = 1,
-        per_page: int = 50,
-        plan: Optional[str] = None,
-        period: Optional[str] = None,
-        email_contains: Optional[str] = None,
-        include_exempt: bool = False,
-    ) -> AdminSubscriberPage:
-        """Lista paginada de suscriptores de pago con filtros.
-
-        Pagina sobre ``AccountProfile`` (donde vive el estado de billing) y trae
-        los emails de la página en bloque desde Supabase. Filtros por plan y
-        periodo se hacen en SQL; el de email se aplica EN MEMORIA post-fetch
-        porque Supabase no expone búsqueda bulk por email (mismo tradeoff que
-        ``adminUsers``).
-
-        Args:
-            info: Contexto GraphQL; debe ser admin.
-            page: Página 1-based.
-            per_page: Tamaño de página (acotado a 1..200).
-            plan: Filtra por plan válido (se ignora si no es un Plan conocido).
-            period: ``"monthly"``/``"annual"``, mapeado a price_ids de settings.
-            email_contains: Subcadena case-insensitive (filtrado local).
-            include_exempt: Si ``True``, incluye exentos y sin suscripción.
-
-        Returns:
-            ``AdminSubscriberPage`` con las filas, paginación y total.
-
-        Raises:
-            GraphQLError: si el solicitante no es admin (vía ``_admin_user_id``).
-        """
-        _admin_user_id(info)
-
-        from core.billing.plans import (
-            monthly_cents_for_price,
-            period_for_price,
-        )
-
-        # NOTE: paginación duplicada — extraer paginate() + constantes
-        per_page = max(1, min(per_page, 200))
-        page = max(1, page)
-
-        paid_plans = [Plan.PRO.value, Plan.STUDIO.value]
-        qs = AccountProfile.objects.filter(plan__in=paid_plans)
-        if not include_exempt:
-            qs = qs.filter(is_billing_exempt=False).exclude(stripe_subscription_id="")
-        if plan:
-            normalized_plan = plan.lower()
-            if normalized_plan in {p.value for p in Plan}:
-                qs = qs.filter(plan=normalized_plan)
-        if period:
-            # Filter by period via the underlying price_id columns.
-            normalized_period = period.lower()
-            from django.conf import settings as dj_settings
-
-            ids: list[str] = []
-            if normalized_period == "monthly":
-                ids = [
-                    getattr(dj_settings, "STRIPE_PRICE_PRO_MONTHLY", ""),
-                    getattr(dj_settings, "STRIPE_PRICE_STUDIO_MONTHLY", ""),
-                ]
-            elif normalized_period == "annual":
-                ids = [
-                    getattr(dj_settings, "STRIPE_PRICE_PRO_ANNUAL", ""),
-                    getattr(dj_settings, "STRIPE_PRICE_STUDIO_ANNUAL", ""),
-                ]
-            ids = [i for i in ids if i]
-            if ids:
-                qs = qs.filter(stripe_price_id__in=ids)
-
-        qs = qs.order_by("-plan_renews_at", "user_id")
-
-        total = qs.count()
-        offset = (page - 1) * per_page
-        rows = list(qs[offset : offset + per_page])
-
-        # Bulk-fetch emails for just this page.
-        uids = [r.user_id for r in rows]
-        users_map = {}
-        if uids:
-            try:
-                users_map = get_users_map(uids)
-            except SupabaseAdminError as e:
-                logger.warning("adminSubscribers: supabase fetch failed: %s", e)
-
-        # Apply email filter post-fetch (Supabase doesn't expose query-by-email
-        # bulk lookup; we filter the page locally — known tradeoff, same pattern
-        # as adminUsers).
-        if email_contains:
-            needle = email_contains.strip().lower()
-            rows = [
-                r
-                for r in rows
-                if users_map.get(r.user_id)
-                and needle in users_map[r.user_id].email.lower()
-            ]
-
-        result_rows = [
-            AdminSubscriberRow(
-                user_id=strawberry.ID(str(r.user_id)),
-                email=(users_map.get(r.user_id).email if users_map.get(r.user_id) else ""),
-                plan=r.plan,
-                period=period_for_price(r.stripe_price_id) or "",
-                monthly_cents=monthly_cents_for_price(r.stripe_price_id),
-                plan_renews_at=r.plan_renews_at,
-                cancel_at_period_end=r.cancel_at_period_end,
-                is_billing_exempt=r.is_billing_exempt,
-                stripe_customer_id=r.stripe_customer_id,
-                stripe_subscription_id=r.stripe_subscription_id,
-            )
-            for r in rows
-        ]
-
-        return AdminSubscriberPage(
-            rows=result_rows,
-            page=page,
-            per_page=per_page,
-            has_next=(offset + per_page) < total,
-            total=total,
-        )
-
-    @strawberry.field(name="adminAuditLog")
-    def admin_audit_log(
-        self,
-        info: Info,
-        page: int = 1,
-        per_page: int = 50,
-        actor_user_id: Optional[strawberry.ID] = None,
-        action_contains: Optional[str] = None,
-        target_user_id: Optional[strawberry.ID] = None,
-    ) -> AdminAuditPage:
-        """Bitácora de auditoría admin, paginada y filtrable.
-
-        Expone las entradas de ``AdminAuditLog`` (qué admin hizo qué, sobre qué
-        objeto) para investigar acciones. El filtro por usuario objetivo cubre
-        tanto ``target_type="user"`` como ``"account_profile"`` porque distintas
-        acciones registran el mismo UUID bajo uno u otro tipo.
-
-        Args:
-            info: Contexto GraphQL; debe ser admin.
-            page: Página 1-based.
-            per_page: Tamaño de página (acotado a 1..200).
-            actor_user_id: Filtra por el admin que ejecutó la acción.
-            action_contains: Subcadena (icontains) sobre el nombre de acción.
-            target_user_id: Filtra por usuario objetivo (user o account_profile).
-
-        Returns:
-            ``AdminAuditPage`` con las entradas y paginación.
-
-        Raises:
-            GraphQLError: si el solicitante no es admin (vía ``_admin_user_id``).
-        """
-        _admin_user_id(info)
-        # NOTE: paginación duplicada — extraer paginate() + constantes
-        per_page = max(1, min(per_page, 200))
-        page = max(1, page)
-        offset = (page - 1) * per_page
-
-        qs = AdminAuditLog.objects.all()
-        if actor_user_id:
-            qs = qs.filter(actor_user_id=uuid.UUID(str(actor_user_id)))
-        if action_contains:
-            qs = qs.filter(action__icontains=action_contains)
-        if target_user_id:
-            qs = qs.filter(
-                Q(target_type="user", target_id=str(target_user_id))
-                | Q(target_type="account_profile", target_id=str(target_user_id))
-            )
-
-        items = list(qs[offset : offset + per_page + 1])
-        has_next = len(items) > per_page
-        items = items[:per_page]
-        return AdminAuditPage(
-            entries=[
-                AdminAuditEntry(
-                    id=strawberry.ID(str(e.id)),
-                    actor_user_id=strawberry.ID(str(e.actor_user_id)),
-                    action=e.action,
-                    target_type=e.target_type,
-                    target_id=e.target_id,
-                    payload=e.payload or {},
-                    created=e.created,
-                )
-                for e in items
-            ],
-            page=page,
-            per_page=per_page,
-            has_next=has_next,
-        )
-
-    @strawberry.field(name="adminMcpConnections")
-    def admin_mcp_connections(
-        self, info: Info, limit: int = 50
-    ) -> list[AdminMcpConnection]:
-        _admin_user_id(info)
-        return [
-            AdminMcpConnection(
-                user_id=strawberry.ID(str(c["user_id"])),
-                client_id=c["client_id"],
-                client_name=c["client_name"],
-                connected_at=c["connected_at"],
-            )
-            for c in mcp_connections_svc.list_all_connections(limit=limit)
-        ]
-
-    @strawberry.field(name="adminMcpConnectionEvents")
-    def admin_mcp_connection_events(
-        self, info: Info, limit: int = 50
-    ) -> list[AdminMcpConnectionEvent]:
-        _admin_user_id(info)
-        return [
-            AdminMcpConnectionEvent(
-                user_id=strawberry.ID(str(e.user_id)),
-                client_id=e.client_id,
-                client_name=e.client_name,
-                event=e.event,
-                created=e.created,
-            )
-            for e in mcp_connections_svc.recent_events(limit=limit)
-        ]
-
-    @strawberry.field(name="adminMcpStats")
-    def admin_mcp_stats(self, info: Info) -> AdminMcpStats:
-        _admin_user_id(info)
-        s = mcp_connections_svc.connection_stats()
-        return AdminMcpStats(
-            active_connections=s["active_connections"],
-            distinct_users=s["distinct_users"],
-            by_client=[
-                LabeledCount(label=k, count=v) for k, v in s["by_client"].items()
-            ],
-        )
-
-
-# ---------- Mutations ----------
+# ---------- Mutation (usuarios) ----------
 
 
 @strawberry.type
-class AdminMutation:
-    @strawberry.mutation(name="adminRevokeMcpConnection")
-    def admin_revoke_mcp_connection(
-        self, info: Info, user_id: strawberry.ID, client_id: str
-    ) -> bool:
-        """Revoca una conexión MCP de un usuario (acción de admin).
-
-        Fuerza la desconexión de un cliente MCP por seguridad/soporte y deja
-        rastro en la bitácora de auditoría.
-
-        Args:
-            info: Contexto GraphQL; debe ser admin.
-            user_id: Dueño de la conexión a revocar.
-            client_id: Cliente MCP a desconectar.
-
-        Returns:
-            ``True`` si se revocó al menos una conexión.
-
-        Raises:
-            GraphQLError: ``BAD_INPUT`` si ``user_id`` no es UUID válido, o el
-                error de ``_admin_user_id`` si el solicitante no es admin.
-        """
-        actor = _admin_user_id(info)
-        import uuid as _uuid
-
-        try:
-            uid = _uuid.UUID(str(user_id))
-        except ValueError:
-            raise GraphQLError("Invalid user_id", extensions={"code": "BAD_INPUT"})
-        n = mcp_connections_svc.revoke_connection(uid, str(client_id), by_admin=True)
-        audit_record(
-            actor_user_id=actor,
-            action="mcp.revoke_connection",
-            target_type="mcp_connection",
-            target_id=f"{user_id}:{client_id}",
-            payload={"revoked": n},
-        )
-        return n > 0
-
+class AdminUsersMutation:
     @strawberry.mutation(name="adminSetUserPlan")
     def admin_set_user_plan(
         self, info: Info, user_id: strawberry.ID, plan: str
@@ -1024,68 +481,6 @@ class AdminMutation:
             counts=counts,
             last_activity=last_activity,
             interactions_30d=interactions_svc.interactions_total(uid),
-        )
-
-    @strawberry.mutation(name="adminNotificationJobRetry")
-    def admin_notification_job_retry(
-        self, info: Info, id: strawberry.ID
-    ) -> AdminNotificationJob:
-        """Re-encola un job de notificación fallido o saltado.
-
-        Lo devuelve a estado PENDING y limpia el error para que el worker lo
-        reintente. Solo aplica a jobs FAILED o SKIPPED: reintentar uno enviado o
-        pendiente no tiene sentido y se rechaza.
-
-        Args:
-            info: Contexto GraphQL; debe ser admin.
-            id: ID del job de notificación.
-
-        Returns:
-            El ``AdminNotificationJob`` ya en estado PENDING.
-
-        Raises:
-            GraphQLError: ``NOT_FOUND`` si el job no existe (o id inválido);
-                ``BAD_INPUT`` si el job no está en estado reintenta­ble; o el
-                error de ``_admin_user_id`` si el solicitante no es admin.
-        """
-        actor = _admin_user_id(info)
-        try:
-            job = Notification.objects.get(id=uuid.UUID(str(id)))
-        except (Notification.DoesNotExist, ValueError):
-            raise GraphQLError("Job not found", extensions={"code": "NOT_FOUND"})
-        if job.status not in {
-            NotificationStatus.FAILED,
-            NotificationStatus.SKIPPED,
-        }:
-            raise GraphQLError(
-                f"Only failed or skipped jobs can be retried (current: {job.status})",
-                extensions={"code": "BAD_INPUT"},
-            )
-        before = job.status
-        job.status = NotificationStatus.PENDING
-        job.error = ""
-        job.save(update_fields=["status", "error"])
-        audit_record(
-            actor_user_id=actor,
-            action="notification.retry",
-            target_type="notification",
-            target_id=job.id,
-            payload={"before": before, "after": job.status},
-        )
-        return AdminNotificationJob(
-            id=strawberry.ID(str(job.id)),
-            user_id=strawberry.ID(str(job.user_id)),
-            channel=job.channel,
-            kind=job.kind,
-            dedupe_key=job.dedupe_key,
-            body=job.body,
-            scheduled_for=job.scheduled_for,
-            status=job.status,
-            attempts=job.attempts,
-            external_message_id=job.external_message_id,
-            error=job.error,
-            created=job.created,
-            sent_at=job.sent_at,
         )
 
     @strawberry.mutation(name="adminSetUserIsAdmin")
@@ -1237,3 +632,16 @@ class AdminMutation:
             last_activity=last_activity,
             interactions_30d=interactions_svc.interactions_total(uid),
         )
+
+
+# ---------- Ensamblaje por área ----------
+
+AdminQuery = merge_types(
+    "AdminQuery",
+    (AdminUsersQuery, AdminBillingQuery, AdminSystemQuery),
+)
+
+AdminMutation = merge_types(
+    "AdminMutation",
+    (AdminUsersMutation, AdminSystemMutation),
+)
