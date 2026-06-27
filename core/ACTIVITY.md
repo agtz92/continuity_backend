@@ -206,7 +206,10 @@ circular import:
 
 ## GraphQL surface
 
-[backend/core/schema.py](core/schema.py).
+El tipo `Activity` vive en [core/schema_types.py](schema_types.py); se expone vía la
+query `dashboard` en [core/schema.py](schema.py) (`class Query`). (El schema de `core`
+se partió en `schema_types.py` / `schema_mutations.py` / `schema_helpers.py`; ver
+`backend/CLAUDE.md`.)
 
 ### Type
 

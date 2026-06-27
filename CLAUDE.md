@@ -5,6 +5,21 @@ El schema raíz fusiona las apps con `merge_types()` en `core/schema.py`. Admin 
 `_admin_user_id(info)` (`core/admin_api/permissions.py`) + auditoría `audit_record(...)`
 (`core/admin_api/audit.py`). Migraciones contra Postgres de Supabase (`DATABASE_URL`).
 
+## Estructura del schema de `core` (tras el refactor de modularidad)
+
+`core/schema.py` quedó como **ensamblaje**: `class Query` + `merge_types` + `schema`.
+Los demás trozos viven en módulos dedicados (re-importados con `import *`):
+- **Tipos e inputs GraphQL** → `core/schema_types.py` (también `AnalyticsRange` y el
+  conversor `_to_analytics_gql`). **Aquí va un tipo/input nuevo.**
+- **Mutations** (`class Mutation`, 58 mutations) → `core/schema_mutations.py`. **Aquí va
+  una mutation nueva** (decorada con `@gql_error_handler` para NotFound/Quota).
+- **Helpers de error/auth** (`_user_id`, `_quota_error`, `_closure_error`,
+  `gql_error_handler`) → `core/schema_helpers.py`.
+- Admin: tipos en `core/admin_api/types.py` (resolvers en `admin_api/schema.py`).
+- CMS admin: tipos en `core/cms/types.py` (resolvers en `cms/schema_admin.py`).
+- Tools del asistente: parsers de fecha en `core/assistant/tools/datetime_utils.py`.
+Detalle del refactor: `../AUDITORIA_CODIGO.md`.
+
 ## CMS público (`core/cms`) — schema sin auth para el sitio de marketing
 
 `core/cms/schema_public.py` expone solo lecturas de contenido **PUBLISHED** (blog, help
@@ -88,12 +103,14 @@ wireframes y detalle: `../docs/quick-notes/PLAN.md`.
   `_touch_note` (bump de `updated_at` de la nota para que flote arriba). Valida que
   `category`/`project` referenciados sean del mismo `user_id`. Dispara `log_event` y
   `bump_context_version` igual que ideas.
-- **Schema:** `core/schema.py`. Tipos `QuickNote`/`NoteSection`, inputs `QuickNoteInput`
-  (`title/categoryId/projectId/pinned`) y `NoteSectionInput` (`heading/body/position/collapsed`).
-  Queries `quickNotes(search, categoryId, projectId, pinned)` y `quickNote(id)` —
-  **fuera del `dashboard`** (se cargan lazy al abrir Notes; los cuerpos pueden ser grandes).
-  Mutations: `createQuickNote`, `updateQuickNote`, `setQuickNotePinned`, `deleteQuickNote`,
-  `addNoteSection`, `updateNoteSection`, `deleteNoteSection`, `reorderNoteSections`.
+- **Schema** (repartido tras el refactor — ver "Estructura del schema" arriba):
+  tipos `QuickNote`/`NoteSection` e inputs `QuickNoteInput`
+  (`title/categoryId/projectId/pinned`) y `NoteSectionInput` (`heading/body/position/collapsed`)
+  en `core/schema_types.py`; queries `quickNotes(search, categoryId, projectId, pinned)` y
+  `quickNote(id)` en `core/schema.py` (`class Query`) — **fuera del `dashboard`** (se cargan
+  lazy al abrir Notes; los cuerpos pueden ser grandes); mutations `createQuickNote`,
+  `updateQuickNote`, `setQuickNotePinned`, `deleteQuickNote`, `addNoteSection`,
+  `updateNoteSection`, `deleteNoteSection`, `reorderNoteSections` en `core/schema_mutations.py`.
 - **Quotas** (`core/quotas.py`): `quick_notes` (Free 50 / Pro 1000 / Studio·Admin ∞) y
   `sections_per_note` (Free 20 / resto ∞). Para `sections_per_note`, `_count` recibe el
   id de la nota por el parámetro `project_id` de `check_entity_quota` (slot genérico de "padre").
