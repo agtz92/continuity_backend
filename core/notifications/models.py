@@ -160,7 +160,7 @@ class EmailSend(models.Model):
     Source of truth for idempotency: before a real send we check there is no
     row with dry_run=False for (user_id, email_id, episode_key). dry_run rows
     are written for admin preview only and NEVER block a later real send (the
-    unique constraint is partial: WHERE dry_run = false). See docs/PROPOSAL.md.
+    unique constraint is partial: WHERE dry_run = false). See docs/_archive/beta-lifecycle/PROPOSAL.md.
     """
 
     class Status(models.TextChoices):

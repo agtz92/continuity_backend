@@ -78,7 +78,7 @@ class Project(TimestampedModel):
     promoted_from_idea_at = models.DateTimeField(null=True, blank=True, db_index=True)
     due_date = models.DateTimeField(null=True, blank=True)
 
-    # Closure notes — paused (see STATE_CLOSURE_FINAL.md §3). Text uses
+    # Closure notes — paused (see docs/_archive/state-closure/STATE_CLOSURE_FINAL.md §3). Text uses
     # default="" (never null) per the codebase convention; "never paused" is
     # expressed by paused_at IS NULL, not by empty text.
     paused_context = models.CharField(max_length=200, blank=True, default="")
@@ -260,7 +260,7 @@ class StalledSweepState(models.Model):
     deployment. The cron stalls nothing until STALLED_THRESHOLD_DAYS after
     `cutoff_at`, so the first run on an existing database never avalanches old
     projects into 'stalled'. `cutoff_at` is set automatically on the first run —
-    no env var or ops step needed (STATE_CLOSURE_FINAL.md §0.1, cutoff option)."""
+    no env var or ops step needed (docs/_archive/state-closure/STATE_CLOSURE_FINAL.md §0.1, cutoff option)."""
 
     id = models.PositiveSmallIntegerField(primary_key=True, default=1)
     cutoff_at = models.DateTimeField(null=True, blank=True)

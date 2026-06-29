@@ -1,4 +1,4 @@
-"""Loop's graveyard autopsy (STATE_CLOSURE_FINAL.md §5.3, D12).
+"""Loop's graveyard autopsy (docs/_archive/state-closure/STATE_CLOSURE_FINAL.md §5.3, D12).
 
 Compute-on-write: a per-project reflection is generated once, when a project is
 killed (Capa A); the cross-project pattern is recomputed only when a new project

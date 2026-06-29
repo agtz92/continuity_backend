@@ -37,7 +37,7 @@ class BetaStatus(models.TextChoices):
 
     Independent of billing: `manually_paused` / `manually_killed` are admin
     actions that never touch `is_billing_exempt`; only the automatic reclaim
-    flips exemption off. See docs/PROPOSAL.md.
+    flips exemption off. See docs/_archive/beta-lifecycle/PROPOSAL.md.
     """
 
     ACTIVE = "active", "Active"

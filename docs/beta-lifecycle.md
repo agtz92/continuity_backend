@@ -4,9 +4,11 @@ Sistema que **separa el cohorte beta de la exención de billing**, envía welcom
 una secuencia de inactividad por **Resend** (bilingüe en/es), y **reclama cupos
 beta** no usados. Cron diario en Render. `dry_run=true` por default hasta go-live.
 
-> Docs de diseño (historia, en la raíz del workspace): `../../AUDIT.md`,
-> `../../PROPOSAL.md` (incluye §0 sobre la interferencia con Graveyard),
-> `../../EMAIL_BRIEF.md`, `../../BETA_LIFECYCLE_README.md` (deploy/operación).
+> **Documento canónico único** de esta feature (diseño + operación). Los artefactos de
+> desarrollo (historia) se archivaron en `../../docs/_archive/beta-lifecycle/`:
+> `AUDIT.md` (auditoría Fase 0), `PROPOSAL.md` (spec con §0 sobre la interferencia con
+> Graveyard), `EMAIL_BRIEF.md` (brief de copys), `EMAIL_PROPOSAL.md` (borradores de copys)
+> y `BETA_LIFECYCLE_README.md` (runbook previo, ahora fusionado abajo en "Operación / deploy").
 
 ## Por qué
 
@@ -110,3 +112,40 @@ signup, clasificación de tiers, exclusión de auto-stall, secuencia fantasma,
 reclaim con grace + audit, cold start (warn antes de reclaim), dry_run sin efectos,
 idempotencia de `email_sends`, render bilingüe + selección por locale, y el admin
 (list/pipeline/mutations + sweep de permisos).
+
+Comando de tests (fuerza SQLite inline; el `conftest` no gana sobre el `.env` de Supabase):
+
+```
+DATABASE_URL="sqlite:////tmp/pb.db" /Users/alfredogutierrez/GitHub/continuity/.venv/bin/python -m pytest \
+  core/notifications/ core/assistant/tests/test_quotas.py core/tests/test_beta_lifecycle.py -q ; rm -f /tmp/pb.db
+```
+
+## Operación / deploy (runbook)
+
+Fusionado desde el antiguo `BETA_LIFECYCLE_README.md`. **Default: `dry_run = true`** — nada se
+envía ni se reclama hasta apagarlo; en dry_run solo se escriben filas de preview en `email_sends`.
+
+### Env vars (Render — declaradas en `render.yaml`, `sync: false` = se ponen en el dashboard)
+
+| Var | Para qué |
+|---|---|
+| `RESEND_API_KEY` | Enviar emails. Vacío = no se manda nada real (solo dry_run). |
+| `EMAIL_FROM` | Remitente. Default `Alfredo <alfredo@continuu.it>`. |
+| `FRONTEND_BASE_URL` | URL para los CTA de los emails (`{{app_url}}`). |
+| `SUPABASE_SERVICE_ROLE_KEY` | Resolver el email del usuario (ya existía). |
+
+### Crons (Render)
+
+- **Horario** (`continuity-notifications-hourly`): se le añadió `send_lifecycle_welcome` al inicio.
+- **Diario** (`continuity-beta-lifecycle-daily`, **`0 15 * * *`** = 15:00 UTC): `run_beta_lifecycle`.
+
+### Apagar `dry_run` (go-live) — sin redeploy
+
+```python
+# Render shell / Django shell
+from core.services import app_config
+app_config.set("dry_run", False)
+app_config.set("beta_enrollment_open", True)  # si quieres abrir enrollment
+```
+
+(o desde el admin en `/admin/beta`). Para volver: `app_config.set("dry_run", True)`.

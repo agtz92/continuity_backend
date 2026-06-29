@@ -1,5 +1,5 @@
 """State closure system: stalled auto-detection, closure-note validation,
-cap counting for killed, and revive (STATE_CLOSURE_FINAL.md)."""
+cap counting for killed, and revive (docs/_archive/state-closure/STATE_CLOSURE_FINAL.md)."""
 
 from __future__ import annotations
 

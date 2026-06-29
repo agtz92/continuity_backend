@@ -41,7 +41,7 @@ class Step:
 def significant_events_q() -> Q:
     """Q over Activity for engagement signals. Excludes the Graveyard
     auto-stall (project_status_changed -> 'stalled'), which is system-generated
-    and must NOT reset the inactivity clock. See docs/PROPOSAL.md §0."""
+    and must NOT reset the inactivity clock. See docs/_archive/beta-lifecycle/PROPOSAL.md §0."""
     from core.services import app_config
 
     sig = app_config.get_list("significant_event_kinds")

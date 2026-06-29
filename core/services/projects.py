@@ -22,7 +22,7 @@ from .activities import iso, log_event
 __all__ = ["NotFoundError"]
 
 
-# Statuses that appear in daily views and trigger notifications (STATE_CLOSURE_FINAL.md D5).
+# Statuses that appear in daily views and trigger notifications (docs/_archive/state-closure/STATE_CLOSURE_FINAL.md D5).
 DAILY_VIEW_PROJECT_STATUSES = [
     ProjectStatus.ACTIVE,
     ProjectStatus.IDEA,

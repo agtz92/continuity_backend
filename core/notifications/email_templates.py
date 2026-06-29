@@ -1,6 +1,6 @@
 """Copy + rendering for product/lifecycle emails (bilingual: en/es).
 
-Copy authored externally (docs/EMAIL_BRIEF.md → beta-lifecycle-emails.md). Each
+Copy authored externally (docs/_archive/beta-lifecycle/EMAIL_BRIEF.md → beta-lifecycle-emails.md). Each
 email_id has an `en` and `es` block: subject, preheader, cta, body. Bodies use
 {{token}} placeholders, start with "{{greeting}}," and end with the signature
 line; the CTA is injected from the `cta` field (before the signature). No

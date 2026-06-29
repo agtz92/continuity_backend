@@ -1,4 +1,4 @@
-"""Auto-detection of stalled projects (STATE_CLOSURE_FINAL.md D4).
+"""Auto-detection of stalled projects (docs/_archive/state-closure/STATE_CLOSURE_FINAL.md D4).
 
 An `active` project untouched for STALLED_THRESHOLD_DAYS transitions to
 `stalled`. Only `active` projects auto-stall (ideas never do, D9). Runs in the
@@ -27,7 +27,7 @@ def detect_and_mark_stalled(user_id: Optional[uuid.UUID] = None) -> list[Project
     If `user_id` is given, only that user's projects are checked (used by tests
     and on-demand runs); otherwise it sweeps every user.
 
-    Avalanche guard (STATE_CLOSURE_FINAL.md §0.1, cutoff): idle is measured from
+    Avalanche guard (docs/_archive/state-closure/STATE_CLOSURE_FINAL.md §0.1, cutoff): idle is measured from
     `max(last_activity, cutoff_at)`, where `cutoff_at` is stamped automatically on
     the first run. Because the cutoff is global, this is equivalent to stalling
     NOTHING until STALLED_THRESHOLD_DAYS after the feature went live, then
