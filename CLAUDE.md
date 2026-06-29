@@ -25,6 +25,10 @@ Los demás trozos viven en módulos dedicados (re-importados con `import *`):
   delete por entidad). Los resolvers de `cms/schema_admin.py` son finos:
   autorizan → `services.*` → `AdminX.from_model`. **Aquí (services.py) va lógica nueva del CMS.**
 - Tools del asistente: parsers de fecha en `core/assistant/tools/datetime_utils.py`.
+  Las **write tools** (tier Pro) viven en el paquete `core/assistant/tools/write/`
+  (un módulo por dominio: `projects`/`tasks`/`routines`/`notes`/`ideas`/`categories`/
+  `quick_notes`); su `__init__.py` importa cada submódulo para disparar el registro
+  `@tool`. **Una write tool nueva** va en el módulo de su dominio (no en un único archivo).
 Detalle del refactor: `../AUDITORIA_CODIGO.md`.
 
 ## CMS público (`core/cms`) — schema sin auth para el sitio de marketing
