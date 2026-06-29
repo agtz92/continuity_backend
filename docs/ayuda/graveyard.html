@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ayuda · Cementerio de proyectos — Continuity</title>
+<link rel="stylesheet" href="_base.css" />
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><span class="dot">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 22V11a5 5 0 0 1 10 0v11"/><path d="M5 22h14"/><path d="M12 9v5"/><path d="M9.5 11.5h5"/></svg>
+    </span>Continuity · Ayuda</div>
+    <nav>
+      <a href="#overview">Cementerio</a>
+      <a href="#card">Tarjeta</a>
+      <a href="#revive">Revivir</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap hero" id="intro">
+  <div class="kicker">Guía paso a paso</div>
+  <h1>Cementerio de proyectos</h1>
+  <p class="lead">La pestaña <b>Cementerio</b> (icono de lápida) guarda los proyectos que <em>mataste con intención</em>. No es un basurero: es una biblioteca de lo que no funcionó, con tus notas de cierre, qué aprendiste y si lo reiniciarías. Loop puede leerlas todas y buscar el patrón. Y si te arrepientes, cualquier proyecto se puede <b>revivir</b>. Esta guía recorre cada parte con una captura.</p>
+</div>
+
+<div class="wrap layout">
+
+  <nav class="toc">
+    <strong>En esta guía</strong>
+    <ol>
+      <li><a href="#overview"><span class="n">1</span>Vista general</a></li>
+      <li><a href="#autopsy"><span class="n">2</span>Autopsia (Loop)</a></li>
+      <li><a href="#card"><span class="n">3</span>Anatomía de una lápida</a></li>
+      <li><a href="#closurenotes"><span class="n">4</span>Notas de cierre</a></li>
+      <li><a href="#revive"><span class="n">5</span>Revivir un proyecto</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+  <!-- 1 · VISTA GENERAL -->
+  <section class="step" id="overview">
+    <div class="step-head"><span class="badge">1</span><h2>Vista general</h2></div>
+    <p class="sub">Una lista de los proyectos que mataste, del más reciente al más antiguo.</p>
+
+    <div class="shot">
+      <div class="chrome"><i></i><i></i><i></i><span class="tag">Continuity · /dashboard — pestaña Cementerio</span></div>
+      <div class="canvas">
+        <div class="row" style="margin-bottom:6px">
+          <span class="icon red"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a9 9 0 0 0-9 9c0 4 2 4.5 2 6.5V19a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-1.5c0-2 2-2.5 2-6.5a9 9 0 0 0-9-9z"/><circle cx="9" cy="11" r="1.2" fill="currentColor"/><circle cx="15" cy="11" r="1.2" fill="currentColor"/><path d="M9.5 16.5h5"/></svg></span>
+          <b style="font-size:17px">Cementerio de proyectos</b>
+        </div>
+        <p class="small muted" style="margin:0 0 14px">Una biblioteca de lo que no funcionó para que no lo repitas. <span style="color:var(--text)">Reiniciarías 2 de 3.</span></p>
+
+        <div class="alert alert-purple" style="margin-bottom:14px">
+          <span class="icon purple" style="margin-top:1px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8L4 9.5l4.6 3.4L7 19l5-3.5L17 19l-1.6-6.1L20 9.5l-6.1-.7z"/></svg></span>
+          <div><div class="xsmall purple" style="text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:3px">Autopsia</div><div class="small" style="color:#e9d5ff">Tus tres muertes comparten algo: las mataste por alcance, no por falta de ganas. Empieza más pequeño.</div></div>
+        </div>
+
+        <div class="pcard" style="border-left:3px solid color-mix(in srgb,var(--red) 60%,transparent);background:var(--surface);margin-bottom:10px">
+          <div class="row" style="justify-content:space-between"><b>Tienda Shopify de velas</b><span class="resume" style="margin-left:0;background:var(--accent);color:#06281f;border:none">♥ Revivir</span></div>
+          <div class="xsmall muted" style="margin-top:2px">Vivió 84 días · matado el 2 jun 2026</div>
+        </div>
+        <div class="pcard" style="border-left:3px solid color-mix(in srgb,var(--red) 60%,transparent);background:var(--surface)">
+          <div class="row" style="justify-content:space-between"><b>App de hábitos «Racha»</b><span class="resume" style="margin-left:0;background:var(--accent);color:#06281f;border:none">♥ Revivir</span></div>
+          <div class="xsmall muted" style="margin-top:2px">Vivió 156 días · matado el 18 abr 2026</div>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>Vista real (tema oscuro): título con lápida, métrica <b>“Reiniciarías N de M”</b>, la <b>Autopsia</b> y las lápidas.</span></div>
+
+    <ol class="anatomy-list">
+      <li><b>Encabezado</b> — icono de lápida 🪦, título y el subtítulo “una biblioteca de lo que no funcionó”.</li>
+      <li><b>Métrica</b> — <b>“Reiniciarías N de M”</b>: cuántos de tus muertos dijiste que volverías a empezar.</li>
+      <li><b>Autopsia</b> — el bloque morado con el patrón que Loop detecta entre tus muertes.</li>
+      <li><b>Lápidas</b> — una tarjeta por proyecto muerto, ordenadas por fecha de muerte (la más reciente arriba).</li>
+    </ol>
+    <div class="note info">Solo llegan aquí los proyectos que matas <b>con intención</b> (desde el proyecto → “Matar con intención”). Un proyecto que se queda <b>estancado</b> no entra solo: la app te empuja a decidir (seguir, pausar o matar), y solo al elegir “matarlo” pasa al cementerio con sus notas.</div>
+  </section>
+
+  <!-- 2 · AUTOPSIA -->
+  <section class="step" id="autopsy">
+    <div class="step-head"><span class="badge">2</span><h2>Autopsia (Loop)</h2></div>
+    <p class="sub">El patrón que se repite entre tus proyectos muertos, escrito por Loop.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Autopsia — con patrón</span></div>
+        <div class="canvas">
+          <div class="alert alert-purple">
+            <span class="icon purple" style="margin-top:1px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8L4 9.5l4.6 3.4L7 19l5-3.5L17 19l-1.6-6.1L20 9.5l-6.1-.7z"/></svg></span>
+            <div style="flex:1">
+              <div class="xsmall purple" style="text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:4px">Autopsia</div>
+              <div class="small" style="color:#e9d5ff">Tus tres muertes comparten algo: el alcance crecía hasta que perdías el ánimo. En dos de tres nunca validaste la idea con usuarios. La próxima vez, empieza con un MVP de una semana.</div>
+              <button class="tagbtn" style="margin-top:12px;background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)">✦ Pídele a Loop que profundice</button>
+            </div>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>Aparece cuando tienes <b>3+ proyectos muertos</b>. Loop calcula el patrón y lo guarda en caché.</span></div>
+      </div>
+      <div class="how">
+        <h3>Cómo se usa</h3>
+        <ul>
+          <li>Es de <b>solo lectura</b>: resume el “por qué” común detrás de tus muertes.</li>
+          <li><b>“Pídele a Loop que profundice”</b> abre el asistente con un análisis más detallado.</li>
+          <li>Con menos de 3 muertos verás un texto que dice que aún <b>no hay suficiente para analizar</b>.</li>
+        </ul>
+        <h3>Cómo se actualiza</h3>
+        <ul>
+          <li class="edit">El patrón se <b>recalcula</b> la próxima vez que matas un proyecto.</li>
+          <li class="edit">Si está desactualizado, lo verás marcado como tal bajo el texto.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · ANATOMÍA DE UNA LÁPIDA -->
+  <section class="step" id="card">
+    <div class="step-head"><span class="badge">3</span><h2>Anatomía de una lápida</h2></div>
+    <p class="sub">Cada proyecto muerto es una tarjeta con borde rojo, su vida útil y el botón Revivir.</p>
+    <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Lápida — tarjeta de proyecto muerto</span></div>
+      <div class="canvas">
+        <div class="card" style="border-left:4px solid color-mix(in srgb,var(--red) 60%,transparent)">
+          <div class="row" style="justify-content:space-between;align-items:flex-start;margin-bottom:14px">
+            <div>
+              <h3 style="margin:0;font-size:16px;font-weight:600">Tienda Shopify de velas</h3>
+              <div class="xsmall muted" style="margin-top:2px">Vivió 84 días · matado el 2 jun 2026</div>
+            </div>
+            <button class="resume" style="margin-left:0;background:var(--accent);color:#06281f;border:none;display:flex;align-items:center;gap:6px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M3 12h4l2 5 4-12 2 7h6"/></svg> Revivir</button>
+          </div>
+          <div class="small">
+            <div class="xsmall muted" style="text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">Por qué se mató</div>
+            <div style="margin-bottom:10px">El alcance no paraba de crecer y nunca validé que alguien pagaría por velas artesanales.</div>
+            <div class="xsmall muted" style="text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">Qué enseñó</div>
+            <div>Debí lanzar un MVP de 1 semana antes de montar 3 meses de catálogo.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>El borde rojo izquierdo marca el estado <b>muerto</b>. Bajo el nombre: <b>“Vivió N días”</b> y la <b>fecha de muerte</b>.</span></div>
+    <div class="grid2" style="margin-top:20px">
+      <div class="how"><h3>Cómo se usa</h3><ul>
+        <li><b>Vivió N días</b> = días desde que creaste el proyecto hasta hoy.</li>
+        <li><b>Matado el …</b> = la fecha en que lo cerraste con intención.</li>
+        <li>El botón <b>Revivir</b> (arriba a la derecha) abre el flujo para traerlo de vuelta (paso 5).</li>
+        <li>Debajo van las <b>notas de cierre</b> que escribiste al matarlo (paso 4).</li>
+      </ul></div>
+      <div class="how"><h3>Cómo editar</h3><ul>
+        <li class="edit">El cementerio es de <b>solo lectura</b>: aquí no se editan las notas.</li>
+        <li class="edit">Las tarjetas se ordenan solas por <b>fecha de muerte</b>, la más reciente primero.</li>
+        <li class="edit">Para “sacar” un proyecto de aquí, usa <b>Revivir</b>.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 4 · NOTAS DE CIERRE -->
+  <section class="step" id="closurenotes">
+    <div class="step-head"><span class="badge">4</span><h2>Notas de cierre</h2></div>
+    <p class="sub">Lo que escribiste en el ritual de cierre al matar el proyecto, más la reflexión de la IA.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Notas de cierre (dentro de la lápida)</span></div>
+        <div class="canvas">
+          <div class="small">
+            <div class="xsmall muted" style="text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">Por qué se mató</div>
+            <div style="margin-bottom:12px;color:var(--text)">El alcance no paraba de crecer y nunca validé la suposición central.</div>
+            <div class="xsmall muted" style="text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">Qué enseñó</div>
+            <div style="margin-bottom:12px;color:var(--text)">Debí lanzar un MVP de 1 semana antes de construir 5 meses de infraestructura.</div>
+            <div class="xsmall muted" style="text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;display:flex;align-items:center;gap:5px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.7 9.7 0 0 1 6.7 2.7L21 8"/><path d="M21 3v5h-5"/></svg> Reiniciarías</div>
+            <div style="margin-bottom:12px;color:var(--text)">Sí, pero con un alcance mucho menor y 2 entrevistas con usuarios primero.</div>
+            <div class="alert alert-purple" style="padding:12px">
+              <div style="flex:1"><div class="xsmall purple" style="text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:3px">✦ IA</div><div class="muted" style="font-size:12.5px">Patrón claro: construyes antes de validar. Tu próximo proyecto podría empezar con 5 conversaciones, no con código.</div></div>
+            </div>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>Tres campos de texto (<b>Por qué se mató</b>, <b>Qué enseñó</b>, <b>Reiniciarías</b>) y una <b>reflexión de IA</b> opcional.</span></div>
+      </div>
+      <div class="how"><h3>Cómo se usa</h3><ul>
+        <li><b>Por qué se mató</b> y <b>Qué enseñó</b> son las dos notas que siempre verás.</li>
+        <li><b>Reiniciarías</b> (con el icono ↻) aparece solo si lo respondiste; alimenta la métrica de arriba.</li>
+        <li>La <b>reflexión de IA</b> (bloque morado ✦) aparece si Loop dejó una nota sobre ese proyecto.</li>
+      </ul>
+      <h3>Cómo se llenan</h3><ul>
+        <li class="edit">Estas notas se escriben <b>una sola vez</b>, en el diálogo <b>“Matar con intención”</b> del proyecto.</li>
+        <li class="edit">Aquí en el cementerio son de <b>solo lectura</b>: son un registro, no un formulario.</li>
+      </ul></div>
+    </div>
+    <div class="note">El mismo bloque de notas se reutiliza para proyectos <b>pausados</b> (con “Dónde lo dejaste” y tu siguiente acción) en la tarjeta de “Bienvenido de vuelta”. En el cementerio siempre verás la variante de proyecto <b>muerto</b>.</div>
+  </section>
+
+  <!-- 5 · REVIVIR -->
+  <section class="step" id="revive">
+    <div class="step-head"><span class="badge">5</span><h2>Revivir un proyecto</h2></div>
+    <p class="sub">Traer de vuelta un muerto, como proyecto Activo o como Idea para revalidar.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Revivir — diálogo</span></div>
+        <div class="canvas">
+          <div class="card" style="padding:0;overflow:hidden">
+            <div class="cbar" style="margin:0;padding:13px 16px"><h4 style="flex:1">¿Revivir “Tienda Shopify de velas”?</h4><span class="iconbtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></span></div>
+            <div style="padding:16px">
+              <p class="small muted" style="margin:0 0 14px;display:flex;gap:8px"><span class="icon accent" style="margin-top:1px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h4l2 5 4-12 2 7h6"/></svg></span><span>Lo mataste una vez, a propósito. Traerlo de vuelta está bien. Solo entra con lo que aprendiste.</span></p>
+              <div class="pcard" style="background:color-mix(in srgb,var(--surface) 60%,transparent);margin-bottom:14px">
+                <div class="xsmall muted" style="text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;display:flex;align-items:center;gap:5px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.7 9.7 0 0 1 6.7 2.7L21 8"/><path d="M21 3v5h-5"/></svg> Dijiste que lo reiniciarías así</div>
+                <div class="small" style="color:var(--text)">Sí, pero con un alcance mucho menor y 2 entrevistas con usuarios primero.</div>
+              </div>
+              <p class="xsmall muted" style="margin:0 0 12px">Vuelve a contar para tu plan — 3 / 5 activos</p>
+              <p class="small muted" style="margin:0 0 10px">Tráelo de vuelta como:</p>
+              <div class="row" style="gap:8px">
+                <button class="resume" style="margin:0;flex:1;justify-content:center;background:var(--accent);color:#06281f;border:none;display:flex;align-items:center;gap:6px;padding:9px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Activo</button>
+                <button class="resume" style="margin:0;flex:1;justify-content:center;background:var(--border);color:var(--text);border:none;display:flex;align-items:center;gap:6px;padding:9px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"/></svg> Idea (revalidar)</button>
+              </div>
+              <div class="xsmall muted" style="text-align:center;margin-top:12px">Déjalo muerto</div>
+            </div>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>Se abre con el botón <b>Revivir</b> de la lápida. Te recuerda lo que dijiste que cambiarías.</span></div>
+      </div>
+      <div class="how"><h3>Cómo se usa</h3><ul>
+        <li><b>Activo</b> ⚡ lo devuelve a tus proyectos en marcha de inmediato.</li>
+        <li><b>Idea (revalidar)</b> 💡 lo manda a Ideas para volver a probarlo antes de comprometerte.</li>
+        <li><b>Déjalo muerto</b> cierra el diálogo sin cambios.</li>
+      </ul>
+      <h3>Ojo con el límite</h3><ul>
+        <li class="edit">Un muerto <b>no cuenta</b> para tu plan; al revivirlo como <b>Activo</b> vuelve a contar.</li>
+        <li class="edit">Si ya llegaste al tope de proyectos activos, la app te avisará en lugar de revivirlo.</li>
+        <li class="edit">El diálogo te muestra tu uso actual (p. ej. <b>3 / 5 activos</b>) antes de decidir.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <p class="footnote">
+    Guía generada a partir de la implementación real de <code>GraveyardView.tsx</code>, <code>ProjectClosureNotes.tsx</code> y <code>ReviveProjectModal.tsx</code>, con los textos de <code>messages/es.json</code> (<code>views.graveyard.*</code> y <code>views.closure.*</code>). Las capturas son reconstrucciones fieles en HTML (tema oscuro).
+  </p>
+
+  </main>
+</div>
+
+</body>
+</html>

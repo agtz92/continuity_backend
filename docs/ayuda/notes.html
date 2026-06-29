@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ayuda · Quick Notes — Continuity</title>
+<link rel="stylesheet" href="_base.css" />
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><span class="dot">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+    </span>Continuity · Ayuda</div>
+    <nav>
+      <a href="#intro">Quick Notes</a>
+      <a href="#overview">Lista</a>
+      <a href="#editor">Editor</a>
+      <a href="#sections">Secciones</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap hero" id="intro">
+  <div class="kicker">Guía paso a paso</div>
+  <h1>Quick Notes</h1>
+  <p class="lead">La pestaña <b>Notas</b> es tu cuaderno dentro de Continuity. Captura ideas sueltas, agrúpalas en <em>secciones plegables</em> tipo Notion, escríbelas con Markdown, y enlázalas a un proyecto o déjalas libres. Esta guía recorre la lista con filtros, el editor de dos paneles, las secciones (toggle, arrastrar y vista/edición), las categorías, fijar notas y cómo crear una.</p>
+</div>
+
+<div class="wrap layout">
+
+  <nav class="toc">
+    <strong>En esta guía</strong>
+    <ol>
+      <li><a href="#overview"><span class="n">1</span>Lista y filtros</a></li>
+      <li><a href="#editor"><span class="n">2</span>Editor de dos paneles</a></li>
+      <li><a href="#sections"><span class="n">3</span>Secciones plegables</a></li>
+      <li><a href="#categories"><span class="n">4</span>Categoría y proyecto</a></li>
+      <li><a href="#pinned"><span class="n">5</span>Fijar notas</a></li>
+      <li><a href="#create"><span class="n">6</span>Crear una nota</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+  <!-- 1 · LISTA Y FILTROS -->
+  <section class="step" id="overview">
+    <div class="step-head"><span class="badge">1</span><h2>Lista y filtros</h2></div>
+    <p class="sub">Todas tus notas como tarjetas, con buscador y filtros rápidos arriba.</p>
+
+    <div class="shot">
+      <div class="chrome"><i></i><i></i><i></i><span class="tag">Continuity · /dashboard — pestaña Notas</span></div>
+      <div class="canvas">
+        <div class="row" style="margin-bottom:4px"><span class="icon accent"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 1.3 0 1.9-.5 2.5-1v13c-.6.5-1.2 1-2.5 1-2.6 0-2.4-2-5-2-2.5 0-2.5 2-5 2-1.3 0-1.9-.5-2.5-1z"/><path d="M6 12h4"/><path d="M6 16h6"/></svg></span><b>Quick Notes</b></div>
+        <div class="xsmall muted" style="margin:0 0 14px 28px">Tu cuaderno dentro de Continuity. Captura notas, agrúpalas en secciones plegables y enlázalas a un proyecto o déjalas sueltas.</div>
+
+        <!-- search + new -->
+        <div class="row" style="gap:8px;margin-bottom:12px">
+          <div style="flex:1;position:relative;display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 12px">
+            <span class="icon muted"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
+            <span class="small muted">Buscar en notas y secciones...</span>
+          </div>
+          <span class="btn-primary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" style="vertical-align:-2px"><path d="M12 5v14M5 12h14"/></svg> Nueva nota</span>
+        </div>
+
+        <!-- filter chips -->
+        <div class="row" style="flex-wrap:wrap;gap:7px;margin-bottom:14px">
+          <span class="chip" style="background:var(--accent);border-color:var(--accent);color:#06281f">Todas</span>
+          <span class="chip" style="border-color:var(--border);color:var(--text-muted)"><span class="sdot" style="background:var(--accent-2)"></span>Trabajo</span>
+          <span class="chip" style="border-color:var(--border);color:var(--text-muted)"><span class="sdot" style="background:var(--purple)"></span>Personal</span>
+          <span class="chip" style="border-color:var(--border);color:var(--text-muted)"><span class="sdot" style="background:var(--amber)"></span>Aprendizaje</span>
+          <span class="chip" style="border-color:var(--border);color:var(--text-muted)">Sueltas</span>
+          <span class="chip" style="border-color:var(--border);color:var(--text-muted)">Fijadas</span>
+        </div>
+
+        <!-- note cards grid -->
+        <div class="pcards">
+          <div class="pcard" style="position:relative;padding-left:16px">
+            <span style="position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px;background:var(--accent-2)"></span>
+            <div class="row" style="justify-content:space-between"><b style="font-size:14px">Reunión de planificación</b><span class="icon accent"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></span></div>
+            <div class="xsmall muted" style="margin-top:4px">Definir el alcance del trimestre y repartir responsables por área.</div>
+            <div class="row" style="margin-top:8px;gap:7px"><span class="chip" style="background:color-mix(in srgb,var(--accent-2) 15%,transparent);border-color:color-mix(in srgb,var(--accent-2) 30%,transparent);color:var(--accent-2)">Trabajo</span><span class="chip" style="background:var(--bg);border-color:var(--border);color:var(--text-muted)">Landing nueva</span><span class="xsmall muted" style="margin-left:auto">3 secciones</span></div>
+          </div>
+          <div class="pcard" style="position:relative;padding-left:16px">
+            <span style="position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px;background:var(--purple)"></span>
+            <div class="row" style="justify-content:space-between"><b style="font-size:14px">Lista de la compra</b></div>
+            <div class="xsmall muted" style="margin-top:4px">Café, avena, fruta de temporada y algo para la cena del viernes.</div>
+            <div class="row" style="margin-top:8px;gap:7px"><span class="chip" style="background:color-mix(in srgb,var(--purple) 15%,transparent);border-color:color-mix(in srgb,var(--purple) 30%,transparent);color:var(--purple)">Personal</span><span class="xsmall muted" style="margin-left:auto">1 sección</span></div>
+          </div>
+          <div class="pcard" style="position:relative;padding-left:16px">
+            <span style="position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px;background:var(--border)"></span>
+            <div class="row" style="justify-content:space-between"><b style="font-size:14px">Cosas por leer</b></div>
+            <div class="xsmall muted" style="margin-top:4px">Artículos y libros que quiero retomar cuando tenga un hueco.</div>
+            <div class="row" style="margin-top:8px;gap:7px"><span class="xsmall muted" style="font-style:italic">suelta</span><span class="xsmall muted" style="margin-left:auto">2 secciones</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>Vista real (tema oscuro). Cada tarjeta muestra título, un fragmento del cuerpo, su <b>categoría</b>/proyecto y el número de secciones.</span></div>
+
+    <ol class="anatomy-list">
+      <li><b>Buscador</b> — filtra por texto dentro de títulos <i>y</i> del cuerpo de las secciones.</li>
+      <li><b>Filtros</b> — <b>Todas</b>, una por cada categoría, <b>Sueltas</b> (sin categoría) y <b>Fijadas</b>.</li>
+      <li><b>Tarjetas</b> — una por nota; la barrita de color a la izquierda es la de su categoría.</li>
+      <li><b>Nueva nota</b> — botón verde a la derecha del buscador (y el FAB <b>+</b> en móvil).</li>
+    </ol>
+    <div class="note info">Si no hay notas verás <b>“Aún no tienes notas.”</b> con un botón <b>Crear primera nota</b>. Al buscar sin resultados aparece <b>“No hay notas que coincidan con…”</b>. A los usuarios nuevos el sistema les siembra una nota de ejemplo.</div>
+  </section>
+
+  <!-- 2 · EDITOR DOS PANELES -->
+  <section class="step" id="editor">
+    <div class="step-head"><span class="badge">2</span><h2>Editor de dos paneles</h2></div>
+    <p class="sub">Al abrir una nota, la lista se encoge a un panel compacto y el editor aparece al lado.</p>
+
+    <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Nota abierta — lista + editor</span></div>
+      <div class="canvas">
+        <div style="display:grid;grid-template-columns:minmax(0,180px) minmax(0,1fr);gap:12px">
+          <!-- compact list -->
+          <div>
+            <div class="row" style="gap:6px;margin-bottom:8px"><span class="chip" style="background:var(--accent);border-color:var(--accent);color:#06281f;font-size:10px">Todas</span><span class="chip" style="border-color:var(--border);color:var(--text-muted);font-size:10px">Fijadas</span></div>
+            <div class="pcard" style="position:relative;padding:10px 10px 10px 14px;border-color:var(--accent)"><span style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent-2)"></span><b style="font-size:13px">Reunión de planificación</b><div class="xsmall muted" style="margin-top:2px">Definir el alcance…</div></div>
+            <div class="pcard" style="position:relative;padding:10px 10px 10px 14px;margin-top:8px"><span style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--purple)"></span><b style="font-size:13px">Lista de la compra</b></div>
+          </div>
+          <!-- editor card -->
+          <div class="card" style="margin:0;padding:14px">
+            <div class="row" style="gap:8px;margin-bottom:10px">
+              <input-like style="flex:1;font-size:18px;font-weight:600">Reunión de planificación</input-like>
+              <span class="iconbtn accent"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></span>
+              <span class="iconbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>
+              <span class="iconbtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></span>
+            </div>
+            <div class="row" style="gap:14px;margin-bottom:12px;flex-wrap:wrap">
+              <span class="xsmall muted" style="text-transform:uppercase;letter-spacing:.08em">Categoría <span class="pill" style="margin-left:4px">Trabajo ⌄</span></span>
+              <span class="xsmall muted" style="text-transform:uppercase;letter-spacing:.08em">Proyecto <span class="pill" style="margin-left:4px">Landing nueva ⌄</span></span>
+            </div>
+            <div class="card" style="margin:0 0 8px;padding:10px 12px;background:var(--surface)"><div class="row"><span class="icon muted"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span><b style="font-size:13px">Objetivos</b></div></div>
+            <div class="card" style="margin:0;padding:10px 12px;background:var(--surface)"><div class="row"><span class="icon muted"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg></span><b style="font-size:13px">Pendientes</b></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>El título se edita arriba; debajo, los selectores de <b>categoría</b> y <b>proyecto</b>, y luego las secciones.</span></div>
+
+    <div class="grid2" style="margin-top:20px">
+      <div class="how"><h3>Cómo se usa</h3><ul>
+        <li>Toca una <b>tarjeta</b> de la lista para abrir su editor a la derecha.</li>
+        <li>Escribe el <b>título</b> en la parte superior; se guarda solo al salir del campo.</li>
+        <li>En el editor están: <b>fijar</b> 📌, <b>eliminar</b> 🗑 y <b>cerrar</b> ✕.</li>
+      </ul></div>
+      <div class="how"><h3>Cómo editar</h3><ul>
+        <li class="edit">Todo se guarda <b>automáticamente</b> al perder el foco; no hay botón “Guardar”.</li>
+        <li class="edit">En escritorio cierras con la <b>✕</b>; en móvil, con la flecha <b>←</b> (el editor ocupa toda la pantalla).</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 3 · SECCIONES PLEGABLES -->
+  <section class="step" id="sections">
+    <div class="step-head"><span class="badge">3</span><h2>Secciones plegables</h2></div>
+    <p class="sub">El cuerpo de cada nota se organiza en bloques tipo toggle: se pliegan, se reordenan y admiten Markdown.</p>
+
+    <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Sección — vista (Markdown renderizado)</span></div>
+      <div class="canvas">
+        <div class="card" style="margin:0;padding:0;background:var(--surface);overflow:hidden">
+          <div class="row" style="gap:8px;padding:10px 12px">
+            <span class="icon muted"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span>
+            <b style="flex:1;font-size:13px">Objetivos</b>
+            <span class="iconbtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></span>
+            <span class="iconbtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 15-6-6-6 6"/></svg></span>
+            <span class="iconbtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span>
+            <span class="iconbtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
+            <span class="iconbtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>
+          </div>
+          <div style="padding:0 12px 12px 36px">
+            <p class="small" style="margin:0 0 6px"><b>Meta del trimestre:</b> publicar la nueva landing antes del lanzamiento.</p>
+            <ul class="small muted" style="margin:0;padding-left:18px">
+              <li>Cerrar el <i>copy</i> del hero</li>
+              <li>Definir la paleta de colores</li>
+              <li>Revisar métricas con <code style="background:var(--bg);padding:1px 5px;border-radius:5px">analytics</code></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>En modo <b>vista</b> el Markdown se renderiza (negritas, listas, código). Cada sección lleva: ojo 👁, ▲▼, asa ⠿ y papelera 🗑.</span></div>
+
+    <div class="shot" style="margin-top:18px"><div class="chrome"><i></i><i></i><i></i><span class="tag">Sección — edición (textarea Markdown)</span></div>
+      <div class="canvas">
+        <div class="card" style="margin:0;padding:0;background:var(--surface);overflow:hidden">
+          <div class="row" style="gap:8px;padding:10px 12px">
+            <span class="icon muted"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span>
+            <b style="flex:1;font-size:13px">Objetivos</b>
+            <span class="iconbtn accent"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span>
+            <span class="iconbtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 15-6-6-6 6"/></svg></span>
+            <span class="iconbtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span>
+            <span class="iconbtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
+            <span class="iconbtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></span>
+          </div>
+          <div style="padding:0 12px 12px 36px">
+            <div style="background:var(--bg);border:1px solid var(--accent);border-radius:10px;padding:10px 12px;font-family:ui-monospace,monospace;font-size:12.5px;line-height:1.6;color:var(--text)">**Meta del trimestre:** publicar la nueva landing antes del lanzamiento.<br><br>- Cerrar el *copy* del hero<br>- Definir la paleta de colores<br>- Revisar métricas con `analytics`<span style="color:var(--accent)">▏</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>Toca el lápiz ✎ (o el texto) para editar en un <i>textarea</i> monospace; el ojo 👁 vuelve a la vista renderizada.</span></div>
+
+    <div class="grid2" style="margin-top:20px">
+      <div class="how"><h3>Cómo se usa</h3><ul>
+        <li>El <b>chevron</b> ▸/▾ a la izquierda <b>pliega y despliega</b> la sección.</li>
+        <li>Escribe el <b>título</b> de la sección en la barra superior.</li>
+        <li>El cuerpo admite <b>Markdown</b>: <b>negrita</b>, <i>cursiva</i>, <code>código</code>, listas, encabezados y enlaces.</li>
+        <li><b>Agregar sección plegable</b> (botón punteado al final) añade un bloque nuevo.</li>
+      </ul></div>
+      <div class="how"><h3>Cómo editar</h3><ul>
+        <li class="edit">El <b>ojo</b> 👁 / <b>lápiz</b> ✎ alterna entre <b>vista</b> (Markdown) y <b>edición</b> (textarea).</li>
+        <li class="edit">Reordena con el <b>asa</b> ⠿ (arrastrar y soltar) o con las flechas <b>▲▼</b> como respaldo de teclado.</li>
+        <li class="edit">La <b>papelera</b> 🗑 borra esa sección; se guarda al perder el foco.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 4 · CATEGORÍA Y PROYECTO -->
+  <section class="step" id="categories">
+    <div class="step-head"><span class="badge">4</span><h2>Categoría y proyecto</h2></div>
+    <p class="sub">Clasifica cada nota con una categoría de color y, si quieres, enlázala a un proyecto.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Cabecera del editor — categoría y proyecto</span></div>
+        <div class="canvas">
+          <div class="row" style="gap:14px;flex-wrap:wrap">
+            <div>
+              <div class="xsmall muted" style="text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Categoría</div>
+              <span class="pill" style="font-size:13px;padding:6px 11px"><span class="sdot" style="background:var(--accent-2)"></span>Trabajo&nbsp; ⌄</span>
+            </div>
+            <div>
+              <div class="xsmall muted" style="text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Proyecto</div>
+              <span class="pill" style="font-size:13px;padding:6px 11px">Landing nueva&nbsp; ⌄</span>
+            </div>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>Dos desplegables. <b>Sin categoría</b> deja la nota como <i>suelta</i>; <b>Sin proyecto</b> la mantiene independiente.</span></div>
+      </div>
+      <div class="how"><h3>Cómo se usa</h3><ul>
+        <li>Abre <b>Categoría</b> y elige una; la barrita de la tarjeta y su chip toman ese color.</li>
+        <li>Abre <b>Proyecto</b> para colgar la nota de un proyecto y encontrarla en contexto.</li>
+        <li>Filtra la lista por una categoría o por <b>Sueltas</b> para ver solo las sin categoría.</li>
+      </ul>
+      <h3>Cómo editar</h3><ul>
+        <li class="edit">Selecciona <b>Sin categoría</b> / <b>Sin proyecto</b> para desvincular.</li>
+        <li class="edit">Las <b>categorías</b> se crean y editan donde el resto de la app (se comparten con tareas y proyectos).</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 5 · FIJAR NOTAS -->
+  <section class="step" id="pinned">
+    <div class="step-head"><span class="badge">5</span><h2>Fijar notas</h2></div>
+    <p class="sub">Marca tus notas más importantes para tenerlas a un toque con el filtro <b>Fijadas</b>.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Nota fijada</span></div>
+        <div class="canvas">
+          <div class="pcard" style="position:relative;padding-left:16px;border-color:color-mix(in srgb,var(--accent) 30%,transparent)">
+            <span style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent-2)"></span>
+            <div class="row" style="justify-content:space-between"><b style="font-size:14px">Reunión de planificación</b><span class="icon accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></span></div>
+            <div class="xsmall muted" style="margin-top:4px">Definir el alcance del trimestre y repartir responsables por área.</div>
+          </div>
+          <div class="row" style="margin-top:14px;gap:7px"><span class="chip" style="background:var(--accent);border-color:var(--accent);color:#06281f">Todas</span><span class="chip" style="border-color:color-mix(in srgb,var(--accent) 40%,transparent);background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--accent)">Fijadas</span></div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>El icono 📌 relleno aparece en la tarjeta. El filtro <b>Fijadas</b> deja solo estas notas.</span></div>
+      </div>
+      <div class="how"><h3>Cómo se usa</h3><ul>
+        <li>Abre la nota y toca el icono <b>📌 Fijar nota</b> en la cabecera del editor.</li>
+        <li>Las fijadas muestran un <b>alfiler relleno</b> en su tarjeta de la lista.</li>
+        <li>Usa el filtro <b>Fijadas</b> para ver solo lo que has anclado.</li>
+      </ul>
+      <h3>Cómo editar</h3><ul>
+        <li class="edit">Vuelve a tocar el alfiler para <b>desfijar</b>.</li>
+        <li class="edit">Fijar no cambia la categoría ni el proyecto: es un marcador aparte.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 6 · CREAR UNA NOTA -->
+  <section class="step" id="create">
+    <div class="step-head"><span class="badge">6</span><h2>Crear una nota</h2></div>
+    <p class="sub">Tres caminos para empezar una nota nueva, según dónde estés.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Atajos para crear</span></div>
+        <div class="canvas" style="display:flex;flex-direction:column;align-items:flex-end;gap:16px">
+          <div style="width:100%;display:flex;gap:8px;align-items:center">
+            <div style="flex:1;display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 12px"><span class="icon muted"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span><span class="small muted">Buscar en notas y secciones...</span></div>
+            <span class="btn-primary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" style="vertical-align:-2px"><path d="M12 5v14M5 12h14"/></svg> Nueva nota</span>
+          </div>
+          <div class="card" style="margin:0;width:100%;padding:18px;text-align:center;border-style:dashed">
+            <div class="small muted" style="margin-bottom:12px">Aún no tienes notas.</div>
+            <span class="btn-primary">Crear primera nota</span>
+          </div>
+          <div class="fab"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>El botón <b>Nueva nota</b> (escritorio), el botón del estado vacío y el <b>FAB +</b> (móvil) crean una nota lista para editar.</span></div>
+      </div>
+      <div class="how"><h3>Cómo se usa</h3><ul>
+        <li><b>Nueva nota</b> abre al instante una nota vacía con su primera sección lista.</li>
+        <li>Si creas desde un <b>filtro de categoría</b>, la nota nace ya con esa categoría.</li>
+        <li>En móvil, el <b>FAB +</b> despliega esta acción junto al acceso a <b>Loop</b>.</li>
+      </ul>
+      <h3>Cómo editar</h3><ul>
+        <li class="edit">Una nota sin título se lista como <b>“Nota sin título”</b> hasta que le pongas uno.</li>
+        <li class="edit">Empieza a escribir: título, secciones y Markdown se guardan solos.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <p class="footnote">
+    Guía generada a partir de la implementación real de <code>QuickNotesView.tsx</code>, <code>NoteSectionBlock.tsx</code> y <code>MarkdownText.tsx</code>, con los textos de <code>messages/es.json</code> (<code>views.quickNotes.*</code>). Las capturas son reconstrucciones fieles en HTML (tema oscuro).
+  </p>
+
+  </main>
+</div>
+
+</body>
+</html>

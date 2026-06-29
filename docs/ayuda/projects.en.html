@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Help · Projects — Continuity</title>
+<link rel="stylesheet" href="_base.css" />
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><span class="dot">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+    </span>Continuity · Help</div>
+    <nav>
+      <a href="#intro">Projects</a>
+      <a href="#filters">Filters</a>
+      <a href="#detail">Detail</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap hero" id="intro">
+  <div class="kicker">Step-by-step guide</div>
+  <h1>Projects</h1>
+  <p class="lead">The <b>Projects</b> tab is your master list: every project in one table, with its status, priority, category, task progress and next step. From here you search, filter, sort, open each project to see its detail, and create new ones. This guide walks through every part with a screenshot and explains how to use it and how to edit it.</p>
+</div>
+
+<div class="wrap layout">
+
+  <nav class="toc">
+    <strong>In this guide</strong>
+    <ol>
+      <li><a href="#overview"><span class="n">1</span>The project list</a></li>
+      <li><a href="#filters"><span class="n">2</span>Filter & search bar</a></li>
+      <li><a href="#filtersheet"><span class="n">3</span>Filter sheet (mobile)</a></li>
+      <li><a href="#sort"><span class="n">4</span>Sorting projects</a></li>
+      <li><a href="#card"><span class="n">5</span>Anatomy of a row</a></li>
+      <li><a href="#detail"><span class="n">6</span>Opening a project</a></li>
+      <li><a href="#create"><span class="n">7</span>Creating & empty state</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+  <!-- 1 · OVERVIEW -->
+  <section class="step" id="overview">
+    <div class="step-head"><span class="badge">1</span><h2>The project list</h2></div>
+    <p class="sub">All your projects in a compact table, top to bottom.</p>
+
+    <div class="shot">
+      <div class="chrome"><i></i><i></i><i></i><span class="tag">Continuity · /dashboard — Projects tab</span></div>
+      <div class="canvas">
+        <div class="row" style="justify-content:space-between;margin-bottom:14px;gap:12px;flex-wrap:wrap">
+          <b style="font-size:17px">All Projects</b>
+          <div class="row" style="gap:8px">
+            <span class="searchbox"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>Search by name, description, category…</span>
+            <span class="btn-primary" style="display:inline-flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>New</span>
+          </div>
+        </div>
+
+        <!-- filter bar (desktop) -->
+        <div class="filterbar" style="margin-bottom:14px">
+          <div class="frow"><span class="flabel">Status</span>
+            <span class="fchip on">All<span class="cpill">8</span></span>
+            <span class="fchip">Active<span class="cpill">3</span></span>
+            <span class="fchip">Stalled<span class="cpill">1</span></span>
+            <span class="fchip">Launched<span class="cpill">2</span></span>
+          </div>
+          <div class="frow"><span class="flabel">Priority</span>
+            <span class="fchip on">All<span class="cpill">8</span></span>
+            <span class="fchip">Critical<span class="cpill">1</span></span>
+            <span class="fchip">High<span class="cpill">2</span></span>
+          </div>
+        </div>
+
+        <!-- list -->
+        <div class="plist">
+          <div class="prow"><span class="pstripe" style="background:#f87171b3"></span><span class="chev">›</span><span class="sicon" style="background:rgba(16,185,129,.2);color:#6ee7b7;border-color:rgba(16,185,129,.3)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span><div style="flex:1;min-width:0"><div class="row" style="gap:8px"><b>New landing page</b><span class="catchip">Marketing</span><span class="badge-red">1 overdue</span></div><div class="nextstep">→ Write the hero copy</div></div><div class="prog"><span class="pbar"><i style="width:60%"></i></span><span class="muted xsmall">3/5</span></div></div>
+          <div class="prow"><span class="pstripe" style="background:#fb923cb3"></span><span class="chev">›</span><span class="sicon" style="background:rgba(16,185,129,.2);color:#6ee7b7;border-color:rgba(16,185,129,.3)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span><div style="flex:1;min-width:0"><div class="row" style="gap:8px"><b>Mobile app</b><span class="catchip" style="background:rgba(96,165,250,.18);color:#93c5fd;border-color:rgba(96,165,250,.35)">Product</span><span class="badge-orange">2 today</span></div><div class="nextstep">→ Review the onboarding design</div></div><div class="prog"><span class="pbar"><i style="width:30%"></i></span><span class="muted xsmall">2/7</span></div></div>
+          <div class="prow"><span class="pstripe" style="background:#60a5fa99"></span><span class="chev">›</span><span class="sicon" style="background:rgba(245,158,11,.2);color:#fcd34d;border-color:rgba(245,158,11,.3)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg></span><div style="flex:1;min-width:0"><div class="row" style="gap:8px"><b>Newsletter</b><span class="badge-amber">10d idle</span></div><div class="nextstep">→ Write issue #3</div></div><div class="prog"><span class="pbar"><i style="width:50%"></i></span><span class="muted xsmall">2/4</span></div></div>
+          <div class="prow"><span class="pstripe" style="background:#60a5fa99"></span><span class="chev">›</span><span class="sicon" style="background:rgba(59,130,246,.2);color:#93c5fd;border-color:rgba(59,130,246,.3)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/></svg></span><div style="flex:1;min-width:0"><div class="row" style="gap:8px"><b>Portfolio site</b><span class="badge-a2"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>3h pending</span></div><div class="nextstep">→ Polish the contact section</div></div><div class="prog"><span class="pbar"><i style="width:80%"></i></span><span class="muted xsmall">4/5</span></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>Real view (dark theme). Each row is one project; the <b>color stripe</b> on the left marks its priority.</span></div>
+
+    <ol class="anatomy-list">
+      <li><b>Header</b> — the “All Projects” title, the search box and the <b>New</b> button (on desktop).</li>
+      <li><b>Filter bar</b> — status, category, priority and sort (step 2). On mobile these become two buttons that open sheets.</li>
+      <li><b>The list of rows</b> — one per project: status icon, name, chips and task progress.</li>
+      <li><b>Create button (FAB)</b> — floating bottom-right to add a project without leaving the view.</li>
+    </ol>
+    <div class="note info">The default order is <b>Smart</b>: projects with overdue tasks first, then due-today, then ones that have gone idle, then the rest — within each group by priority and recent activity.</div>
+  </section>
+
+  <!-- 2 · FILTERS -->
+  <section class="step" id="filters">
+    <div class="step-head"><span class="badge">2</span><h2>Filter & search bar</h2></div>
+    <p class="sub">Narrow the list by status, category, priority and due date, or search by text.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Filter bar (desktop)</span></div>
+        <div class="canvas">
+          <div class="searchbox" style="width:100%;margin-bottom:12px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>Search by name, description, category…</div>
+          <div class="filterbar">
+            <div class="frow"><span class="flabel">Status</span><span class="fchip on">All<span class="cpill">8</span></span><span class="fchip">Active<span class="cpill">3</span></span><span class="fchip">Stalled<span class="cpill">1</span></span><span class="fchip">Launched<span class="cpill">2</span></span></div>
+            <div class="frow"><span class="flabel">Category</span><span class="fchip on">All categories</span><span class="fchip"><span class="cdot" style="background:#fb923c"></span>Marketing</span><span class="fchip"><span class="cdot" style="background:#60a5fa"></span>Product</span></div>
+            <div class="frow"><span class="flabel">Priority</span><span class="fchip on">All<span class="cpill">8</span></span><span class="fchip">Critical<span class="cpill">1</span></span><span class="fchip">High<span class="cpill">2</span></span></div>
+            <div class="frow" style="border-top:1px solid color-mix(in srgb,var(--border) 60%,transparent);padding-top:8px;margin-top:2px"><span class="flabel">Sort</span><span class="selectish">Smart ⌄</span></div>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>On desktop the filters live in labeled rows; each chip shows <b>how many projects</b> fall under it.</span></div>
+      </div>
+      <div class="how">
+        <h3>How to use it</h3>
+        <ul>
+          <li>The <b>search box</b> filters by name, description, next step, motivation and category.</li>
+          <li>Tap a <b>Status</b>, <b>Category</b> or <b>Priority</b> chip to filter; go back to “All” to clear it.</li>
+          <li>Statuses with no projects <b>aren't shown</b>; the number on each chip is its count.</li>
+          <li>The <b>Sort</b> selector changes how the list is arranged (step 4).</li>
+        </ul>
+        <h3>How to edit it</h3>
+        <ul>
+          <li class="edit">Filters are <b>cumulative</b>: status + category + priority + due date at once.</li>
+          <li class="edit">If nothing matches, a <b>“Clear filters”</b> button appears to reset to “All”.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · FILTER SHEET -->
+  <section class="step" id="filtersheet">
+    <div class="step-head"><span class="badge">3</span><h2>Filter sheet (mobile)</h2></div>
+    <p class="sub">On mobile, “Filter” opens a sheet with every option and a live count.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Filter — bottom sheet</span></div>
+        <div class="canvas">
+          <div class="row" style="gap:8px;margin-bottom:12px">
+            <span class="mbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M7 12h10M11 18h2"/></svg>Filter<span class="cnt">2</span></span>
+            <span class="mbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>Smart</span>
+          </div>
+          <div class="sheet" style="width:100%;max-width:none">
+            <div class="handle"></div>
+            <div class="row" style="padding:0 4px 6px"><div class="stitle" style="padding:4px 8px">Filter</div><span class="muted xsmall" style="margin-left:auto">Clear</span></div>
+            <div style="padding:4px 8px 0">
+              <div class="flabel" style="margin-bottom:6px">Status</div>
+              <div class="row" style="flex-wrap:wrap;gap:6px;margin-bottom:12px"><span class="schip">All</span><span class="schip on">Active</span><span class="schip">Stalled</span><span class="schip">Idea</span><span class="schip">Paused</span><span class="schip">Launched</span></div>
+              <div class="flabel" style="margin-bottom:6px">Priority</div>
+              <div class="row" style="flex-wrap:wrap;gap:6px;margin-bottom:12px"><span class="schip">All</span><span class="schip on">Critical</span><span class="schip">High</span><span class="schip">Medium</span><span class="schip">Low</span></div>
+              <div class="flabel" style="margin-bottom:6px">Due date</div>
+              <div class="row" style="flex-wrap:wrap;gap:6px"><span class="schip on">Any</span><span class="schip">Overdue</span><span class="schip">Next 7 days</span><span class="schip">No date</span></div>
+            </div>
+            <div style="padding:14px 8px 4px"><span class="btn-primary" style="display:block;text-align:center">Apply (3)</span></div>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>The bottom button shows <b>how many projects would match</b> before you apply; if it's 0 it reads “No projects match”.</span></div>
+      </div>
+      <div class="how">
+        <h3>How to use it</h3>
+        <ul>
+          <li>Open it with the <span class="pill">Filter</span> button; its badge shows how many filters are active.</li>
+          <li>Pick one per group: <b>Status</b>, <b>Priority</b>, <b>Category</b> (if you have any) and <b>Due date</b>.</li>
+          <li>The <b>Apply (N)</b> button carries the live count; <b>“Clear”</b> resets back to All.</li>
+        </ul>
+        <h3>How to edit it</h3>
+        <ul>
+          <li class="edit"><b>Due date</b>: Any, Overdue, Next 7 days or No date.</li>
+          <li class="edit">On desktop these same filters live in the labeled bar (step 2), with no sheet.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · SORT -->
+  <section class="step" id="sort">
+    <div class="step-head"><span class="badge">4</span><h2>Sorting projects</h2></div>
+    <p class="sub">Five modes to arrange the list to fit how you work.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Sort by — bottom sheet</span></div>
+        <div class="canvas">
+          <div class="sheet" style="width:100%;max-width:none">
+            <div class="handle"></div>
+            <div class="stitle">Sort by</div>
+            <div class="arow" style="justify-content:space-between">Smart<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5"><path d="m20 6-11 11-5-5"/></svg></div>
+            <div class="arow">By priority</div>
+            <div class="arow">Recent activity</div>
+            <div class="arow">Name</div>
+            <div class="arow">By status</div>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>The active option carries a <b>checkmark</b>. On desktop it's the “Sort” dropdown.</span></div>
+      </div>
+      <div class="how">
+        <h3>What each mode does</h3>
+        <ul>
+          <li><b>Smart</b> — overdue first, then due today, then idle, then by priority.</li>
+          <li><b>By priority</b> — Critical → High → Medium → Low.</li>
+          <li><b>Recent activity</b> — most recently touched on top.</li>
+          <li><b>Name</b> — alphabetical.</li>
+          <li><b>By status</b> — groups by status in its natural order.</li>
+        </ul>
+        <h3>How to edit it</h3>
+        <ul>
+          <li class="edit">The chosen mode persists while you stay in the view.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · CARD / ROW ANATOMY -->
+  <section class="step" id="card">
+    <div class="step-head"><span class="badge">5</span><h2>Anatomy of a row</h2></div>
+    <p class="sub">Everything a project tells you at a glance in the list.</p>
+    <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">A project row</span></div>
+      <div class="canvas">
+        <div class="plist">
+          <div class="prow"><span class="pstripe" style="background:#f87171b3"></span><span class="chev">›</span><span class="sicon" style="background:rgba(16,185,129,.2);color:#6ee7b7;border-color:rgba(16,185,129,.3)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span><div style="flex:1;min-width:0"><div class="row" style="gap:8px"><b>New landing page</b><span class="catchip">Marketing</span><span class="badge-red">1 overdue</span></div><div class="nextstep">→ Write the hero copy</div></div><div class="prog"><span class="pbar"><i style="width:60%"></i></span><span class="muted xsmall">3/5</span></div></div>
+        </div>
+        <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:14px">
+          <span class="leg"><span class="legbox" style="background:#f87171b3"></span>Stripe = priority</span>
+          <span class="leg"><span class="legbox" style="background:rgba(16,185,129,.2);border:1px solid rgba(16,185,129,.4)"></span>Icon = status</span>
+          <span class="leg"><span class="badge-red" style="padding:1px 6px">N overdue</span></span>
+          <span class="leg"><span class="badge-orange" style="padding:1px 6px">N today</span></span>
+          <span class="leg"><span class="badge-amber" style="padding:1px 6px">Nd idle</span></span>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>Left to right: priority stripe, chevron, status icon, name + chips, and the task progress bar.</span></div>
+    <div class="grid2" style="margin-top:20px">
+      <div class="how"><h3>What it shows</h3><ul>
+        <li><b>Color stripe</b> on the left = priority (red critical, orange high, green medium, blue low).</li>
+        <li><b>Square icon</b> = project status (Active, Stalled, Idea, Launched…).</li>
+        <li><b>Category chip</b> in its color, if the project has one.</li>
+        <li><b>Urgency badge</b>: <b class="red">N overdue</b>, <b class="orange">N today</b>, <b class="amber">Nd idle</b> or <b class="a2">Nh pending</b>.</li>
+        <li><b>→ Next step</b> under the name, and the <b>done/total</b> task bar on the right.</li>
+      </ul></div>
+      <div class="how"><h3>How to use it</h3><ul>
+        <li><b>Tap the row</b> to expand the project detail (step 6).</li>
+        <li>The amber “idle” badge is just a <b>visual hint</b> (7+ days), not a status.</li>
+        <li>On mobile, category and idle hide to save space; progress collapses to “done/total”.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 6 · DETAIL -->
+  <section class="step" id="detail">
+    <div class="step-head"><span class="badge">6</span><h2>Opening a project</h2></div>
+    <p class="sub">Tapping a row expands it in place, with next step, tasks and activity.</p>
+    <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Expanded row — project detail</span></div>
+      <div class="canvas">
+        <div class="plist">
+          <div class="prow" style="background:color-mix(in srgb,var(--surface) 60%,transparent);border-bottom:1px solid var(--border)"><span class="pstripe" style="background:#f87171b3"></span><span class="chev" style="transform:rotate(90deg);color:var(--accent)">›</span><span class="sicon" style="background:rgba(16,185,129,.2);color:#6ee7b7;border-color:rgba(16,185,129,.3)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span><div style="flex:1;min-width:0"><div class="row" style="gap:8px"><b>New landing page</b><span class="catchip">Marketing</span></div></div><div class="prog"><span class="pbar"><i style="width:60%"></i></span><span class="muted xsmall">3/5</span></div></div>
+        </div>
+        <div style="border:1px solid var(--border);border-top:none;border-radius:0 0 12px 12px;padding:14px;background:var(--bg)">
+          <div class="row" style="justify-content:flex-end;margin-bottom:10px"><span class="ghostbtn"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>Open project</span></div>
+          <div class="nextbox"><div class="xsmall accent" style="text-transform:uppercase;letter-spacing:.06em;font-weight:600">Next step</div><div class="small" style="margin-top:2px">→ Write the hero copy</div></div>
+          <div class="dsec"><div class="dsec-h">Why this matters</div><div class="small muted">Turn launch traffic into sign-ups.</div></div>
+          <div class="dsec"><div class="dsec-h">Description</div><div class="small muted">Landing page for the new Q3 campaign.</div></div>
+          <div class="dsec"><div class="row"><div class="dsec-h" style="margin:0">Tasks</div><span class="count-pill" style="margin-left:auto;background:var(--border);color:var(--text-muted);border:1px solid var(--border)">3/5</span></div>
+            <div class="small accent" style="margin:6px 0 4px"><span style="display:inline-flex;align-items:center;gap:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Add task</span></div>
+            <div class="trow"><span class="accent"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg></span><span class="small" style="flex:1">Write the hero copy</span><span class="badge-a2" style="padding:1px 6px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>2h</span></div>
+            <div class="trow"><span class="accent"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></span><span class="small muted" style="flex:1;text-decoration:line-through">Define the color palette</span></div>
+          </div>
+          <div class="dsec"><div class="row"><div class="dsec-h" style="margin:0">Recent activity</div><span class="count-pill" style="margin-left:auto;background:var(--border);color:var(--text-muted);border:1px solid var(--border)">2</span></div>
+            <div class="small accent" style="margin:6px 0 4px"><span style="display:inline-flex;align-items:center;gap:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Log update</span></div>
+            <div class="row small muted" style="gap:8px;align-items:flex-start"><span class="xsmall" style="width:46px;flex:0 0 auto">Jun 18</span><span>Finished the hero wireframe.</span></div>
+          </div>
+          <div class="row" style="gap:8px;margin-top:12px"><span class="minibtn"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Edit</span><span class="minibtn danger"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>Delete</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>The detail opens <b>inline</b> (the row lights up). “Open project” takes you to the full-screen view.</span></div>
+    <div class="grid2" style="margin-top:20px">
+      <div class="how"><h3>How to use it</h3><ul>
+        <li><b>Next step</b> on top, always visible; below it Why this matters, Description, Tasks, Activity and Notes.</li>
+        <li>In <b>Tasks</b>: check the ✓ to complete, <b>Add task</b>, or edit/delete each one.</li>
+        <li><b>Log update</b> leaves a log entry and “wakes” the project up.</li>
+        <li><b>Open project</b> (↗) jumps to the full detail view.</li>
+      </ul></div>
+      <div class="how"><h3>How to edit it</h3><ul>
+        <li class="edit"><b>Edit</b> opens the project form (name, status, priority, category, dates…).</li>
+        <li class="edit"><b>Delete</b> removes the project (asks for confirmation).</li>
+        <li class="edit">Long task or activity lists are trimmed with a “show more”.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 7 · CREATE + EMPTY -->
+  <section class="step" id="create">
+    <div class="step-head"><span class="badge">7</span><h2>Creating & empty state</h2></div>
+    <p class="sub">How to add a project, and what you see before you have any.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">No projects — empty state</span></div>
+        <div class="canvas">
+          <div class="card" style="text-align:center;padding:34px 16px">
+            <div class="muted small" style="margin-bottom:14px">No projects yet.</div>
+            <span class="btn-primary">Add your first project</span>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>A new user's empty state. The button creates your first project.</span></div>
+      </div>
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Create — floating button (mobile)</span></div>
+        <div class="canvas" style="display:flex;flex-direction:column;align-items:flex-end;gap:14px">
+          <div class="sheet" style="width:100%">
+            <div class="handle"></div>
+            <div class="arow"><span class="icon a2"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2z"/></svg></span>New project</div>
+            <div class="arow"><span class="icon purple"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 3z"/><path d="M9 21h6"/></svg></span>Open Loop</div>
+          </div>
+          <div class="fab"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>On mobile the <b>+</b> reveals “New project” and access to <b>Loop</b> (the AI assistant).</span></div>
+      </div>
+    </div>
+    <div class="grid2" style="margin-top:8px">
+      <div class="how"><h3>How to use it</h3><ul>
+        <li>On desktop, the header's <b>New</b> button opens the project form.</li>
+        <li>On mobile, the floating <b>+</b> button does the same (and offers to open Loop).</li>
+        <li>The empty state includes a direct shortcut: <b>“Add your first project”</b>.</li>
+      </ul></div>
+      <div class="how"><h3>How to edit it</h3><ul>
+        <li class="edit">If filters leave the list empty you'll see <b>“No projects match these filters”</b> with <b>Clear filters</b>.</li>
+        <li class="edit">A search with no results shows the searched text so you can adjust the term.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <p class="footnote">
+    Guide generated from the real implementation of <code>ProjectsView.tsx</code>, <code>ProjectsFilterSheet.tsx</code>, <code>ProjectsSortSheet.tsx</code> and the strings in <code>messages/en.json</code>. The screenshots are faithful HTML reconstructions (dark theme). Other guides in this series: <b>Today</b>, <b>Tasks</b>, <b>Routines</b>, <b>Ideas</b>, <b>Notes</b>, <b>Log</b> and <b>Analytics</b>.
+  </p>
+
+  </main>
+</div>
+
+<style>
+  .searchbox{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text-muted);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 11px}
+  .filterbar{background:color-mix(in srgb,var(--surface) 40%,transparent);border:1px solid color-mix(in srgb,var(--border) 60%,transparent);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+  .frow{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap}
+  .flabel{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);width:64px;flex:0 0 auto;margin-top:5px}
+  .fchip{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;padding:3px 9px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text-muted)}
+  .fchip.on{background:color-mix(in srgb,var(--text) 10%,transparent);border-color:color-mix(in srgb,var(--text) 30%,transparent);color:var(--text)}
+  .cpill{font-size:9.5px;padding:0 6px;border-radius:999px;background:var(--border);color:var(--text-muted)}
+  .fchip.on .cpill{background:rgba(0,0,0,.3)}
+  .cdot{width:7px;height:7px;border-radius:50%}
+  .selectish{font-size:11.5px;padding:4px 9px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text)}
+  .plist{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--surface)}
+  .prow{position:relative;display:flex;align-items:center;gap:10px;padding:9px 12px 9px 18px;border-bottom:1px solid var(--border)}
+  .prow:last-child{border-bottom:none}
+  .pstripe{position:absolute;left:0;top:0;bottom:0;width:4px}
+  .chev{color:var(--text-muted);font-size:15px;flex:0 0 auto}
+  .sicon{width:24px;height:24px;border-radius:6px;border:1px solid;display:grid;place-items:center;flex:0 0 auto}
+  .nextstep{font-size:11px;color:var(--text-muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .catchip{font-size:10.5px;padding:1px 7px;border-radius:5px;border:1px solid rgba(251,146,60,.35);background:rgba(251,146,60,.18);color:#fed7aa}
+  .badge-red{font-size:10.5px;padding:1px 7px;border-radius:5px;border:1px solid rgba(248,113,113,.4);background:rgba(248,113,113,.2);color:#fecaca}
+  .badge-orange{font-size:10.5px;padding:1px 7px;border-radius:5px;border:1px solid rgba(251,146,60,.4);background:rgba(251,146,60,.2);color:#fed7aa}
+  .badge-amber{font-size:10.5px;padding:1px 7px;border-radius:5px;border:1px solid rgba(245,158,11,.3);background:rgba(245,158,11,.2);color:#fcd34d}
+  .badge-a2{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;padding:1px 7px;border-radius:5px;border:1px solid color-mix(in srgb,var(--accent-2) 30%,transparent);background:color-mix(in srgb,var(--accent-2) 15%,transparent);color:var(--accent-2)}
+  .prog{display:flex;align-items:center;gap:8px;flex:0 0 auto;width:104px}
+  .pbar{flex:1;height:6px;border-radius:999px;background:var(--border);overflow:hidden}
+  .pbar > i{display:block;height:100%;background:var(--accent)}
+  .mbtn{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;font-size:13px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text)}
+  .mbtn .cnt{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--accent);color:#06281f;font-size:10px;font-weight:700}
+  .schip{font-size:12px;padding:5px 11px;border-radius:8px;border:1px solid var(--border);background:var(--border);color:var(--text-muted)}
+  .schip.on{background:var(--accent);color:#06281f;border-color:var(--accent);font-weight:600}
+  .leg{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted)}
+  .legbox{width:12px;height:12px;border-radius:3px;display:inline-block}
+  .ghostbtn{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;padding:5px 10px;border-radius:7px;background:color-mix(in srgb,var(--accent) 10%,transparent);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);color:var(--accent)}
+  .nextbox{background:color-mix(in srgb,var(--accent) 6%,transparent);border:1px solid color-mix(in srgb,var(--accent) 22%,transparent);border-radius:9px;padding:8px 11px;margin-bottom:12px}
+  .dsec{border-top:1px solid color-mix(in srgb,var(--border) 60%,transparent);padding-top:10px;margin-top:10px}
+  .dsec-h{font-size:12px;font-weight:600;margin-bottom:5px}
+  .trow{display:flex;align-items:center;gap:8px;padding:3px 4px;border-radius:6px}
+  .minibtn{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;padding:5px 10px;border-radius:7px;background:var(--border);color:var(--text)}
+  .minibtn.danger{background:rgba(248,113,113,.1);color:#fca5a5}
+</style>
+
+</body>
+</html>

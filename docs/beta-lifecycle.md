@@ -5,7 +5,7 @@ una secuencia de inactividad por **Resend** (bilingüe en/es), y **reclama cupos
 beta** no usados. Cron diario en Render. `dry_run=true` por default hasta go-live.
 
 > **Documento canónico único** de esta feature (diseño + operación). Los artefactos de
-> desarrollo (historia) se archivaron en `../../docs/_archive/beta-lifecycle/`:
+> desarrollo (historia) se archivaron en `_archive/beta-lifecycle/`:
 > `AUDIT.md` (auditoría Fase 0), `PROPOSAL.md` (spec con §0 sobre la interferencia con
 > Graveyard), `EMAIL_BRIEF.md` (brief de copys), `EMAIL_PROPOSAL.md` (borradores de copys)
 > y `BETA_LIFECYCLE_README.md` (runbook previo, ahora fusionado abajo en "Operación / deploy").

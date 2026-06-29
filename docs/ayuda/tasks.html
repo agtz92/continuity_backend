@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ayuda · Tareas — Continuity</title>
+<link rel="stylesheet" href="_base.css" />
+<style>
+  /* Mocks específicos de la vista Tareas (mismo lenguaje visual que _base.css) */
+  .trow{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 12px}
+  .trow.overdue{border-color:color-mix(in srgb,var(--red) 30%,transparent)}
+  .trow.today{border-color:color-mix(in srgb,var(--orange) 30%,transparent)}
+  .fchip{font-size:13px;font-weight:500;padding:6px 11px;border-radius:9px;border:1px solid var(--border);background:var(--border);color:var(--text-muted)}
+  .fchip.on{background:var(--accent);color:#06281f;border-color:var(--accent)}
+  .frow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;font-size:14px}
+  .check{width:20px;height:20px;border-radius:5px;border:1.5px solid var(--border);background:var(--bg);flex:0 0 auto;position:relative}
+  .check.on{background:var(--accent);border-color:var(--accent)}
+  .check.on::after{content:"";position:absolute;left:6px;top:2px;width:5px;height:10px;border:solid #06281f;border-width:0 2px 2px 0;transform:rotate(45deg)}
+  .toast{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:500;background:var(--surface);border:1px solid color-mix(in srgb,var(--accent) 40%,transparent);border-radius:10px;padding:9px 13px;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><span class="dot">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+    </span>Continuity · Ayuda</div>
+    <nav>
+      <a href="#overview">Tareas</a>
+      <a href="#row">Anatomía</a>
+      <a href="#filters">Filtros</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap hero" id="intro">
+  <div class="kicker">Guía paso a paso</div>
+  <h1>Tareas</h1>
+  <p class="lead">La pestaña <b>Tareas</b> reúne <em>todas</em> tus tareas en un solo lugar y las agrupa por urgencia: lo <b class="red">vencido</b> arriba, lo de <b class="orange">hoy</b> después, y luego lo <b class="a2">próximo</b>, lo que falta <b class="amber">agendar</b> y lo <b class="accent">completado</b>. Esta guía recorre cada parte con una captura y explica cómo usarla y cómo editarla.</p>
+</div>
+
+<div class="wrap layout">
+
+  <nav class="toc">
+    <strong>En esta guía</strong>
+    <ol>
+      <li><a href="#overview"><span class="n">1</span>Anatomía general</a></li>
+      <li><a href="#header"><span class="n">2</span>Encabezado y búsqueda</a></li>
+      <li><a href="#buckets"><span class="n">3</span>Grupos por urgencia</a></li>
+      <li><a href="#row"><span class="n">4</span>Anatomía de una tarea</a></li>
+      <li><a href="#filters"><span class="n">5</span>Rango y filtros</a></li>
+      <li><a href="#complete"><span class="n">6</span>Completar una tarea</a></li>
+      <li><a href="#create"><span class="n">7</span>Crear y estado vacío</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+  <!-- 1 · ANATOMÍA -->
+  <section class="step" id="overview">
+    <div class="step-head"><span class="badge">1</span><h2>Anatomía general</h2></div>
+    <p class="sub">Cómo se arma la vista de arriba hacia abajo.</p>
+
+    <div class="shot">
+      <div class="chrome"><i></i><i></i><i></i><span class="tag">Continuity · /dashboard — pestaña Tareas</span></div>
+      <div class="canvas">
+        <div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+          <b style="font-size:17px">Todas las tareas</b>
+          <div class="row" style="gap:8px">
+            <div class="row" style="gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:7px 10px;min-width:180px;color:var(--text-muted)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <span class="small">Buscar tareas o proyecto...</span>
+            </div>
+            <span class="btn-primary"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="vertical-align:-1px"><path d="M12 5v14M5 12h14"/></svg> Nuevo</span>
+          </div>
+        </div>
+
+        <div class="card" style="margin:0 0 10px;padding:13px 14px"><div class="sec-title" style="font-size:14px"><span class="icon red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></span>Vencidas<span class="count-pill" style="margin-left:auto;color:#fecaca;background:color-mix(in srgb,var(--red) 12%,transparent);border:1px solid color-mix(in srgb,var(--red) 30%,transparent)">2</span></div></div>
+        <div class="card" style="margin:0 0 10px;padding:13px 14px"><div class="sec-title" style="font-size:14px"><span class="icon orange"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></span>Hoy<span class="count-pill" style="margin-left:auto;color:#fed7aa;background:color-mix(in srgb,var(--orange) 12%,transparent);border:1px solid color-mix(in srgb,var(--orange) 30%,transparent)">3</span><span class="chip chip-hours">4.5h</span></div></div>
+        <div class="card" style="margin:0 0 10px;padding:13px 14px;opacity:.85"><div class="sec-title" style="font-size:14px"><span class="icon a2"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></span>Próximas<span class="count-pill count-a2" style="margin-left:auto">5</span></div></div>
+        <div class="card" style="margin:0 0 10px;padding:13px 14px;opacity:.7"><div class="sec-title" style="font-size:14px"><span class="icon amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><path d="M12 15h.01"/></svg></span>Asignar día<span class="count-pill count-amber" style="margin-left:auto">4</span></div></div>
+        <div class="card" style="margin:0;padding:13px 14px;opacity:.6"><div class="sec-title" style="font-size:14px"><span class="icon accent"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></span>Completadas<span class="count-pill count-accent" style="margin-left:auto">8</span></div></div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>Vista real (tema oscuro). Cada grupo es una <b>tarjeta plegable</b>; aparece solo cuando tiene tareas.</span></div>
+
+    <ol class="anatomy-list">
+      <li><b>Encabezado</b> — título “Todas las tareas”, buscador y botón <b>Nuevo</b> (en escritorio).</li>
+      <li><b>Barra de rango + filtro</b> — solo en móvil: <b>Hoy · Semana · Todas</b> y el botón <b>Filtrar</b>.</li>
+      <li><b>Grupos por urgencia</b> — Vencidas, Hoy, Próximas, Asignar día y Completadas, cada uno plegable.</li>
+      <li><b>Botón Crear (FAB)</b> — flotante abajo a la derecha, para añadir una tarea sin salir de la vista.</li>
+    </ol>
+    <div class="note info">Los grupos <b>solo aparecen cuando tienen tareas</b>. El grupo <b>Hoy</b> se muestra siempre (si no hay nada, dice “Todo en orden — nada para hoy ✨”). Es normal que un usuario nuevo vea pocos grupos al inicio.</div>
+  </section>
+
+  <!-- 2 · ENCABEZADO -->
+  <section class="step" id="header">
+    <div class="step-head"><span class="badge">2</span><h2>Encabezado y búsqueda</h2></div>
+    <p class="sub">El buscador filtra al instante por título de tarea o nombre de proyecto.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Encabezado — escritorio</span></div>
+        <div class="canvas">
+          <div class="row" style="gap:10px;flex-wrap:wrap">
+            <b style="font-size:16px;margin-right:auto">Todas las tareas</b>
+            <div class="row" style="gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:8px 11px;min-width:190px">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-muted)"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <span class="small" style="color:var(--text)">landing</span>
+            </div>
+            <span class="btn-primary"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="vertical-align:-1px"><path d="M12 5v14M5 12h14"/></svg> Nuevo</span>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>El botón <b>Nuevo</b> aparece junto al buscador <b>solo en escritorio</b>. En móvil, usa el botón flotante <b>+</b>.</span></div>
+      </div>
+      <div class="how">
+        <h3>Cómo se usa</h3>
+        <ul>
+          <li>Escribe en <b>Buscar tareas o proyecto…</b> para filtrar por <b>título</b> o por <b>nombre de proyecto</b>.</li>
+          <li>Mientras buscas, <b>todos los grupos se abren</b> automáticamente para que veas las coincidencias.</li>
+          <li>Si nada coincide, verás <span class="pill">No hay tareas que coincidan con “…”</span>.</li>
+          <li><b>Nuevo</b> abre el editor para crear una tarea.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · GRUPOS -->
+  <section class="step" id="buckets">
+    <div class="step-head"><span class="badge">3</span><h2>Grupos por urgencia</h2></div>
+    <p class="sub">Tus tareas se reparten solas en cinco grupos plegables, ordenados por prioridad.</p>
+    <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Grupos de tareas</span></div>
+      <div class="canvas">
+        <div class="card" style="margin:0 0 10px;padding:0">
+          <div class="sec-title" style="padding:13px 14px;font-size:14px"><span class="icon red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></span>Vencidas<span class="count-pill" style="margin-left:auto;color:#fecaca;background:color-mix(in srgb,var(--red) 12%,transparent);border:1px solid color-mix(in srgb,var(--red) 30%,transparent)">2</span><span class="chev">⌃</span></div>
+          <div style="padding:0 14px 14px">
+            <div class="trow overdue"><span class="icon muted"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></span><div style="flex:1;min-width:0"><div class="row" style="gap:7px;flex-wrap:wrap"><span>Escribir copy del hero</span><span class="chip chip-hours">2h</span></div><div class="xsmall muted" style="margin-top:2px">Landing nueva <span class="red">· 17/6/2026</span></div></div></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin:0 0 10px;padding:0">
+          <div class="sec-title" style="padding:13px 14px;font-size:14px"><span class="icon orange"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></span>Hoy<span class="count-pill" style="margin-left:auto;color:#fed7aa;background:color-mix(in srgb,var(--orange) 12%,transparent);border:1px solid color-mix(in srgb,var(--orange) 30%,transparent)">2</span><span class="chip chip-hours" title="Tiempo estimado total">2.5h</span><span class="chev">⌃</span></div>
+          <div style="padding:0 14px 14px">
+            <div class="trow today"><span class="icon muted"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></span><div style="flex:1;min-width:0"><span>Revisar diseño de onboarding</span><div class="xsmall muted" style="margin-top:2px">App móvil <span class="orange">· Para hoy</span></div></div></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin:0;padding:13px 14px;opacity:.85"><div class="sec-title" style="font-size:14px"><span class="icon a2"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></span>Próximas<span class="count-pill count-a2" style="margin-left:auto">5</span><span class="chev">⌄</span></div></div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>Cada grupo lleva un <b>contador</b> con su color. El de <b>Hoy</b> añade un chip de <b class="a2">tiempo estimado total</b>.</span></div>
+    <div class="grid2" style="margin-top:20px">
+      <div class="how"><h3>Cómo se usa</h3><ul>
+        <li><b class="red">Vencidas</b> — con fecha pasada y sin completar. Van primero, de la más atrasada a la menos.</li>
+        <li><b class="orange">Hoy</b> — vencen hoy. <b>Siempre visible</b>; suma el tiempo estimado en su chip.</li>
+        <li><b class="a2">Próximas</b> — con fecha futura, ordenadas por fecha.</li>
+        <li><b class="amber">Asignar día</b> — sin fecha; aquí les pones una (ver paso 4).</li>
+        <li><b class="accent">Completadas</b> — las hechas; aparece si activas “Mostrar completadas” en filtros.</li>
+      </ul></div>
+      <div class="how"><h3>Cómo editar</h3><ul>
+        <li class="edit"><b>Toca el título</b> de un grupo para <b>plegarlo o desplegarlo</b>. Tu preferencia se mantiene mientras navegas.</li>
+        <li class="edit">El <b>rango</b> (móvil) cambia qué grupos se ven: <b>Hoy</b> deja solo Vencidas + Hoy; <b>Semana</b> añade Próximas a 7 días; <b>Todas</b> muestra todo.</li>
+        <li class="edit">Una tarea se mueve sola de grupo según su fecha y si está hecha.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 4 · ANATOMÍA DE UNA TAREA -->
+  <section class="step" id="row">
+    <div class="step-head"><span class="badge">4</span><h2>Anatomía de una tarea</h2></div>
+    <p class="sub">Una fila reúne el checkbox, el título, el esfuerzo, el proyecto y la fecha.</p>
+    <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Fila de tarea</span></div>
+      <div class="canvas" style="display:flex;flex-direction:column;gap:10px">
+        <div class="trow overdue">
+          <span class="icon muted"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></span>
+          <div style="flex:1;min-width:0">
+            <div class="row" style="gap:7px;flex-wrap:wrap"><span>Escribir copy del hero</span><span class="chip chip-hours"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>2h</span></div>
+            <div class="xsmall muted" style="margin-top:3px">Landing nueva <span class="red">· 17/6/2026</span></div>
+          </div>
+          <span class="icon muted" style="opacity:.6"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></span>
+        </div>
+
+        <div class="trow today">
+          <span class="icon muted"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></span>
+          <div style="flex:1;min-width:0">
+            <span>Revisar diseño de onboarding</span>
+            <div class="xsmall muted" style="margin-top:3px">App móvil <span class="orange">· Para hoy</span></div>
+          </div>
+          <span class="icon muted" style="opacity:.6"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></span>
+        </div>
+
+        <div class="trow" style="opacity:.7">
+          <span class="icon muted"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></span>
+          <div style="flex:1;min-width:0">
+            <div class="row" style="gap:7px;flex-wrap:wrap"><span>Migrar la base de datos</span><span class="chip" style="background:rgba(107,114,128,.12);border-color:rgba(107,114,128,.35);color:#9ca3af"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Bloqueada</span></div>
+            <div class="xsmall muted" style="margin-top:3px">App móvil</div>
+          </div>
+          <span class="icon muted" style="opacity:.6"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></span>
+        </div>
+
+        <div class="trow">
+          <span class="icon muted"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></span>
+          <div style="flex:1;min-width:0">
+            <span>Comprar dominio</span>
+            <div class="xsmall muted" style="margin-top:3px">Blog setup <span style="color:#fcd34d">· <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg> Agregar fecha</span></div>
+          </div>
+          <span class="icon muted" style="opacity:.6"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></span>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>De izquierda a derecha: <b>círculo ✓</b>, título + chips (<b class="a2">esfuerzo</b>, <b>Bloqueada</b>), línea de proyecto + fecha, y <b>✕</b> para eliminar.</span></div>
+    <div class="grid2" style="margin-top:20px">
+      <div class="how"><h3>Cómo se usa</h3><ul>
+        <li>El <b>borde</b> tiñe el estado: <b class="red">rojo</b> si está vencida, <b class="orange">naranja</b> si es para hoy.</li>
+        <li>El chip <span class="pill">⏱ 2h</span> es el <b>esfuerzo estimado</b> en horas (si lo definiste).</li>
+        <li>La línea inferior muestra el <b>proyecto</b> y la <b>fecha</b> (o <b>“Para hoy”</b>).</li>
+        <li><span class="pill">🔒 Bloqueada</span> aparece si la tarea tiene bloqueadores; la fila se atenúa.</li>
+      </ul></div>
+      <div class="how"><h3>Cómo editar</h3><ul>
+        <li class="edit"><b>Toca el texto</b> de la tarea para abrir su <b>editor</b> (título, proyecto, fecha, esfuerzo, bloqueadores).</li>
+        <li class="edit">En el grupo <b>Asignar día</b>, toca <span class="pill">📅 Agregar fecha</span> para programarla.</li>
+        <li class="edit"><b>✕</b> a la derecha <b>elimina</b> la tarea (en escritorio aparece al pasar el cursor).</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 5 · RANGO Y FILTROS -->
+  <section class="step" id="filters">
+    <div class="step-head"><span class="badge">5</span><h2>Rango y filtros</h2><span class="badge-mini" style="margin-left:4px">Filtro: solo móvil</span></div>
+    <p class="sub">Acota qué tareas ves: por horizonte de fecha (rango) y por proyecto, completadas o bloqueadas (filtro).</p>
+
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Rango + botón Filtrar (móvil)</span></div>
+        <div class="canvas">
+          <div class="row" style="gap:8px">
+            <div class="row" style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:3px">
+              <span style="flex:1;text-align:center;padding:6px 0;border-radius:7px;font-size:13px;color:var(--text-muted)">Hoy</span>
+              <span style="flex:1;text-align:center;padding:6px 0;border-radius:7px;font-size:13px;color:var(--text-muted)">Semana</span>
+              <span style="flex:1;text-align:center;padding:6px 0;border-radius:7px;font-size:13px;font-weight:600;background:var(--accent);color:#06281f">Todas</span>
+            </div>
+            <span class="row" style="gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:8px 11px;font-size:13px">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
+              Filtrar
+              <span style="display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--accent);color:#06281f;font-size:10px;font-weight:700">1</span>
+            </span>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>El <b>insignia</b> verde sobre <b>Filtrar</b> cuenta cuántos filtros tienes activos.</span></div>
+      </div>
+      <div class="how"><h3>Cómo se usa — Rango</h3><ul>
+        <li><b>Hoy</b> deja solo <b>Vencidas</b> y <b>Hoy</b>.</li>
+        <li><b>Semana</b> añade las <b>Próximas</b> a 7 días.</li>
+        <li><b>Todas</b> muestra todos los grupos, incl. <b>Asignar día</b>.</li>
+        <li>El rango vive <b>solo en móvil</b>; en escritorio ves todos los grupos.</li>
+      </ul></div>
+    </div>
+
+    <h3 class="how" style="margin:24px 0 12px;font-size:13px;text-transform:uppercase;letter-spacing:.12em;color:var(--text-muted)">Hoja de filtros</h3>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Filtrar — hoja inferior</span></div>
+        <div class="canvas" style="display:flex;flex-direction:column;align-items:flex-end">
+          <div class="sheet" style="width:100%;max-width:none">
+            <div class="handle"></div>
+            <div class="row" style="padding:0 12px 6px"><div class="stitle" style="padding:0">Filtrar</div><span style="margin-left:auto;font-size:12px;color:var(--accent)">Limpiar</span></div>
+            <div style="padding:6px 12px 2px"><div class="xsmall muted" style="text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Por proyecto</div>
+              <div class="row" style="flex-wrap:wrap;gap:7px">
+                <span class="fchip">Sin proyecto</span>
+                <span class="fchip on">Landing nueva</span>
+                <span class="fchip">App móvil</span>
+                <span class="fchip">Blog setup</span>
+              </div>
+            </div>
+            <label class="frow"><span>Mostrar completadas</span><span class="check on"></span></label>
+            <label class="frow"><span>Mostrar bloqueadas</span><span class="check"></span></label>
+            <div style="padding:10px 12px 4px"><span class="btn-primary" style="display:block;text-align:center;padding:11px">Aplicar (12)</span></div>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>El botón inferior dice <b>“Aplicar (N)”</b> con cuántas tareas quedarán; si quedan <b>0</b>, se desactiva con <b>“Ninguna tarea coincide”</b>.</span></div>
+      </div>
+      <div class="how"><h3>Cómo se usa — Filtros</h3><ul>
+        <li><b>Por proyecto</b> — toca los chips para <b>incluir</b> solo esos proyectos; <b>Sin proyecto</b> capta las tareas sueltas. Sin chips activos = todos.</li>
+        <li><b>Mostrar completadas</b> — activa o no el grupo <b>Completadas</b>.</li>
+        <li><b>Mostrar bloqueadas</b> — incluye u oculta las tareas con bloqueadores.</li>
+        <li><b>Limpiar</b> reinicia el filtro; <b>Aplicar</b> lo confirma y cierra la hoja.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 6 · COMPLETAR -->
+  <section class="step" id="complete">
+    <div class="step-head"><span class="badge">6</span><h2>Completar una tarea</h2></div>
+    <p class="sub">Un toque en el círculo la marca como hecha, con confirmación instantánea.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Marcar como hecha</span></div>
+        <div class="canvas" style="display:flex;flex-direction:column;gap:12px">
+          <div class="trow">
+            <span class="icon muted"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></span>
+            <div style="flex:1"><span>Revisar diseño de onboarding</span><div class="xsmall muted" style="margin-top:3px">App móvil</div></div>
+          </div>
+          <div class="trow" style="opacity:.85">
+            <span class="icon accent"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></span>
+            <div style="flex:1"><span class="muted" style="text-decoration:line-through">Definir paleta de colores</span><div class="xsmall muted" style="margin-top:3px">Landing nueva</div></div>
+          </div>
+          <div class="toast"><span class="accent"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m5 12 5 5 9-11"/></svg></span> ✓ Tarea completada</div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>El círculo se pone <b class="accent">verde</b>, el título se tacha y aparece un aviso <b>“✓ Tarea completada”</b>.</span></div>
+      </div>
+      <div class="how"><h3>Cómo se usa</h3><ul>
+        <li><b>Toca el círculo ✓</b> a la izquierda para marcarla como hecha.</li>
+        <li>La fila se <b>desvanece</b> y pasa al grupo <b>Completadas</b>.</li>
+        <li>Para <b>deshacer</b>, abre “Mostrar completadas” en filtros y vuelve a tocar el círculo (queda verde) — se desmarca.</li>
+        <li>Las completadas se ordenan por <b>fecha de finalización</b>, lo más reciente arriba.</li>
+      </ul>
+      <h3>Cómo editar</h3><ul>
+        <li class="edit">El grupo <b>Completadas</b> es accesible en cualquier rango, justo para poder deshacer un error.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 7 · CREAR + VACÍO -->
+  <section class="step" id="create">
+    <div class="step-head"><span class="badge">7</span><h2>Crear y estado vacío</h2></div>
+    <p class="sub">Cómo añadir tu primera tarea y qué ves cuando aún no hay ninguna.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Estado vacío + botón Crear</span></div>
+        <div class="canvas" style="display:flex;flex-direction:column;align-items:flex-end;gap:16px">
+          <div class="card" style="width:100%;text-align:center;padding:34px 16px;margin:0">
+            <div class="muted" style="margin-bottom:14px">Aún no hay tareas.</div>
+            <span class="btn-primary">Crear primera tarea</span>
+          </div>
+          <div class="fab"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>Sin tareas verás <b>“Aún no hay tareas.”</b> y un botón para crear la primera. El <b>+</b> flotante siempre está disponible.</span></div>
+      </div>
+      <div class="how"><h3>Cómo se usa</h3><ul>
+        <li><b>Crear primera tarea</b> (estado vacío) o <b>Nuevo</b> (escritorio) abren el editor de tarea.</li>
+        <li>En móvil, el botón flotante <b>+</b> es la vía principal; despliega la acción “Nueva tarea” y el acceso a <b>Loop</b> (asistente IA).</li>
+        <li>Al guardar, la tarea cae sola en el grupo que le toca según su fecha.</li>
+      </ul>
+      <h3>Cómo editar</h3><ul>
+        <li class="edit">El <b>+</b> flotante no se oculta ni se reordena: es parte fija de la vista.</li>
+        <li class="edit">Para borrar todas y volver al estado vacío, elimina cada tarea con su <b>✕</b>.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <p class="footnote">
+    Guía generada a partir de la implementación real de <code>TasksView.tsx</code>, <code>TasksFilterSheet.tsx</code> y <code>TaskRow.tsx</code>, con los textos de <code>messages/es.json</code> (<code>views.tasks.*</code> y <code>taskRow.*</code>). Las capturas son reconstrucciones fieles en HTML (tema oscuro). Otras guías de esta serie: <b>Today</b>, <b>Proyectos</b>, <b>Rutinas</b>, <b>Ideas</b>, <b>Quick Notes</b> y <b>Log</b>.
+  </p>
+
+  </main>
+</div>
+
+</body>
+</html>

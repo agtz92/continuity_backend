@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ayuda · Proyectos — Continuity</title>
+<link rel="stylesheet" href="_base.css" />
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><span class="dot">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+    </span>Continuity · Ayuda</div>
+    <nav>
+      <a href="#intro">Proyectos</a>
+      <a href="#filters">Filtros</a>
+      <a href="#detail">Detalle</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap hero" id="intro">
+  <div class="kicker">Guía paso a paso</div>
+  <h1>Proyectos</h1>
+  <p class="lead">La pestaña <b>Proyectos</b> es tu lista maestra: todos tus proyectos en una sola tabla, con su estado, prioridad, categoría, progreso de tareas y próximo paso. Desde aquí buscas, filtras, ordenas, abres cada proyecto para ver su detalle y creas nuevos. Esta guía recorre cada parte con una captura y explica cómo usarla y cómo editarla.</p>
+</div>
+
+<div class="wrap layout">
+
+  <nav class="toc">
+    <strong>En esta guía</strong>
+    <ol>
+      <li><a href="#overview"><span class="n">1</span>La lista de proyectos</a></li>
+      <li><a href="#filters"><span class="n">2</span>Barra de filtros y búsqueda</a></li>
+      <li><a href="#filtersheet"><span class="n">3</span>Hoja de filtros (móvil)</a></li>
+      <li><a href="#sort"><span class="n">4</span>Ordenar proyectos</a></li>
+      <li><a href="#card"><span class="n">5</span>Anatomía de una fila</a></li>
+      <li><a href="#detail"><span class="n">6</span>Abrir un proyecto</a></li>
+      <li><a href="#create"><span class="n">7</span>Crear y estado vacío</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+  <!-- 1 · OVERVIEW -->
+  <section class="step" id="overview">
+    <div class="step-head"><span class="badge">1</span><h2>La lista de proyectos</h2></div>
+    <p class="sub">Todos tus proyectos en una tabla compacta, de arriba hacia abajo.</p>
+
+    <div class="shot">
+      <div class="chrome"><i></i><i></i><i></i><span class="tag">Continuity · /dashboard — pestaña Proyectos</span></div>
+      <div class="canvas">
+        <div class="row" style="justify-content:space-between;margin-bottom:14px;gap:12px;flex-wrap:wrap">
+          <b style="font-size:17px">Todos los proyectos</b>
+          <div class="row" style="gap:8px">
+            <span class="searchbox"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>Buscar por nombre, descripción, categoría…</span>
+            <span class="btn-primary" style="display:inline-flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Nuevo</span>
+          </div>
+        </div>
+
+        <!-- filter bar (desktop) -->
+        <div class="filterbar" style="margin-bottom:14px">
+          <div class="frow"><span class="flabel">Estado</span>
+            <span class="fchip on">Todos<span class="cpill">8</span></span>
+            <span class="fchip">Activo<span class="cpill">3</span></span>
+            <span class="fchip">Estancado<span class="cpill">1</span></span>
+            <span class="fchip">Lanzado<span class="cpill">2</span></span>
+          </div>
+          <div class="frow"><span class="flabel">Prioridad</span>
+            <span class="fchip on">Todas<span class="cpill">8</span></span>
+            <span class="fchip">Crítica<span class="cpill">1</span></span>
+            <span class="fchip">Alta<span class="cpill">2</span></span>
+          </div>
+        </div>
+
+        <!-- list -->
+        <div class="plist">
+          <div class="prow"><span class="pstripe" style="background:#f87171b3"></span><span class="chev">›</span><span class="sicon" style="background:rgba(16,185,129,.2);color:#6ee7b7;border-color:rgba(16,185,129,.3)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span><div style="flex:1;min-width:0"><div class="row" style="gap:8px"><b>Landing nueva</b><span class="catchip">Marketing</span><span class="badge-red">1 vencidas</span></div><div class="nextstep">→ Escribir copy del hero</div></div><div class="prog"><span class="pbar"><i style="width:60%"></i></span><span class="muted xsmall">3/5</span></div></div>
+          <div class="prow"><span class="pstripe" style="background:#fb923cb3"></span><span class="chev">›</span><span class="sicon" style="background:rgba(16,185,129,.2);color:#6ee7b7;border-color:rgba(16,185,129,.3)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span><div style="flex:1;min-width:0"><div class="row" style="gap:8px"><b>App móvil</b><span class="catchip" style="background:rgba(96,165,250,.18);color:#93c5fd;border-color:rgba(96,165,250,.35)">Producto</span><span class="badge-orange">2 hoy</span></div><div class="nextstep">→ Revisar diseño de onboarding</div></div><div class="prog"><span class="pbar"><i style="width:30%"></i></span><span class="muted xsmall">2/7</span></div></div>
+          <div class="prow"><span class="pstripe" style="background:#60a5fa99"></span><span class="chev">›</span><span class="sicon" style="background:rgba(245,158,11,.2);color:#fcd34d;border-color:rgba(245,158,11,.3)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg></span><div style="flex:1;min-width:0"><div class="row" style="gap:8px"><b>Newsletter</b><span class="badge-amber">10d sin actividad</span></div><div class="nextstep">→ Escribir la edición #3</div></div><div class="prog"><span class="pbar"><i style="width:50%"></i></span><span class="muted xsmall">2/4</span></div></div>
+          <div class="prow"><span class="pstripe" style="background:#60a5fa99"></span><span class="chev">›</span><span class="sicon" style="background:rgba(59,130,246,.2);color:#93c5fd;border-color:rgba(59,130,246,.3)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/></svg></span><div style="flex:1;min-width:0"><div class="row" style="gap:8px"><b>Portafolio web</b><span class="badge-a2"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>3h pendientes</span></div><div class="nextstep">→ Pulir sección de contacto</div></div><div class="prog"><span class="pbar"><i style="width:80%"></i></span><span class="muted xsmall">4/5</span></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>Vista real (tema oscuro). Cada fila es un proyecto; la <b>franja de color</b> a la izquierda marca su prioridad.</span></div>
+
+    <ol class="anatomy-list">
+      <li><b>Encabezado</b> — título “Todos los proyectos”, buscador y botón <b>Nuevo</b> (en escritorio).</li>
+      <li><b>Barra de filtros</b> — estado, categoría, prioridad y orden (paso 2). En móvil son dos botones que abren hojas.</li>
+      <li><b>Lista de filas</b> — una por proyecto: icono de estado, nombre, chips y progreso de tareas.</li>
+      <li><b>Botón Crear (FAB)</b> — flotante abajo a la derecha para añadir un proyecto sin salir de la vista.</li>
+    </ol>
+    <div class="note info">El orden por defecto es <b>Inteligente</b>: primero los proyectos con tareas vencidas, luego los que vencen hoy, luego los que llevan días sin actividad, y al final el resto, dentro de cada grupo por prioridad y actividad reciente.</div>
+  </section>
+
+  <!-- 2 · FILTERS -->
+  <section class="step" id="filters">
+    <div class="step-head"><span class="badge">2</span><h2>Barra de filtros y búsqueda</h2></div>
+    <p class="sub">Acota la lista por estado, categoría, prioridad y vencimiento, o busca por texto.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Barra de filtros (escritorio)</span></div>
+        <div class="canvas">
+          <div class="searchbox" style="width:100%;margin-bottom:12px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>Buscar por nombre, descripción, categoría…</div>
+          <div class="filterbar">
+            <div class="frow"><span class="flabel">Estado</span><span class="fchip on">Todos<span class="cpill">8</span></span><span class="fchip">Activo<span class="cpill">3</span></span><span class="fchip">Estancado<span class="cpill">1</span></span><span class="fchip">Lanzado<span class="cpill">2</span></span></div>
+            <div class="frow"><span class="flabel">Categoría</span><span class="fchip on">Todas las categorías</span><span class="fchip"><span class="cdot" style="background:#fb923c"></span>Marketing</span><span class="fchip"><span class="cdot" style="background:#60a5fa"></span>Producto</span></div>
+            <div class="frow"><span class="flabel">Prioridad</span><span class="fchip on">Todas<span class="cpill">8</span></span><span class="fchip">Crítica<span class="cpill">1</span></span><span class="fchip">Alta<span class="cpill">2</span></span></div>
+            <div class="frow" style="border-top:1px solid color-mix(in srgb,var(--border) 60%,transparent);padding-top:8px;margin-top:2px"><span class="flabel">Orden</span><span class="selectish">Inteligente ⌄</span></div>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>En escritorio los filtros viven en filas etiquetadas; cada chip muestra <b>cuántos proyectos</b> caen en él.</span></div>
+      </div>
+      <div class="how">
+        <h3>Cómo se usa</h3>
+        <ul>
+          <li>El <b>buscador</b> filtra por nombre, descripción, próximo paso, motivación y categoría.</li>
+          <li>Toca un chip de <b>Estado</b>, <b>Categoría</b> o <b>Prioridad</b> para filtrar; vuelve a “Todos” para quitarlo.</li>
+          <li>Los estados sin proyectos <b>no se muestran</b>; el número en cada chip es su conteo.</li>
+          <li>El selector de <b>Orden</b> cambia cómo se acomoda la lista (paso 4).</li>
+        </ul>
+        <h3>Cómo editar</h3>
+        <ul>
+          <li class="edit">Los filtros son <b>acumulativos</b>: estado + categoría + prioridad + vencimiento a la vez.</li>
+          <li class="edit">Si nada coincide, aparece <b>“Limpiar filtros”</b> para volver a “Todos”.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · FILTER SHEET -->
+  <section class="step" id="filtersheet">
+    <div class="step-head"><span class="badge">3</span><h2>Hoja de filtros (móvil)</h2></div>
+    <p class="sub">En móvil, “Filtrar” abre una hoja con todas las opciones y un conteo en vivo.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Filtrar — hoja inferior</span></div>
+        <div class="canvas">
+          <div class="row" style="gap:8px;margin-bottom:12px">
+            <span class="mbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M7 12h10M11 18h2"/></svg>Filtrar<span class="cnt">2</span></span>
+            <span class="mbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>Inteligente</span>
+          </div>
+          <div class="sheet" style="width:100%;max-width:none">
+            <div class="handle"></div>
+            <div class="row" style="padding:0 4px 6px"><div class="stitle" style="padding:4px 8px">Filtrar</div><span class="muted xsmall" style="margin-left:auto">Limpiar</span></div>
+            <div style="padding:4px 8px 0">
+              <div class="flabel" style="margin-bottom:6px">Estado</div>
+              <div class="row" style="flex-wrap:wrap;gap:6px;margin-bottom:12px"><span class="schip">Todos</span><span class="schip on">Activo</span><span class="schip">Estancado</span><span class="schip">Idea</span><span class="schip">Pausado</span><span class="schip">Lanzado</span></div>
+              <div class="flabel" style="margin-bottom:6px">Prioridad</div>
+              <div class="row" style="flex-wrap:wrap;gap:6px;margin-bottom:12px"><span class="schip">Todas</span><span class="schip on">Crítica</span><span class="schip">Alta</span><span class="schip">Media</span><span class="schip">Baja</span></div>
+              <div class="flabel" style="margin-bottom:6px">Fecha de vencimiento</div>
+              <div class="row" style="flex-wrap:wrap;gap:6px"><span class="schip on">Cualquiera</span><span class="schip">Vencidas</span><span class="schip">Próximos 7 días</span><span class="schip">Sin fecha</span></div>
+            </div>
+            <div style="padding:14px 8px 4px"><span class="btn-primary" style="display:block;text-align:center">Aplicar (3)</span></div>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>El botón inferior muestra <b>cuántos proyectos coincidirían</b> antes de aplicar; si son 0 dice “Ningún proyecto coincide”.</span></div>
+      </div>
+      <div class="how">
+        <h3>Cómo se usa</h3>
+        <ul>
+          <li>Abre con el botón <span class="pill">Filtrar</span>; su insignia muestra cuántos filtros tienes activos.</li>
+          <li>Elige uno por grupo: <b>Estado</b>, <b>Prioridad</b>, <b>Categoría</b> (si tienes) y <b>Fecha de vencimiento</b>.</li>
+          <li>El botón <b>Aplicar (N)</b> trae el conteo en vivo; <b>“Limpiar”</b> reinicia a Todos.</li>
+        </ul>
+        <h3>Cómo editar</h3>
+        <ul>
+          <li class="edit"><b>Fecha de vencimiento</b>: Cualquiera, Vencidas, Próximos 7 días o Sin fecha.</li>
+          <li class="edit">En escritorio estos mismos filtros viven en la barra etiquetada (paso 2), sin hoja.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · SORT -->
+  <section class="step" id="sort">
+    <div class="step-head"><span class="badge">4</span><h2>Ordenar proyectos</h2></div>
+    <p class="sub">Cinco modos para acomodar la lista a tu manera de trabajar.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Ordenar por — hoja inferior</span></div>
+        <div class="canvas">
+          <div class="sheet" style="width:100%;max-width:none">
+            <div class="handle"></div>
+            <div class="stitle">Ordenar por</div>
+            <div class="arow" style="justify-content:space-between">Inteligente<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5"><path d="m20 6-11 11-5-5"/></svg></div>
+            <div class="arow">Por prioridad</div>
+            <div class="arow">Actividad reciente</div>
+            <div class="arow">Nombre</div>
+            <div class="arow">Por estado</div>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>La opción activa lleva una <b>palomita</b>. En escritorio es el menú desplegable de “Orden”.</span></div>
+      </div>
+      <div class="how">
+        <h3>Qué hace cada modo</h3>
+        <ul>
+          <li><b>Inteligente</b> — vencidas primero, luego de hoy, luego sin actividad, luego por prioridad.</li>
+          <li><b>Por prioridad</b> — Crítica → Alta → Media → Baja.</li>
+          <li><b>Actividad reciente</b> — lo más movido recientemente arriba.</li>
+          <li><b>Nombre</b> — alfabético.</li>
+          <li><b>Por estado</b> — agrupa por estado en su orden natural.</li>
+        </ul>
+        <h3>Cómo editar</h3>
+        <ul>
+          <li class="edit">El modo elegido se mantiene mientras navegas en la vista.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · CARD / ROW ANATOMY -->
+  <section class="step" id="card">
+    <div class="step-head"><span class="badge">5</span><h2>Anatomía de una fila</h2></div>
+    <p class="sub">Todo lo que dice de un vistazo cada proyecto en la lista.</p>
+    <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Una fila de proyecto</span></div>
+      <div class="canvas">
+        <div class="plist">
+          <div class="prow"><span class="pstripe" style="background:#f87171b3"></span><span class="chev">›</span><span class="sicon" style="background:rgba(16,185,129,.2);color:#6ee7b7;border-color:rgba(16,185,129,.3)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span><div style="flex:1;min-width:0"><div class="row" style="gap:8px"><b>Landing nueva</b><span class="catchip">Marketing</span><span class="badge-red">1 vencidas</span></div><div class="nextstep">→ Escribir copy del hero</div></div><div class="prog"><span class="pbar"><i style="width:60%"></i></span><span class="muted xsmall">3/5</span></div></div>
+        </div>
+        <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:14px">
+          <span class="leg"><span class="legbox" style="background:#f87171b3"></span>Franja = prioridad</span>
+          <span class="leg"><span class="legbox" style="background:rgba(16,185,129,.2);border:1px solid rgba(16,185,129,.4)"></span>Icono = estado</span>
+          <span class="leg"><span class="badge-red" style="padding:1px 6px">N vencidas</span></span>
+          <span class="leg"><span class="badge-orange" style="padding:1px 6px">N hoy</span></span>
+          <span class="leg"><span class="badge-amber" style="padding:1px 6px">Nd sin actividad</span></span>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>De izquierda a derecha: franja de prioridad, chevron, icono de estado, nombre + chips, y la barra de progreso de tareas.</span></div>
+    <div class="grid2" style="margin-top:20px">
+      <div class="how"><h3>Qué muestra</h3><ul>
+        <li><b>Franja de color</b> a la izquierda = prioridad (roja crítica, naranja alta, verde media, azul baja).</li>
+        <li><b>Icono cuadrado</b> = estado del proyecto (Activo, Estancado, Idea, Lanzado…).</li>
+        <li><b>Chip de categoría</b> con su color, si el proyecto tiene una.</li>
+        <li><b>Badge</b> de urgencia: <b class="red">N vencidas</b>, <b class="orange">N hoy</b>, <b class="amber">Nd sin actividad</b> o <b class="a2">Nh pendientes</b>.</li>
+        <li><b>→ Próximo paso</b> bajo el nombre, y la <b>barra hecho/total</b> de tareas a la derecha.</li>
+      </ul></div>
+      <div class="how"><h3>Cómo se usa</h3><ul>
+        <li><b>Toca la fila</b> para desplegar el detalle del proyecto (paso 6).</li>
+        <li>El badge ámbar “sin actividad” es solo una <b>pista visual</b> (7+ días), no un estado.</li>
+        <li>En móvil, categoría e idle se ocultan para ahorrar espacio; el progreso se simplifica a “hecho/total”.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 6 · DETAIL -->
+  <section class="step" id="detail">
+    <div class="step-head"><span class="badge">6</span><h2>Abrir un proyecto</h2></div>
+    <p class="sub">Tocar una fila la expande en su sitio, con próximo paso, tareas y actividad.</p>
+    <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Fila expandida — detalle del proyecto</span></div>
+      <div class="canvas">
+        <div class="plist">
+          <div class="prow" style="background:color-mix(in srgb,var(--surface) 60%,transparent);border-bottom:1px solid var(--border)"><span class="pstripe" style="background:#f87171b3"></span><span class="chev" style="transform:rotate(90deg);color:var(--accent)">›</span><span class="sicon" style="background:rgba(16,185,129,.2);color:#6ee7b7;border-color:rgba(16,185,129,.3)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span><div style="flex:1;min-width:0"><div class="row" style="gap:8px"><b>Landing nueva</b><span class="catchip">Marketing</span></div></div><div class="prog"><span class="pbar"><i style="width:60%"></i></span><span class="muted xsmall">3/5</span></div></div>
+        </div>
+        <div style="border:1px solid var(--border);border-top:none;border-radius:0 0 12px 12px;padding:14px;background:var(--bg)">
+          <div class="row" style="justify-content:flex-end;margin-bottom:10px"><span class="ghostbtn"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>Abrir proyecto</span></div>
+          <div class="nextbox"><div class="xsmall accent" style="text-transform:uppercase;letter-spacing:.06em;font-weight:600">Próximo paso</div><div class="small" style="margin-top:2px">→ Escribir copy del hero</div></div>
+          <div class="dsec"><div class="dsec-h">Por qué importa</div><div class="small muted">Convertir las visitas del lanzamiento en registros.</div></div>
+          <div class="dsec"><div class="dsec-h">Descripción</div><div class="small muted">Página de aterrizaje para la nueva campaña de Q3.</div></div>
+          <div class="dsec"><div class="row"><div class="dsec-h" style="margin:0">Tareas</div><span class="count-pill" style="margin-left:auto;background:var(--border);color:var(--text-muted);border:1px solid var(--border)">3/5</span></div>
+            <div class="small accent" style="margin:6px 0 4px"><span style="display:inline-flex;align-items:center;gap:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Agregar tarea</span></div>
+            <div class="trow"><span class="accent"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg></span><span class="small" style="flex:1">Escribir copy del hero</span><span class="badge-a2" style="padding:1px 6px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>2h</span></div>
+            <div class="trow"><span class="accent"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></span><span class="small muted" style="flex:1;text-decoration:line-through">Definir paleta de colores</span></div>
+          </div>
+          <div class="dsec"><div class="row"><div class="dsec-h" style="margin:0">Actividad reciente</div><span class="count-pill" style="margin-left:auto;background:var(--border);color:var(--text-muted);border:1px solid var(--border)">2</span></div>
+            <div class="small accent" style="margin:6px 0 4px"><span style="display:inline-flex;align-items:center;gap:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Registrar update</span></div>
+            <div class="row small muted" style="gap:8px;align-items:flex-start"><span class="xsmall" style="width:46px;flex:0 0 auto">18 jun</span><span>Terminé el wireframe del hero.</span></div>
+          </div>
+          <div class="row" style="gap:8px;margin-top:12px"><span class="minibtn"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Editar</span><span class="minibtn danger"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>Eliminar</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>El detalle se abre <b>en línea</b> (la fila se ilumina). “Abrir proyecto” lleva a la vista completa de pantalla.</span></div>
+    <div class="grid2" style="margin-top:20px">
+      <div class="how"><h3>Cómo se usa</h3><ul>
+        <li><b>Próximo paso</b> arriba, siempre visible; debajo Por qué importa, Descripción, Tareas, Actividad y Notas.</li>
+        <li>En <b>Tareas</b>: marca el ✓ para completar, <b>Agregar tarea</b>, o edita/elimina cada una.</li>
+        <li><b>Registrar update</b> deja una entrada de bitácora y “despierta” al proyecto.</li>
+        <li><b>Abrir proyecto</b> (↗) salta a la vista de detalle completa.</li>
+      </ul></div>
+      <div class="how"><h3>Cómo editar</h3><ul>
+        <li class="edit"><b>Editar</b> abre el formulario del proyecto (nombre, estado, prioridad, categoría, fechas…).</li>
+        <li class="edit"><b>Eliminar</b> borra el proyecto (pide confirmación).</li>
+        <li class="edit">Las listas largas de tareas o actividad se recortan con un “mostrar más”.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 7 · CREATE + EMPTY -->
+  <section class="step" id="create">
+    <div class="step-head"><span class="badge">7</span><h2>Crear y estado vacío</h2></div>
+    <p class="sub">Cómo añadir un proyecto, y qué ves cuando todavía no tienes ninguno.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Sin proyectos — estado vacío</span></div>
+        <div class="canvas">
+          <div class="card" style="text-align:center;padding:34px 16px">
+            <div class="muted small" style="margin-bottom:14px">Aún no hay proyectos.</div>
+            <span class="btn-primary">Agrega tu primer proyecto</span>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>Estado vacío de un usuario nuevo. El botón crea tu primer proyecto.</span></div>
+      </div>
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Crear — botón flotante (móvil)</span></div>
+        <div class="canvas" style="display:flex;flex-direction:column;align-items:flex-end;gap:14px">
+          <div class="sheet" style="width:100%">
+            <div class="handle"></div>
+            <div class="arow"><span class="icon a2"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2z"/></svg></span>Nuevo proyecto</div>
+            <div class="arow"><span class="icon purple"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 3z"/><path d="M9 21h6"/></svg></span>Abrir Loop</div>
+          </div>
+          <div class="fab"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>En móvil el <b>+</b> despliega “Nuevo proyecto” y el acceso a <b>Loop</b> (asistente IA).</span></div>
+      </div>
+    </div>
+    <div class="grid2" style="margin-top:8px">
+      <div class="how"><h3>Cómo se usa</h3><ul>
+        <li>En escritorio, el botón <b>Nuevo</b> del encabezado abre el formulario de proyecto.</li>
+        <li>En móvil, el botón flotante <b>+</b> hace lo mismo (y ofrece abrir Loop).</li>
+        <li>El estado vacío incluye un atajo directo: <b>“Agrega tu primer proyecto”</b>.</li>
+      </ul></div>
+      <div class="how"><h3>Cómo editar</h3><ul>
+        <li class="edit">Si los filtros dejan la lista vacía, verás <b>“No hay proyectos que coincidan…”</b> con <b>Limpiar filtros</b>.</li>
+        <li class="edit">La búsqueda sin resultados muestra el texto buscado para que ajustes el término.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <p class="footnote">
+    Guía generada a partir de la implementación real de <code>ProjectsView.tsx</code>, <code>ProjectsFilterSheet.tsx</code>, <code>ProjectsSortSheet.tsx</code> y los textos de <code>messages/es.json</code>. Las capturas son reconstrucciones fieles en HTML (tema oscuro). Otras guías de esta serie: <b>Today</b>, <b>Tareas</b>, <b>Rutinas</b>, <b>Ideas</b>, <b>Notas</b>, <b>Bitácora</b> y <b>Analíticas</b>.
+  </p>
+
+  </main>
+</div>
+
+<style>
+  .searchbox{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text-muted);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 11px}
+  .filterbar{background:color-mix(in srgb,var(--surface) 40%,transparent);border:1px solid color-mix(in srgb,var(--border) 60%,transparent);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+  .frow{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap}
+  .flabel{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);width:64px;flex:0 0 auto;margin-top:5px}
+  .fchip{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;padding:3px 9px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text-muted)}
+  .fchip.on{background:color-mix(in srgb,var(--text) 10%,transparent);border-color:color-mix(in srgb,var(--text) 30%,transparent);color:var(--text)}
+  .cpill{font-size:9.5px;padding:0 6px;border-radius:999px;background:var(--border);color:var(--text-muted)}
+  .fchip.on .cpill{background:rgba(0,0,0,.3)}
+  .cdot{width:7px;height:7px;border-radius:50%}
+  .selectish{font-size:11.5px;padding:4px 9px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text)}
+  .plist{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--surface)}
+  .prow{position:relative;display:flex;align-items:center;gap:10px;padding:9px 12px 9px 18px;border-bottom:1px solid var(--border)}
+  .prow:last-child{border-bottom:none}
+  .pstripe{position:absolute;left:0;top:0;bottom:0;width:4px}
+  .chev{color:var(--text-muted);font-size:15px;flex:0 0 auto}
+  .sicon{width:24px;height:24px;border-radius:6px;border:1px solid;display:grid;place-items:center;flex:0 0 auto}
+  .nextstep{font-size:11px;color:var(--text-muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .catchip{font-size:10.5px;padding:1px 7px;border-radius:5px;border:1px solid rgba(251,146,60,.35);background:rgba(251,146,60,.18);color:#fed7aa}
+  .badge-red{font-size:10.5px;padding:1px 7px;border-radius:5px;border:1px solid rgba(248,113,113,.4);background:rgba(248,113,113,.2);color:#fecaca}
+  .badge-orange{font-size:10.5px;padding:1px 7px;border-radius:5px;border:1px solid rgba(251,146,60,.4);background:rgba(251,146,60,.2);color:#fed7aa}
+  .badge-amber{font-size:10.5px;padding:1px 7px;border-radius:5px;border:1px solid rgba(245,158,11,.3);background:rgba(245,158,11,.2);color:#fcd34d}
+  .badge-a2{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;padding:1px 7px;border-radius:5px;border:1px solid color-mix(in srgb,var(--accent-2) 30%,transparent);background:color-mix(in srgb,var(--accent-2) 15%,transparent);color:var(--accent-2)}
+  .prog{display:flex;align-items:center;gap:8px;flex:0 0 auto;width:104px}
+  .pbar{flex:1;height:6px;border-radius:999px;background:var(--border);overflow:hidden}
+  .pbar > i{display:block;height:100%;background:var(--accent)}
+  .mbtn{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;font-size:13px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text)}
+  .mbtn .cnt{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--accent);color:#06281f;font-size:10px;font-weight:700}
+  .schip{font-size:12px;padding:5px 11px;border-radius:8px;border:1px solid var(--border);background:var(--border);color:var(--text-muted)}
+  .schip.on{background:var(--accent);color:#06281f;border-color:var(--accent);font-weight:600}
+  .leg{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted)}
+  .legbox{width:12px;height:12px;border-radius:3px;display:inline-block}
+  .ghostbtn{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;padding:5px 10px;border-radius:7px;background:color-mix(in srgb,var(--accent) 10%,transparent);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);color:var(--accent)}
+  .nextbox{background:color-mix(in srgb,var(--accent) 6%,transparent);border:1px solid color-mix(in srgb,var(--accent) 22%,transparent);border-radius:9px;padding:8px 11px;margin-bottom:12px}
+  .dsec{border-top:1px solid color-mix(in srgb,var(--border) 60%,transparent);padding-top:10px;margin-top:10px}
+  .dsec-h{font-size:12px;font-weight:600;margin-bottom:5px}
+  .trow{display:flex;align-items:center;gap:8px;padding:3px 4px;border-radius:6px}
+  .minibtn{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;padding:5px 10px;border-radius:7px;background:var(--border);color:var(--text)}
+  .minibtn.danger{background:rgba(248,113,113,.1);color:#fca5a5}
+</style>
+
+</body>
+</html>

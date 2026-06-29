@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Help · Quick Notes — Continuity</title>
+<link rel="stylesheet" href="_base.css" />
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><span class="dot">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+    </span>Continuity · Help</div>
+    <nav>
+      <a href="#intro">Quick Notes</a>
+      <a href="#overview">List</a>
+      <a href="#editor">Editor</a>
+      <a href="#sections">Sections</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap hero" id="intro">
+  <div class="kicker">Step-by-step guide</div>
+  <h1>Quick Notes</h1>
+  <p class="lead">The <b>Notes</b> tab is your notebook inside Continuity. Capture loose ideas, group them into <em>collapsible sections</em> Notion-style, write them with Markdown, and link them to a project or keep them standalone. This guide walks through the list with filters, the two-panel editor, sections (toggle, drag, and view/edit), categories, pinning, and how to create a note.</p>
+</div>
+
+<div class="wrap layout">
+
+  <nav class="toc">
+    <strong>In this guide</strong>
+    <ol>
+      <li><a href="#overview"><span class="n">1</span>List &amp; filters</a></li>
+      <li><a href="#editor"><span class="n">2</span>Two-panel editor</a></li>
+      <li><a href="#sections"><span class="n">3</span>Collapsible sections</a></li>
+      <li><a href="#categories"><span class="n">4</span>Category &amp; project</a></li>
+      <li><a href="#pinned"><span class="n">5</span>Pinning notes</a></li>
+      <li><a href="#create"><span class="n">6</span>Creating a note</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+  <!-- 1 · LIST & FILTERS -->
+  <section class="step" id="overview">
+    <div class="step-head"><span class="badge">1</span><h2>List &amp; filters</h2></div>
+    <p class="sub">All your notes as cards, with a search box and quick filters up top.</p>
+
+    <div class="shot">
+      <div class="chrome"><i></i><i></i><i></i><span class="tag">Continuity · /dashboard — Notes tab</span></div>
+      <div class="canvas">
+        <div class="row" style="margin-bottom:4px"><span class="icon accent"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 1.3 0 1.9-.5 2.5-1v13c-.6.5-1.2 1-2.5 1-2.6 0-2.4-2-5-2-2.5 0-2.5 2-5 2-1.3 0-1.9-.5-2.5-1z"/><path d="M6 12h4"/><path d="M6 16h6"/></svg></span><b>Quick Notes</b></div>
+        <div class="xsmall muted" style="margin:0 0 14px 28px">Your notebook inside Continuity. Capture notes, group them into collapsible sections, and link them to a project or keep them standalone.</div>
+
+        <!-- search + new -->
+        <div class="row" style="gap:8px;margin-bottom:12px">
+          <div style="flex:1;position:relative;display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 12px">
+            <span class="icon muted"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
+            <span class="small muted">Search notes and sections...</span>
+          </div>
+          <span class="btn-primary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" style="vertical-align:-2px"><path d="M12 5v14M5 12h14"/></svg> New note</span>
+        </div>
+
+        <!-- filter chips -->
+        <div class="row" style="flex-wrap:wrap;gap:7px;margin-bottom:14px">
+          <span class="chip" style="background:var(--accent);border-color:var(--accent);color:#06281f">All</span>
+          <span class="chip" style="border-color:var(--border);color:var(--text-muted)"><span class="sdot" style="background:var(--accent-2)"></span>Work</span>
+          <span class="chip" style="border-color:var(--border);color:var(--text-muted)"><span class="sdot" style="background:var(--purple)"></span>Personal</span>
+          <span class="chip" style="border-color:var(--border);color:var(--text-muted)"><span class="sdot" style="background:var(--amber)"></span>Learning</span>
+          <span class="chip" style="border-color:var(--border);color:var(--text-muted)">Standalone</span>
+          <span class="chip" style="border-color:var(--border);color:var(--text-muted)">Pinned</span>
+        </div>
+
+        <!-- note cards grid -->
+        <div class="pcards">
+          <div class="pcard" style="position:relative;padding-left:16px">
+            <span style="position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px;background:var(--accent-2)"></span>
+            <div class="row" style="justify-content:space-between"><b style="font-size:14px">Planning meeting</b><span class="icon accent"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></span></div>
+            <div class="xsmall muted" style="margin-top:4px">Define this quarter's scope and assign an owner per area.</div>
+            <div class="row" style="margin-top:8px;gap:7px"><span class="chip" style="background:color-mix(in srgb,var(--accent-2) 15%,transparent);border-color:color-mix(in srgb,var(--accent-2) 30%,transparent);color:var(--accent-2)">Work</span><span class="chip" style="background:var(--bg);border-color:var(--border);color:var(--text-muted)">New landing</span><span class="xsmall muted" style="margin-left:auto">3 sections</span></div>
+          </div>
+          <div class="pcard" style="position:relative;padding-left:16px">
+            <span style="position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px;background:var(--purple)"></span>
+            <div class="row" style="justify-content:space-between"><b style="font-size:14px">Grocery list</b></div>
+            <div class="xsmall muted" style="margin-top:4px">Coffee, oats, seasonal fruit, and something for Friday dinner.</div>
+            <div class="row" style="margin-top:8px;gap:7px"><span class="chip" style="background:color-mix(in srgb,var(--purple) 15%,transparent);border-color:color-mix(in srgb,var(--purple) 30%,transparent);color:var(--purple)">Personal</span><span class="xsmall muted" style="margin-left:auto">1 section</span></div>
+          </div>
+          <div class="pcard" style="position:relative;padding-left:16px">
+            <span style="position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px;background:var(--border)"></span>
+            <div class="row" style="justify-content:space-between"><b style="font-size:14px">Reading list</b></div>
+            <div class="xsmall muted" style="margin-top:4px">Articles and books to pick back up when I get a free moment.</div>
+            <div class="row" style="margin-top:8px;gap:7px"><span class="xsmall muted" style="font-style:italic">standalone</span><span class="xsmall muted" style="margin-left:auto">2 sections</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>Real view (dark theme). Each card shows the title, a body snippet, its <b>category</b>/project, and the section count.</span></div>
+
+    <ol class="anatomy-list">
+      <li><b>Search</b> — filters by text inside titles <i>and</i> section bodies.</li>
+      <li><b>Filters</b> — <b>All</b>, one per category, <b>Standalone</b> (no category), and <b>Pinned</b>.</li>
+      <li><b>Cards</b> — one per note; the colored stripe on the left is its category's.</li>
+      <li><b>New note</b> — green button to the right of the search box (and the <b>+</b> FAB on mobile).</li>
+    </ol>
+    <div class="note info">If there are no notes you'll see <b>“No notes yet.”</b> with a <b>Create first note</b> button. Searching with no results shows <b>“No notes match…”</b>. New users get a sample note seeded for them.</div>
+  </section>
+
+  <!-- 2 · TWO-PANEL EDITOR -->
+  <section class="step" id="editor">
+    <div class="step-head"><span class="badge">2</span><h2>Two-panel editor</h2></div>
+    <p class="sub">When you open a note, the list shrinks to a compact panel and the editor appears beside it.</p>
+
+    <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Note open — list + editor</span></div>
+      <div class="canvas">
+        <div style="display:grid;grid-template-columns:minmax(0,180px) minmax(0,1fr);gap:12px">
+          <!-- compact list -->
+          <div>
+            <div class="row" style="gap:6px;margin-bottom:8px"><span class="chip" style="background:var(--accent);border-color:var(--accent);color:#06281f;font-size:10px">All</span><span class="chip" style="border-color:var(--border);color:var(--text-muted);font-size:10px">Pinned</span></div>
+            <div class="pcard" style="position:relative;padding:10px 10px 10px 14px;border-color:var(--accent)"><span style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent-2)"></span><b style="font-size:13px">Planning meeting</b><div class="xsmall muted" style="margin-top:2px">Define this quarter's…</div></div>
+            <div class="pcard" style="position:relative;padding:10px 10px 10px 14px;margin-top:8px"><span style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--purple)"></span><b style="font-size:13px">Grocery list</b></div>
+          </div>
+          <!-- editor card -->
+          <div class="card" style="margin:0;padding:14px">
+            <div class="row" style="gap:8px;margin-bottom:10px">
+              <input-like style="flex:1;font-size:18px;font-weight:600">Planning meeting</input-like>
+              <span class="iconbtn accent"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></span>
+              <span class="iconbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>
+              <span class="iconbtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></span>
+            </div>
+            <div class="row" style="gap:14px;margin-bottom:12px;flex-wrap:wrap">
+              <span class="xsmall muted" style="text-transform:uppercase;letter-spacing:.08em">Category <span class="pill" style="margin-left:4px">Work ⌄</span></span>
+              <span class="xsmall muted" style="text-transform:uppercase;letter-spacing:.08em">Project <span class="pill" style="margin-left:4px">New landing ⌄</span></span>
+            </div>
+            <div class="card" style="margin:0 0 8px;padding:10px 12px;background:var(--surface)"><div class="row"><span class="icon muted"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span><b style="font-size:13px">Goals</b></div></div>
+            <div class="card" style="margin:0;padding:10px 12px;background:var(--surface)"><div class="row"><span class="icon muted"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg></span><b style="font-size:13px">To-dos</b></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>The title is edited up top; below it, the <b>category</b> and <b>project</b> selectors, then the sections.</span></div>
+
+    <div class="grid2" style="margin-top:20px">
+      <div class="how"><h3>How to use it</h3><ul>
+        <li>Tap a list <b>card</b> to open its editor on the right.</li>
+        <li>Type the <b>title</b> at the top; it saves on its own when you leave the field.</li>
+        <li>The editor holds: <b>pin</b> 📌, <b>delete</b> 🗑, and <b>close</b> ✕.</li>
+      </ul></div>
+      <div class="how"><h3>How to edit it</h3><ul>
+        <li class="edit">Everything saves <b>automatically</b> on blur; there's no “Save” button.</li>
+        <li class="edit">On desktop you close with the <b>✕</b>; on mobile, with the back arrow <b>←</b> (the editor goes full-screen).</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 3 · COLLAPSIBLE SECTIONS -->
+  <section class="step" id="sections">
+    <div class="step-head"><span class="badge">3</span><h2>Collapsible sections</h2></div>
+    <p class="sub">Each note's body is organized into toggle-style blocks: they collapse, reorder, and support Markdown.</p>
+
+    <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Section — view (rendered Markdown)</span></div>
+      <div class="canvas">
+        <div class="card" style="margin:0;padding:0;background:var(--surface);overflow:hidden">
+          <div class="row" style="gap:8px;padding:10px 12px">
+            <span class="icon muted"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span>
+            <b style="flex:1;font-size:13px">Goals</b>
+            <span class="iconbtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></span>
+            <span class="iconbtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 15-6-6-6 6"/></svg></span>
+            <span class="iconbtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span>
+            <span class="iconbtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
+            <span class="iconbtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>
+          </div>
+          <div style="padding:0 12px 12px 36px">
+            <p class="small" style="margin:0 0 6px"><b>Quarter goal:</b> ship the new landing page before launch.</p>
+            <ul class="small muted" style="margin:0;padding-left:18px">
+              <li>Finalize the hero <i>copy</i></li>
+              <li>Lock the color palette</li>
+              <li>Review metrics with <code style="background:var(--bg);padding:1px 5px;border-radius:5px">analytics</code></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>In <b>view</b> mode the Markdown is rendered (bold, lists, code). Each section carries: eye 👁, ▲▼, grip ⠿, and trash 🗑.</span></div>
+
+    <div class="shot" style="margin-top:18px"><div class="chrome"><i></i><i></i><i></i><span class="tag">Section — edit (Markdown textarea)</span></div>
+      <div class="canvas">
+        <div class="card" style="margin:0;padding:0;background:var(--surface);overflow:hidden">
+          <div class="row" style="gap:8px;padding:10px 12px">
+            <span class="icon muted"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span>
+            <b style="flex:1;font-size:13px">Goals</b>
+            <span class="iconbtn accent"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span>
+            <span class="iconbtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 15-6-6-6 6"/></svg></span>
+            <span class="iconbtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span>
+            <span class="iconbtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
+            <span class="iconbtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></span>
+          </div>
+          <div style="padding:0 12px 12px 36px">
+            <div style="background:var(--bg);border:1px solid var(--accent);border-radius:10px;padding:10px 12px;font-family:ui-monospace,monospace;font-size:12.5px;line-height:1.6;color:var(--text)">**Quarter goal:** ship the new landing page before launch.<br><br>- Finalize the hero *copy*<br>- Lock the color palette<br>- Review metrics with `analytics`<span style="color:var(--accent)">▏</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>Tap the pencil ✎ (or the text) to edit in a monospace <i>textarea</i>; the eye 👁 switches back to the rendered view.</span></div>
+
+    <div class="grid2" style="margin-top:20px">
+      <div class="how"><h3>How to use it</h3><ul>
+        <li>The <b>chevron</b> ▸/▾ on the left <b>collapses and expands</b> the section.</li>
+        <li>Type the section <b>title</b> in the top bar.</li>
+        <li>The body supports <b>Markdown</b>: <b>bold</b>, <i>italic</i>, <code>code</code>, lists, headings, and links.</li>
+        <li><b>Add collapsible section</b> (the dashed button at the bottom) adds a new block.</li>
+      </ul></div>
+      <div class="how"><h3>How to edit it</h3><ul>
+        <li class="edit">The <b>eye</b> 👁 / <b>pencil</b> ✎ toggles between <b>view</b> (Markdown) and <b>edit</b> (textarea).</li>
+        <li class="edit">Reorder with the <b>grip</b> ⠿ (drag &amp; drop) or the <b>▲▼</b> arrows as a keyboard fallback.</li>
+        <li class="edit">The <b>trash</b> 🗑 deletes that section; everything saves on blur.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 4 · CATEGORY & PROJECT -->
+  <section class="step" id="categories">
+    <div class="step-head"><span class="badge">4</span><h2>Category &amp; project</h2></div>
+    <p class="sub">Classify each note with a color category and, optionally, link it to a project.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Editor header — category &amp; project</span></div>
+        <div class="canvas">
+          <div class="row" style="gap:14px;flex-wrap:wrap">
+            <div>
+              <div class="xsmall muted" style="text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Category</div>
+              <span class="pill" style="font-size:13px;padding:6px 11px"><span class="sdot" style="background:var(--accent-2)"></span>Work&nbsp; ⌄</span>
+            </div>
+            <div>
+              <div class="xsmall muted" style="text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Project</div>
+              <span class="pill" style="font-size:13px;padding:6px 11px">New landing&nbsp; ⌄</span>
+            </div>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>Two dropdowns. <b>No category</b> leaves the note <i>standalone</i>; <b>No project</b> keeps it independent.</span></div>
+      </div>
+      <div class="how"><h3>How to use it</h3><ul>
+        <li>Open <b>Category</b> and pick one; the card's stripe and chip take that color.</li>
+        <li>Open <b>Project</b> to hang the note off a project and find it in context.</li>
+        <li>Filter the list by a category or by <b>Standalone</b> to see only the uncategorized ones.</li>
+      </ul>
+      <h3>How to edit it</h3><ul>
+        <li class="edit">Pick <b>No category</b> / <b>No project</b> to unlink.</li>
+        <li class="edit"><b>Categories</b> are created and edited like elsewhere in the app (shared with tasks and projects).</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 5 · PINNING NOTES -->
+  <section class="step" id="pinned">
+    <div class="step-head"><span class="badge">5</span><h2>Pinning notes</h2></div>
+    <p class="sub">Flag your most important notes to keep them one tap away with the <b>Pinned</b> filter.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Pinned note</span></div>
+        <div class="canvas">
+          <div class="pcard" style="position:relative;padding-left:16px;border-color:color-mix(in srgb,var(--accent) 30%,transparent)">
+            <span style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent-2)"></span>
+            <div class="row" style="justify-content:space-between"><b style="font-size:14px">Planning meeting</b><span class="icon accent"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></span></div>
+            <div class="xsmall muted" style="margin-top:4px">Define this quarter's scope and assign an owner per area.</div>
+          </div>
+          <div class="row" style="margin-top:14px;gap:7px"><span class="chip" style="background:var(--accent);border-color:var(--accent);color:#06281f">All</span><span class="chip" style="border-color:color-mix(in srgb,var(--accent) 40%,transparent);background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--accent)">Pinned</span></div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>A filled 📌 icon shows on the card. The <b>Pinned</b> filter leaves only these notes.</span></div>
+      </div>
+      <div class="how"><h3>How to use it</h3><ul>
+        <li>Open the note and tap the <b>📌 Pin note</b> icon in the editor header.</li>
+        <li>Pinned notes show a <b>filled pin</b> on their list card.</li>
+        <li>Use the <b>Pinned</b> filter to see only what you've anchored.</li>
+      </ul>
+      <h3>How to edit it</h3><ul>
+        <li class="edit">Tap the pin again to <b>unpin</b>.</li>
+        <li class="edit">Pinning doesn't change the category or project: it's a separate marker.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 6 · CREATING A NOTE -->
+  <section class="step" id="create">
+    <div class="step-head"><span class="badge">6</span><h2>Creating a note</h2></div>
+    <p class="sub">Three ways to start a new note, depending on where you are.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Create shortcuts</span></div>
+        <div class="canvas" style="display:flex;flex-direction:column;align-items:flex-end;gap:16px">
+          <div style="width:100%;display:flex;gap:8px;align-items:center">
+            <div style="flex:1;display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 12px"><span class="icon muted"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span><span class="small muted">Search notes and sections...</span></div>
+            <span class="btn-primary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" style="vertical-align:-2px"><path d="M12 5v14M5 12h14"/></svg> New note</span>
+          </div>
+          <div class="card" style="margin:0;width:100%;padding:18px;text-align:center;border-style:dashed">
+            <div class="small muted" style="margin-bottom:12px">No notes yet.</div>
+            <span class="btn-primary">Create first note</span>
+          </div>
+          <div class="fab"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>The <b>New note</b> button (desktop), the empty-state button, and the <b>+ FAB</b> (mobile) all create a note ready to edit.</span></div>
+      </div>
+      <div class="how"><h3>How to use it</h3><ul>
+        <li><b>New note</b> instantly opens an empty note with its first section ready.</li>
+        <li>If you create from a <b>category filter</b>, the note is born with that category.</li>
+        <li>On mobile, the <b>+ FAB</b> expands this action alongside access to <b>Loop</b>.</li>
+      </ul>
+      <h3>How to edit it</h3><ul>
+        <li class="edit">A note with no title is listed as <b>“Untitled note”</b> until you give it one.</li>
+        <li class="edit">Just start writing: title, sections, and Markdown all save themselves.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <p class="footnote">
+    Guide generated from the real implementation of <code>QuickNotesView.tsx</code>, <code>NoteSectionBlock.tsx</code>, and <code>MarkdownText.tsx</code>, with strings from <code>messages/en.json</code> (<code>views.quickNotes.*</code>). Screenshots are faithful HTML reconstructions (dark theme).
+  </p>
+
+  </main>
+</div>
+
+</body>
+</html>

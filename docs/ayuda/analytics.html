@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ayuda · Analíticas — Continuity</title>
+<link rel="stylesheet" href="_base.css" />
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><span class="dot">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+    </span>Continuity · Ayuda</div>
+    <nav>
+      <a href="#intro">Analíticas</a>
+      <a href="#overview">Anatomía</a>
+      <a href="#range">Rango</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap hero" id="intro">
+  <div class="kicker">Guía paso a paso</div>
+  <h1>Analíticas</h1>
+  <p class="lead">La pestaña <b>Analíticas</b> es tu tablero de control: convierte tu actividad —updates, tareas completadas, horas registradas, ideas— en gráficas y paneles que te dicen <em>cómo</em> vas, no solo qué te falta. Es una vista de <b>solo lectura</b>: no editas nada aquí, pero sí eliges el <b>rango de fechas</b> que alimenta todos los paneles. Esta guía recorre cada panel con una captura y explica qué te está contando.</p>
+</div>
+
+<div class="wrap layout">
+
+  <nav class="toc">
+    <strong>En esta guía</strong>
+    <ol>
+      <li><a href="#overview"><span class="n">1</span>Anatomía general</a></li>
+      <li><a href="#range"><span class="n">2</span>Rango y cadencia</a></li>
+      <li><a href="#activity"><span class="n">3</span>Actividad por día</a></li>
+      <li><a href="#topprojects"><span class="n">4</span>Más activos</a></li>
+      <li><a href="#heatmap"><span class="n">5</span>Por día de la semana</a></li>
+      <li><a href="#backlog"><span class="n">6</span>Backlog</a></li>
+      <li><a href="#breakdown"><span class="n">7</span>Estado y categoría</a></li>
+      <li><a href="#effort"><span class="n">8</span>Esfuerzo y embudo</a></li>
+      <li><a href="#sleeping"><span class="n">9</span>Durmiendo e ideas estancadas</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+  <!-- 1 · OVERVIEW -->
+  <section class="step" id="overview">
+    <div class="step-head"><span class="badge">1</span><h2>Anatomía general</h2></div>
+    <p class="sub">Un título, un selector de rango y una pila de paneles independientes.</p>
+
+    <div class="shot">
+      <div class="chrome"><i></i><i></i><i></i><span class="tag">Continuity · /dashboard — pestaña Analíticas</span></div>
+      <div class="canvas">
+        <div class="row" style="justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+          <div class="row"><span class="icon accent"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6"/><rect x="12" y="7" width="3" height="10"/><rect x="17" y="13" width="3" height="4"/></svg></span><b style="font-size:17px">Analíticas</b></div>
+          <div style="display:inline-flex;gap:4px;background:var(--surface);padding:4px;border-radius:9px;border:1px solid var(--border)">
+            <span class="xsmall muted" style="padding:5px 11px;border-radius:6px">7d</span>
+            <span class="xsmall" style="padding:5px 11px;border-radius:6px;background:var(--border);color:var(--text);font-weight:600">30d</span>
+            <span class="xsmall muted" style="padding:5px 11px;border-radius:6px">90d</span>
+            <span class="xsmall muted" style="padding:5px 11px;border-radius:6px">1a</span>
+            <span class="xsmall muted" style="padding:5px 11px;border-radius:6px">Todo</span>
+          </div>
+        </div>
+        <div class="card" style="margin:0 0 10px;padding:13px"><div class="sec-title" style="font-size:14px"><span class="icon amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>Cadencia</div></div>
+        <div class="card" style="margin:0 0 10px;padding:13px;opacity:.9"><div class="sec-title" style="font-size:14px"><span class="icon accent"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></span>Actividad por día</div></div>
+        <div class="row" style="gap:10px;opacity:.8">
+          <div class="card" style="margin:0;padding:13px;flex:1"><div class="sec-title" style="font-size:14px"><span class="icon a2"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span>Más activos</div></div>
+          <div class="card" style="margin:0;padding:13px;flex:1"><div class="sec-title" style="font-size:14px"><span class="icon purple"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>Por día</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>Vista real (tema oscuro). En escritorio los paneles se apilan; algunos van en pares lado a lado.</span></div>
+
+    <ol class="anatomy-list">
+      <li><b>Título + selector de rango</b> — arriba. El rango (7d/30d/90d/1a/Todo) alimenta <b>todos</b> los paneles a la vez.</li>
+      <li><b>Cadencia y actividad</b> — el pulso reciente: cuántos días estuviste activo y la curva diaria.</li>
+      <li><b>Paneles de proyectos</b> — más activos, backlog, estado/categoría, esfuerzo, durmiendo.</li>
+      <li><b>Paneles de ideas</b> — el embudo de ideas y las ideas estancadas.</li>
+    </ol>
+    <div class="note info">En <b>móvil</b> verás una tira de <b>chips</b> (Actividad · Cadencia · Estado · …) y <b>un solo panel</b> a la vez: toca un chip para cambiar de panel. En <b>escritorio</b> se muestran todos apilados. Mientras recalcula tras cambiar el rango, junto al título aparece <b>“actualizando…”</b>.</div>
+  </section>
+
+  <!-- 2 · RANGE + CADENCE -->
+  <section class="step" id="range">
+    <div class="step-head"><span class="badge">2</span><h2>Rango de fechas y Cadencia</h2></div>
+    <p class="sub">Lo único que “editas” aquí, más tu pulso de actividad en ese rango.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Selector de rango</span></div>
+        <div class="canvas">
+          <div style="display:inline-flex;gap:4px;background:var(--surface);padding:4px;border-radius:9px;border:1px solid var(--border);margin-bottom:16px">
+            <span class="xsmall muted" style="padding:6px 12px;border-radius:6px">7d</span>
+            <span class="xsmall" style="padding:6px 12px;border-radius:6px;background:var(--border);color:var(--text);font-weight:600">30d</span>
+            <span class="xsmall muted" style="padding:6px 12px;border-radius:6px">90d</span>
+            <span class="xsmall muted" style="padding:6px 12px;border-radius:6px">1a</span>
+            <span class="xsmall muted" style="padding:6px 12px;border-radius:6px">Todo</span>
+          </div>
+          <div class="card" style="margin:0;padding:14px">
+            <div class="sec-title" style="font-size:14px;margin-bottom:12px"><span class="icon amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>Cadencia</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div style="background:color-mix(in srgb,var(--bg) 50%,transparent);border:1px solid var(--border);border-radius:10px;padding:12px"><div style="font-size:26px;font-weight:700">18</div><div class="xsmall muted" style="margin-top:2px">Días activos</div></div>
+              <div style="background:color-mix(in srgb,var(--bg) 50%,transparent);border:1px solid var(--border);border-radius:10px;padding:12px"><div style="font-size:26px;font-weight:700">112</div><div class="xsmall muted" style="margin-top:2px">Eventos</div></div>
+            </div>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>El rango activo se resalta. Aquí: en los <b>últimos 30 días</b> hubo movimiento en <b>18 días</b> y <b>112 eventos</b> en total.</span></div>
+      </div>
+      <div class="how">
+        <h3>Cómo se usa</h3>
+        <ul>
+          <li><b>Días activos</b> = cuántos días del rango tuvieron al menos un update o una tarea completada.</li>
+          <li><b>Eventos</b> = el total de esas interacciones en el rango.</li>
+          <li>Juntos son tu “pulso”: muchos eventos pero pocos días activos = trabajas a ráfagas.</li>
+        </ul>
+        <h3>Cómo editar</h3>
+        <ul>
+          <li class="edit">Toca <span class="pill">7d</span> <span class="pill">30d</span> <span class="pill">90d</span> <span class="pill">1a</span> <span class="pill">Todo</span> para cambiar el rango.</li>
+          <li class="edit">Es lo <b>único</b> editable de la vista; <b>recalcula todos los paneles</b> de golpe.</li>
+          <li class="edit">El valor por defecto al entrar es <b>30 días</b>.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · ACTIVITY -->
+  <section class="step" id="activity">
+    <div class="step-head"><span class="badge">3</span><h2>Actividad por día</h2></div>
+    <p class="sub">Dos líneas: updates y tareas completadas, día a día.</p>
+    <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Actividad por día</span></div>
+      <div class="canvas">
+        <div class="row" style="margin-bottom:14px"><span class="icon accent"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></span><b style="font-size:14px">Actividad por día</b></div>
+        <svg viewBox="0 0 600 200" width="100%" height="200" style="display:block">
+          <line x1="36" y1="20" x2="36" y2="170" stroke="var(--border)"/>
+          <line x1="36" y1="170" x2="588" y2="170" stroke="var(--border)"/>
+          <g stroke="var(--border)" stroke-dasharray="3 3" opacity=".5"><line x1="36" y1="60" x2="588" y2="60"/><line x1="36" y1="100" x2="588" y2="100"/><line x1="36" y1="140" x2="588" y2="140"/></g>
+          <polyline fill="none" stroke="var(--accent)" stroke-width="2.5" points="36,140 105,110 174,120 243,70 312,90 381,45 450,75 519,55 588,40"/>
+          <polyline fill="none" stroke="var(--accent-2)" stroke-width="2.5" points="36,160 105,150 174,135 243,140 312,115 381,125 450,95 519,110 588,85"/>
+          <g fill="var(--text-muted)" font-size="10"><text x="36" y="186">1/6</text><text x="174" y="186">8/6</text><text x="312" y="186">15/6</text><text x="450" y="186">22/6</text><text x="560" y="186">29/6</text></g>
+        </svg>
+        <div class="row" style="gap:18px;justify-content:center;margin-top:10px">
+          <span class="row" style="gap:6px"><span style="width:14px;height:3px;border-radius:2px;background:var(--accent);display:inline-block"></span><span class="xsmall muted">Updates</span></span>
+          <span class="row" style="gap:6px"><span style="width:14px;height:3px;border-radius:2px;background:var(--accent-2);display:inline-block"></span><span class="xsmall muted">Tareas</span></span>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>Línea <b class="accent">verde</b> = updates (registros de log); línea <b class="a2">azul</b> = tareas completadas. El eje X se etiqueta cada pocos días.</span></div>
+    <div class="grid2" style="margin-top:20px">
+      <div class="how"><h3>Cómo se usa</h3><ul>
+        <li>Busca <b>tendencia</b>, no días sueltos: ¿subes, bajas o mantienes el ritmo?</li>
+        <li>Pasa el cursor por un punto para ver el <b>detalle de ese día</b> en un tooltip.</li>
+        <li>Picos de azul sin verde = cerraste tareas pero no documentaste avances (o al revés).</li>
+      </ul></div>
+      <div class="how"><h3>Cómo editar</h3><ul>
+        <li class="edit">Solo lectura. Cambia lo que ves ajustando el <b>rango de fechas</b> (sección 2).</li>
+        <li class="edit">Con rangos largos (1a / Todo) la curva se suaviza y las etiquetas se espacian.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 4 · TOP PROJECTS -->
+  <section class="step" id="topprojects">
+    <div class="step-head"><span class="badge">4</span><h2>Más activos</h2></div>
+    <p class="sub">Top 5 proyectos por interacciones (updates + tareas completadas) en el rango.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Más activos</span></div>
+        <div class="canvas">
+          <div style="margin-bottom:2px"><b style="font-size:14px"><span class="a2" style="margin-right:6px">↗</span>Más activos</b></div>
+          <div class="xsmall muted" style="margin-bottom:12px">Top 5 por interacciones (updates + tareas completadas)</div>
+          <ul style="list-style:none;margin:0;padding:0;display:grid;gap:8px">
+            <li class="sleeprow" style="padding:9px 12px"><div style="flex:1"><div class="small">Landing nueva</div><div class="xsmall muted">active</div></div><span class="accent xsmall row" style="gap:2px">▲ +6</span><b style="font-size:16px">24</b></li>
+            <li class="sleeprow" style="padding:9px 12px"><div style="flex:1"><div class="small">App móvil</div><div class="xsmall muted">active</div></div><span class="accent xsmall row" style="gap:2px">▲ +2</span><b style="font-size:16px">18</b></li>
+            <li class="sleeprow" style="padding:9px 12px"><div style="flex:1"><div class="small">Newsletter</div><div class="xsmall muted">stalled</div></div><span class="red xsmall row" style="gap:2px">▼ -4</span><b style="font-size:16px">9</b></li>
+            <li class="sleeprow" style="padding:9px 12px"><div style="flex:1"><div class="small">Portafolio web</div><div class="xsmall muted">launched</div></div><span class="muted xsmall row" style="gap:2px">– 0</span><b style="font-size:16px">5</b></li>
+          </ul>
+        </div></div>
+        <div class="caption"><span>▲</span><span>El número grande son las <b>interacciones</b>; la flecha es el <b>cambio</b> frente al periodo anterior (<b class="accent">▲ sube</b>, <b class="red">▼ baja</b>, – igual).</span></div>
+      </div>
+      <div class="how"><h3>Cómo se usa</h3><ul>
+        <li>Confirma <b>dónde se fue tu energía</b> realmente en el rango.</li>
+        <li>La flecha compara contra el <b>periodo anterior del mismo largo</b>: detecta proyectos que se enfrían (▼).</li>
+        <li>Bajo cada nombre aparece el <b>estado</b> del proyecto (active, stalled, launched…).</li>
+      </ul>
+      <h3>Cómo editar</h3><ul>
+        <li class="edit">Solo lectura. Si no hubo actividad en el rango, verás <b>“Sin actividad en este rango.”</b></li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 5 · WEEKDAY HEATMAP -->
+  <section class="step" id="heatmap">
+    <div class="step-head"><span class="badge">5</span><h2>Por día de la semana</h2></div>
+    <p class="sub">¿Qué días sueles avanzar? Un mapa de calor de Lunes a Domingo.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Por día de la semana</span></div>
+        <div class="canvas">
+          <div class="row" style="margin-bottom:14px"><span class="icon purple"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span><b style="font-size:14px">Por día de la semana</b></div>
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;text-align:center">
+            <div><div style="aspect-ratio:1;border-radius:8px;display:grid;place-items:center;font-size:12px;font-weight:600;background:rgba(52,211,153,.85)">21</div><div class="xsmall muted" style="margin-top:5px">Lun</div></div>
+            <div><div style="aspect-ratio:1;border-radius:8px;display:grid;place-items:center;font-size:12px;font-weight:600;background:rgba(52,211,153,.65)">16</div><div class="xsmall muted" style="margin-top:5px">Mar</div></div>
+            <div><div style="aspect-ratio:1;border-radius:8px;display:grid;place-items:center;font-size:12px;font-weight:600;background:rgba(52,211,153,1)">25</div><div class="xsmall muted" style="margin-top:5px">Mié</div></div>
+            <div><div style="aspect-ratio:1;border-radius:8px;display:grid;place-items:center;font-size:12px;font-weight:600;background:rgba(52,211,153,.5)">12</div><div class="xsmall muted" style="margin-top:5px">Jue</div></div>
+            <div><div style="aspect-ratio:1;border-radius:8px;display:grid;place-items:center;font-size:12px;font-weight:600;background:rgba(52,211,153,.4)">9</div><div class="xsmall muted" style="margin-top:5px">Vie</div></div>
+            <div><div style="aspect-ratio:1;border-radius:8px;display:grid;place-items:center;font-size:12px;font-weight:600;background:rgba(52,211,153,.08)">2</div><div class="xsmall muted" style="margin-top:5px">Sáb</div></div>
+            <div><div style="aspect-ratio:1;border-radius:8px;display:grid;place-items:center;font-size:12px;font-weight:600;background:rgba(52,211,153,.08)">0</div><div class="xsmall muted" style="margin-top:5px">Dom</div></div>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>Más <b class="accent">intenso</b> = más interacciones ese día. Aquí el <b>miércoles</b> es tu día fuerte y el fin de semana descansas.</span></div>
+      </div>
+      <div class="how"><h3>Cómo se usa</h3><ul>
+        <li>Revela tu <b>patrón semanal</b>: en qué días rindes más y cuándo bajas.</li>
+        <li>El número dentro de cada celda es el <b>conteo</b> de interacciones de ese día.</li>
+        <li>Útil para <b>planear</b>: agenda lo difícil en tus días fuertes.</li>
+      </ul>
+      <h3>Cómo editar</h3><ul>
+        <li class="edit">Solo lectura. Acumula sobre todo el rango elegido.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 6 · BACKLOG -->
+  <section class="step" id="backlog">
+    <div class="step-head"><span class="badge">6</span><h2>Backlog</h2></div>
+    <p class="sub">Salud de tus pendientes: lo vencido, lo próximo y lo que está a punto de cerrarse.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Backlog</span></div>
+        <div class="canvas">
+          <div style="margin-bottom:2px"><b style="font-size:14px"><span class="amber" style="margin-right:6px">⚠</span>Backlog</b></div>
+          <div class="xsmall muted" style="margin-bottom:14px">14 tareas abiertas en total</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div style="background:color-mix(in srgb,var(--bg) 50%,transparent);border:1px solid var(--border);border-radius:10px;padding:11px"><div class="xsmall red row" style="gap:5px">⚠ Vencidas</div><div style="font-size:22px;font-weight:600;margin-top:4px;color:#fca5a5">3</div></div>
+            <div style="background:color-mix(in srgb,var(--bg) 50%,transparent);border:1px solid var(--border);border-radius:10px;padding:11px"><div class="xsmall amber row" style="gap:5px">◷ Próximas (7d)</div><div style="font-size:22px;font-weight:600;margin-top:4px;color:#fcd34d">5</div></div>
+            <div style="background:color-mix(in srgb,var(--bg) 50%,transparent);border:1px solid var(--border);border-radius:10px;padding:11px"><div class="xsmall accent row" style="gap:5px">◎ Quick wins</div><div style="font-size:22px;font-weight:600;margin-top:4px;color:var(--accent)">2</div></div>
+            <div style="background:color-mix(in srgb,var(--bg) 50%,transparent);border:1px solid var(--border);border-radius:10px;padding:11px"><div class="xsmall a2 row" style="gap:5px">🏆 Casi listos</div><div style="font-size:22px;font-weight:600;margin-top:4px;color:var(--accent-2)">1</div></div>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>El subtítulo es el total de tareas abiertas. Cada tarjeta destaca un grupo accionable.</span></div>
+      </div>
+      <div class="how"><h3>Cómo se usa</h3><ul>
+        <li><b>Vencidas</b> y <b>Próximas (7d)</b> = qué atender ya para no acumular retraso.</li>
+        <li><b>Quick wins</b> = proyectos con ≤2 tareas abiertas (ciérralos rápido).</li>
+        <li><b>Casi listos</b> = proyectos con ≥80% completado, a un empujón de terminar.</li>
+      </ul>
+      <h3>Cómo editar</h3><ul>
+        <li class="edit">Solo lectura; para mover números, ve a <b>Tareas</b> o <b>Proyectos</b> y avanza pendientes.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 7 · STATUS / CATEGORY -->
+  <section class="step" id="breakdown">
+    <div class="step-head"><span class="badge">7</span><h2>Por estado y categoría</h2></div>
+    <p class="sub">Cómo se reparten tus proyectos: por etapa del ciclo y por categoría.</p>
+    <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Por estado y categoría</span></div>
+      <div class="canvas">
+        <div style="margin-bottom:2px"><b style="font-size:14px"><span style="color:#22d3ee;margin-right:6px">◔</span>Por estado y categoría</b></div>
+        <div class="xsmall muted" style="margin-bottom:16px">12 proyectos</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+          <div>
+            <div class="xsmall muted" style="text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Estado</div>
+            <div style="display:grid;gap:11px">
+              <div><div class="row" style="justify-content:space-between"><span class="xsmall muted">Idea</span><span class="xsmall muted">2</span></div><div class="bar" style="margin:5px 0 0"><i style="width:17%;background:var(--amber)"></i></div></div>
+              <div><div class="row" style="justify-content:space-between"><span class="xsmall muted">Activo</span><span class="xsmall muted">5</span></div><div class="bar" style="margin:5px 0 0"><i style="width:42%;background:var(--accent)"></i></div></div>
+              <div><div class="row" style="justify-content:space-between"><span class="xsmall muted">Estancado</span><span class="xsmall muted">2</span></div><div class="bar" style="margin:5px 0 0"><i style="width:17%;background:var(--red)"></i></div></div>
+              <div><div class="row" style="justify-content:space-between"><span class="xsmall muted">Lanzado</span><span class="xsmall muted">3</span></div><div class="bar" style="margin:5px 0 0"><i style="width:25%;background:var(--accent-2)"></i></div></div>
+            </div>
+          </div>
+          <div>
+            <div class="xsmall muted" style="text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Categoría</div>
+            <div style="display:grid;gap:11px">
+              <div class="row" style="justify-content:space-between"><span class="row" style="gap:8px"><span class="sdot" style="background:var(--accent)"></span><span class="small">Trabajo</span></span><span class="xsmall muted">6 proy · 71 interacciones</span></div>
+              <div class="row" style="justify-content:space-between"><span class="row" style="gap:8px"><span class="sdot" style="background:var(--purple)"></span><span class="small">Personal</span></span><span class="xsmall muted">4 proy · 28 interacciones</span></div>
+              <div class="row" style="justify-content:space-between"><span class="row" style="gap:8px"><span class="sdot" style="background:var(--orange)"></span><span class="small">Side projects</span></span><span class="xsmall muted">2 proy · 13 interacciones</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>Izquierda: barras por <b>estado</b> (cada color = una etapa). Derecha: tus <b>categorías</b> con nº de proyectos e interacciones.</span></div>
+    <div class="grid2" style="margin-top:20px">
+      <div class="how"><h3>Cómo se usa</h3><ul>
+        <li>Mira el <b>balance</b>: demasiados “Estancado” o “Idea” frente a “Activo” es una señal.</li>
+        <li>El subtítulo cuenta el <b>total de proyectos</b> considerados.</li>
+        <li>El lado de <b>categoría</b> muestra dónde se concentran tus proyectos y tu actividad.</li>
+      </ul></div>
+      <div class="how"><h3>Cómo editar</h3><ul>
+        <li class="edit">Solo lectura. Los colores de categoría son los que definiste al crearlas.</li>
+        <li class="edit">Si no hay categorías verás <b>“Sin categorías.”</b>; sin proyectos, <b>“Sin datos.”</b></li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 8 · EFFORT + FUNNEL -->
+  <section class="step" id="effort">
+    <div class="step-head"><span class="badge">8</span><h2>Esfuerzo y Funnel de ideas</h2></div>
+    <p class="sub">Horas registradas por proyecto, y cuántas ideas llegan a convertirse en proyecto.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Esfuerzo</span></div>
+        <div class="canvas">
+          <div style="margin-bottom:2px"><b style="font-size:14px"><span class="orange" style="margin-right:6px">⏳</span>Esfuerzo</b></div>
+          <div class="xsmall muted" style="margin-bottom:12px">Cobertura 64% (solo cuentan tareas con horas registradas)</div>
+          <div class="row" style="align-items:baseline;gap:8px;margin-bottom:14px"><span style="font-size:30px;font-weight:600">37.5</span><span class="small muted">horas en el rango</span></div>
+          <ul style="list-style:none;margin:0;padding:0;display:grid;gap:8px">
+            <li class="row" style="justify-content:space-between"><span class="small">Landing nueva</span><span class="xsmall muted">16 h</span></li>
+            <li class="row" style="justify-content:space-between"><span class="small">App móvil</span><span class="xsmall muted">12.5 h</span></li>
+            <li class="row" style="justify-content:space-between"><span class="small">Newsletter</span><span class="xsmall muted">9 h</span></li>
+          </ul>
+        </div></div>
+        <div class="caption"><span>▲</span><span>El número grande son las <b>horas totales</b>. <b>Cobertura</b> avisa cuántas tareas llevan horas (si no, el total subestima).</span></div>
+      </div>
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Funnel de ideas</span></div>
+        <div class="canvas">
+          <div style="margin-bottom:2px"><b style="font-size:14px"><span style="color:#f472b6;margin-right:6px">➜</span>Funnel de ideas</b></div>
+          <div class="xsmall muted" style="margin-bottom:14px">Ideas creadas vs promovidas a proyecto</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:left">
+            <div style="background:color-mix(in srgb,var(--bg) 50%,transparent);border:1px solid var(--border);border-radius:10px;padding:12px"><div style="font-size:24px;font-weight:600">9</div><div class="xsmall muted" style="margin-top:2px">Creadas</div></div>
+            <div style="background:color-mix(in srgb,var(--bg) 50%,transparent);border:1px solid var(--border);border-radius:10px;padding:12px"><div style="font-size:24px;font-weight:600;color:var(--accent)">3</div><div class="xsmall muted" style="margin-top:2px">Promovidas</div></div>
+            <div style="background:color-mix(in srgb,var(--bg) 50%,transparent);border:1px solid var(--border);border-radius:10px;padding:12px"><div style="font-size:24px;font-weight:600">33<span class="small muted">%</span></div><div class="xsmall muted" style="margin-top:2px">Tasa</div></div>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span><b>Creadas</b> → <b class="accent">Promovidas</b> → <b>Tasa</b> de conversión a proyecto.</span></div>
+      </div>
+    </div>
+    <div class="grid2" style="margin-top:20px">
+      <div class="how"><h3>Cómo se usa</h3><ul>
+        <li><b>Esfuerzo</b> reparte tus horas por proyecto: a qué le dedicas tiempo de verdad.</li>
+        <li><b>Cobertura</b> baja = registra horas en más tareas para que el total sea fiable.</li>
+        <li><b>Funnel</b>: una tasa muy baja sugiere que acumulas ideas sin decidir.</li>
+      </ul></div>
+      <div class="how"><h3>Cómo editar</h3><ul>
+        <li class="edit">Solo lectura. Las horas vienen de las <b>horas registradas en tus tareas</b>.</li>
+        <li class="edit">Sin horas en el rango: <b>“Sin tareas con horas registradas en este rango.”</b></li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 9 · SLEEPING + STALE -->
+  <section class="step" id="sleeping">
+    <div class="step-head"><span class="badge">9</span><h2>Durmiendo · Ideas estancadas</h2></div>
+    <p class="sub">Lo que se está enfriando: proyectos sin actividad reciente e ideas sin promover.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Durmiendo</span></div>
+        <div class="canvas">
+          <div style="margin-bottom:2px"><b style="font-size:14px"><span style="color:#818cf8;margin-right:6px">☾</span>Durmiendo</b></div>
+          <div class="xsmall muted" style="margin-bottom:12px">Proyectos sin actividad reciente (≥7 días)</div>
+          <ul style="list-style:none;margin:0;padding:0;display:grid;gap:8px">
+            <li class="sleeprow" style="padding:9px 12px"><span class="small" style="flex:1">Newsletter</span><span class="chip" style="border-color:color-mix(in srgb,var(--amber) 30%,transparent);color:#fcd34d;background:var(--amber-soft)">7-14d</span><span class="xsmall muted">10d</span></li>
+            <li class="sleeprow" style="padding:9px 12px"><span class="small" style="flex:1">Curso online</span><span class="chip" style="border-color:color-mix(in srgb,var(--orange) 30%,transparent);color:#fed7aa;background:color-mix(in srgb,var(--orange) 15%,transparent)">15-30d</span><span class="xsmall muted">22d</span></li>
+            <li class="sleeprow" style="padding:9px 12px"><span class="small" style="flex:1">App vieja</span><span class="chip" style="border-color:color-mix(in srgb,var(--red) 30%,transparent);color:#fecaca;background:color-mix(in srgb,var(--red) 15%,transparent)">30+d</span><span class="xsmall muted">40d</span></li>
+          </ul>
+        </div></div>
+        <div class="caption"><span>▲</span><span>La etiqueta agrupa la gravedad (<b class="amber">7-14d</b> → <b class="orange">15-30d</b> → <b class="red">30+d</b>) y a la derecha van los <b>días exactos</b> sin actividad.</span></div>
+      </div>
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Ideas estancadas</span></div>
+        <div class="canvas">
+          <div style="margin-bottom:2px"><b style="font-size:14px"><span style="color:#facc15;margin-right:6px">💡</span>Ideas estancadas</b></div>
+          <div class="xsmall muted" style="margin-bottom:12px">Sin promover en ≥30 días</div>
+          <ul style="list-style:none;margin:0;padding:0;display:grid;gap:8px">
+            <li class="sleeprow" style="padding:9px 12px"><span class="small" style="flex:1">App de recetas</span><span class="xsmall muted">45d</span></li>
+            <li class="sleeprow" style="padding:9px 12px"><span class="small" style="flex:1">Podcast semanal</span><span class="xsmall muted">38d</span></li>
+            <li class="sleeprow" style="padding:9px 12px"><span class="small" style="flex:1">Plantilla de Notion</span><span class="xsmall muted">31d</span></li>
+          </ul>
+        </div></div>
+        <div class="caption"><span>▲</span><span>Ideas que llevan <b>30+ días</b> sin convertirse en proyecto; a la derecha, su antigüedad.</span></div>
+      </div>
+    </div>
+    <div class="grid2" style="margin-top:20px">
+      <div class="how"><h3>Cómo se usa</h3><ul>
+        <li>Es tu lista de <b>rescate</b>: reactiva un proyecto o suelta una idea para liberar espacio.</li>
+        <li>“Durmiendo” complementa la alerta de <b>Today</b>, pero aquí ves la lista completa.</li>
+        <li>Para actuar, abre el proyecto o la idea desde sus pestañas respectivas.</li>
+      </ul></div>
+      <div class="how"><h3>Cómo editar</h3><ul>
+        <li class="edit">Solo lectura. Si todo va al día: <b>“Nada durmiendo. Buen ritmo.”</b> y <b>“Sin ideas estancadas.”</b></li>
+      </ul></div>
+    </div>
+    <div class="note info">Todos los paneles son <b>solo lectura</b>: Analíticas no cambia tus datos, los <em>refleja</em>. La única palanca es el <b>rango de fechas</b> de arriba. Si un panel sale vacío, casi siempre es por falta de datos en ese rango — amplíalo o registra más actividad.</div>
+  </section>
+
+  <p class="footnote">
+    Guía generada a partir de la implementación real de <code>AnalyticsView.tsx</code> y los paneles en <code>components/dashboard/analytics/*</code>, con los textos de <code>messages/es.json</code>. Las capturas son reconstrucciones fieles en HTML (tema oscuro) con datos ilustrativos. Otras guías de esta serie: <b>Today</b>, <b>Proyectos</b>, <b>Tareas</b>, <b>Rutinas</b>, <b>Ideas</b>, <b>Quick Notes</b> y <b>Log</b>.
+  </p>
+
+  </main>
+</div>
+
+</body>
+</html>

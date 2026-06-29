@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Help · Project Graveyard — Continuity</title>
+<link rel="stylesheet" href="_base.css" />
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><span class="dot">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 22V11a5 5 0 0 1 10 0v11"/><path d="M5 22h14"/><path d="M12 9v5"/><path d="M9.5 11.5h5"/></svg>
+    </span>Continuity · Help</div>
+    <nav>
+      <a href="#overview">Graveyard</a>
+      <a href="#card">Tombstone</a>
+      <a href="#revive">Revive</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap hero" id="intro">
+  <div class="kicker">Step-by-step guide</div>
+  <h1>Project Graveyard</h1>
+  <p class="lead">The <b>Graveyard</b> tab (the tombstone icon) holds the projects you <em>killed with intention</em>. It isn't a trash bin: it's a library of what didn't work, with your closure notes, what you learned, and whether you'd restart it. Loop can read them all and find the pattern. And if you change your mind, any project can be <b>revived</b>. This guide walks through each part with a screenshot.</p>
+</div>
+
+<div class="wrap layout">
+
+  <nav class="toc">
+    <strong>In this guide</strong>
+    <ol>
+      <li><a href="#overview"><span class="n">1</span>Overview</a></li>
+      <li><a href="#autopsy"><span class="n">2</span>Autopsy (Loop)</a></li>
+      <li><a href="#card"><span class="n">3</span>Anatomy of a tombstone</a></li>
+      <li><a href="#closurenotes"><span class="n">4</span>Closure notes</a></li>
+      <li><a href="#revive"><span class="n">5</span>Reviving a project</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+  <!-- 1 · OVERVIEW -->
+  <section class="step" id="overview">
+    <div class="step-head"><span class="badge">1</span><h2>Overview</h2></div>
+    <p class="sub">A list of the projects you killed, newest death first.</p>
+
+    <div class="shot">
+      <div class="chrome"><i></i><i></i><i></i><span class="tag">Continuity · /dashboard — Graveyard tab</span></div>
+      <div class="canvas">
+        <div class="row" style="margin-bottom:6px">
+          <span class="icon red"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a9 9 0 0 0-9 9c0 4 2 4.5 2 6.5V19a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-1.5c0-2 2-2.5 2-6.5a9 9 0 0 0-9-9z"/><circle cx="9" cy="11" r="1.2" fill="currentColor"/><circle cx="15" cy="11" r="1.2" fill="currentColor"/><path d="M9.5 16.5h5"/></svg></span>
+          <b style="font-size:17px">Project Graveyard</b>
+        </div>
+        <p class="small muted" style="margin:0 0 14px">A library of what didn't work so you don't repeat it. <span style="color:var(--text)">Would restart 2 of 3.</span></p>
+
+        <div class="alert alert-purple" style="margin-bottom:14px">
+          <span class="icon purple" style="margin-top:1px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8L4 9.5l4.6 3.4L7 19l5-3.5L17 19l-1.6-6.1L20 9.5l-6.1-.7z"/></svg></span>
+          <div><div class="xsmall purple" style="text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:3px">Autopsy</div><div class="small" style="color:#e9d5ff">All three deaths share something: you killed them over scope, not motivation. Start smaller next time.</div></div>
+        </div>
+
+        <div class="pcard" style="border-left:3px solid color-mix(in srgb,var(--red) 60%,transparent);background:var(--surface);margin-bottom:10px">
+          <div class="row" style="justify-content:space-between"><b>Candle Shopify store</b><span class="resume" style="margin-left:0;background:var(--accent);color:#06281f;border:none">♥ Revive</span></div>
+          <div class="xsmall muted" style="margin-top:2px">Lived 84 days · killed Jun 2, 2026</div>
+        </div>
+        <div class="pcard" style="border-left:3px solid color-mix(in srgb,var(--red) 60%,transparent);background:var(--surface)">
+          <div class="row" style="justify-content:space-between"><b>“Streak” habit app</b><span class="resume" style="margin-left:0;background:var(--accent);color:#06281f;border:none">♥ Revive</span></div>
+          <div class="xsmall muted" style="margin-top:2px">Lived 156 days · killed Apr 18, 2026</div>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>Real view (dark theme): tombstone title, the <b>“Would restart N of M”</b> metric, the <b>Autopsy</b>, and the tombstones.</span></div>
+
+    <ol class="anatomy-list">
+      <li><b>Header</b> — tombstone icon 🪦, title, and the subtitle “a library of what didn't work”.</li>
+      <li><b>Metric</b> — <b>“Would restart N of M”</b>: how many of your dead projects you said you'd start again.</li>
+      <li><b>Autopsy</b> — the purple block with the pattern Loop spots across your deaths.</li>
+      <li><b>Tombstones</b> — one card per dead project, sorted by date of death (most recent on top).</li>
+    </ol>
+    <div class="note info">Only projects you kill <b>with intention</b> land here (from the project → “Kill with intention”). A <b>stalled</b> project doesn't fall in on its own: the app nudges you to decide (keep, pause, or kill), and only choosing “kill it” moves it to the graveyard with its notes.</div>
+  </section>
+
+  <!-- 2 · AUTOPSY -->
+  <section class="step" id="autopsy">
+    <div class="step-head"><span class="badge">2</span><h2>Autopsy (Loop)</h2></div>
+    <p class="sub">The pattern repeating across your dead projects, written by Loop.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Autopsy — with pattern</span></div>
+        <div class="canvas">
+          <div class="alert alert-purple">
+            <span class="icon purple" style="margin-top:1px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8L4 9.5l4.6 3.4L7 19l5-3.5L17 19l-1.6-6.1L20 9.5l-6.1-.7z"/></svg></span>
+            <div style="flex:1">
+              <div class="xsmall purple" style="text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:4px">Autopsy</div>
+              <div class="small" style="color:#e9d5ff">All three deaths share something: scope kept growing until you lost momentum. In two of three you never validated the idea with users. Next time, start with a one-week MVP.</div>
+              <button class="tagbtn" style="margin-top:12px;background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)">✦ Ask Loop to go deeper</button>
+            </div>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>Appears once you have <b>3+ dead projects</b>. Loop computes the pattern and caches it.</span></div>
+      </div>
+      <div class="how">
+        <h3>How to use it</h3>
+        <ul>
+          <li>It's <b>read-only</b>: it sums up the common “why” behind your deaths.</li>
+          <li><b>“Ask Loop to go deeper”</b> opens the assistant with a more detailed breakdown.</li>
+          <li>With fewer than 3 dead projects you'll see a line saying there <b>isn't enough to go on</b> yet.</li>
+        </ul>
+        <h3>How it refreshes</h3>
+        <ul>
+          <li class="edit">The pattern is <b>recomputed</b> the next time you kill a project.</li>
+          <li class="edit">If it's out of date, you'll see it flagged as such under the text.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · ANATOMY OF A TOMBSTONE -->
+  <section class="step" id="card">
+    <div class="step-head"><span class="badge">3</span><h2>Anatomy of a tombstone</h2></div>
+    <p class="sub">Each dead project is a red-bordered card with its lifespan and a Revive button.</p>
+    <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Tombstone — dead-project card</span></div>
+      <div class="canvas">
+        <div class="card" style="border-left:4px solid color-mix(in srgb,var(--red) 60%,transparent)">
+          <div class="row" style="justify-content:space-between;align-items:flex-start;margin-bottom:14px">
+            <div>
+              <h3 style="margin:0;font-size:16px;font-weight:600">Candle Shopify store</h3>
+              <div class="xsmall muted" style="margin-top:2px">Lived 84 days · killed Jun 2, 2026</div>
+            </div>
+            <button class="resume" style="margin-left:0;background:var(--accent);color:#06281f;border:none;display:flex;align-items:center;gap:6px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M3 12h4l2 5 4-12 2 7h6"/></svg> Revive</button>
+          </div>
+          <div class="small">
+            <div class="xsmall muted" style="text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">Why it was killed</div>
+            <div style="margin-bottom:10px">Scope kept growing and I never validated that anyone would pay for handmade candles.</div>
+            <div class="xsmall muted" style="text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">What it taught</div>
+            <div>I should have shipped a 1-week MVP before building 3 months of catalog.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>The left red border marks the <b>killed</b> status. Under the name: <b>“Lived N days”</b> and the <b>date of death</b>.</span></div>
+    <div class="grid2" style="margin-top:20px">
+      <div class="how"><h3>How to use it</h3><ul>
+        <li><b>Lived N days</b> = days from when you created the project until today.</li>
+        <li><b>Killed …</b> = the date you closed it with intention.</li>
+        <li>The <b>Revive</b> button (top-right) opens the flow to bring it back (section 5).</li>
+        <li>Below it are the <b>closure notes</b> you wrote when you killed it (section 4).</li>
+      </ul></div>
+      <div class="how"><h3>How to edit it</h3><ul>
+        <li class="edit">The graveyard is <b>read-only</b>: notes aren't edited here.</li>
+        <li class="edit">Cards sort themselves by <b>date of death</b>, most recent first.</li>
+        <li class="edit">To “pull” a project back out of here, use <b>Revive</b>.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 4 · CLOSURE NOTES -->
+  <section class="step" id="closurenotes">
+    <div class="step-head"><span class="badge">4</span><h2>Closure notes</h2></div>
+    <p class="sub">What you wrote in the closing ritual when you killed the project, plus the AI reflection.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Closure notes (inside the tombstone)</span></div>
+        <div class="canvas">
+          <div class="small">
+            <div class="xsmall muted" style="text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">Why it was killed</div>
+            <div style="margin-bottom:12px;color:var(--text)">The scope kept growing and I never validated the core assumption.</div>
+            <div class="xsmall muted" style="text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">What it taught</div>
+            <div style="margin-bottom:12px;color:var(--text)">I should have shipped a 1-week MVP before building 5 months of infrastructure.</div>
+            <div class="xsmall muted" style="text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;display:flex;align-items:center;gap:5px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.7 9.7 0 0 1 6.7 2.7L21 8"/><path d="M21 3v5h-5"/></svg> Would restart</div>
+            <div style="margin-bottom:12px;color:var(--text)">Yes, but with a much smaller scope and 2 user interviews first.</div>
+            <div class="alert alert-purple" style="padding:12px">
+              <div style="flex:1"><div class="xsmall purple" style="text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:3px">✦ AI</div><div class="muted" style="font-size:12.5px">Clear pattern: you build before you validate. Your next project could start with 5 conversations, not code.</div></div>
+            </div>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>Three text fields (<b>Why it was killed</b>, <b>What it taught</b>, <b>Would restart</b>) and an optional <b>AI reflection</b>.</span></div>
+      </div>
+      <div class="how"><h3>How to use it</h3><ul>
+        <li><b>Why it was killed</b> and <b>What it taught</b> are the two notes you'll always see.</li>
+        <li><b>Would restart</b> (with the ↻ icon) shows only if you answered it; it feeds the metric up top.</li>
+        <li>The <b>AI reflection</b> (purple ✦ block) shows if Loop left a note on that project.</li>
+      </ul>
+      <h3>How they're filled</h3><ul>
+        <li class="edit">These notes are written <b>once</b>, in the project's <b>“Kill with intention”</b> dialog.</li>
+        <li class="edit">Here in the graveyard they're <b>read-only</b>: they're a record, not a form.</li>
+      </ul></div>
+    </div>
+    <div class="note">The same notes block is reused for <b>paused</b> projects (with “Where you stopped” and your next action) on the “Welcome back” card. In the graveyard you'll always see the <b>killed</b> variant.</div>
+  </section>
+
+  <!-- 5 · REVIVE -->
+  <section class="step" id="revive">
+    <div class="step-head"><span class="badge">5</span><h2>Reviving a project</h2></div>
+    <p class="sub">Bring a dead project back, as an Active project or as an Idea to re-validate.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Revive — dialog</span></div>
+        <div class="canvas">
+          <div class="card" style="padding:0;overflow:hidden">
+            <div class="cbar" style="margin:0;padding:13px 16px"><h4 style="flex:1">Revive “Candle Shopify store”?</h4><span class="iconbtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></span></div>
+            <div style="padding:16px">
+              <p class="small muted" style="margin:0 0 14px;display:flex;gap:8px"><span class="icon accent" style="margin-top:1px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h4l2 5 4-12 2 7h6"/></svg></span><span>You killed this once, on purpose. Bringing it back is fine. Just go in with what you learned.</span></p>
+              <div class="pcard" style="background:color-mix(in srgb,var(--surface) 60%,transparent);margin-bottom:14px">
+                <div class="xsmall muted" style="text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;display:flex;align-items:center;gap:5px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.7 9.7 0 0 1 6.7 2.7L21 8"/><path d="M21 3v5h-5"/></svg> You said you'd restart it like this</div>
+                <div class="small" style="color:var(--text)">Yes, but with a much smaller scope and 2 user interviews first.</div>
+              </div>
+              <p class="xsmall muted" style="margin:0 0 12px">Counts against your plan again — 3 / 5 active</p>
+              <p class="small muted" style="margin:0 0 10px">Bring it back as:</p>
+              <div class="row" style="gap:8px">
+                <button class="resume" style="margin:0;flex:1;justify-content:center;background:var(--accent);color:#06281f;border:none;display:flex;align-items:center;gap:6px;padding:9px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Active</button>
+                <button class="resume" style="margin:0;flex:1;justify-content:center;background:var(--border);color:var(--text);border:none;display:flex;align-items:center;gap:6px;padding:9px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"/></svg> Idea (re-validate)</button>
+              </div>
+              <div class="xsmall muted" style="text-align:center;margin-top:12px">Leave it dead</div>
+            </div>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>Opened by the tombstone's <b>Revive</b> button. It reminds you what you said you'd change.</span></div>
+      </div>
+      <div class="how"><h3>How to use it</h3><ul>
+        <li><b>Active</b> ⚡ returns it to your in-progress projects right away.</li>
+        <li><b>Idea (re-validate)</b> 💡 sends it to Ideas to test again before committing.</li>
+        <li><b>Leave it dead</b> closes the dialog with no changes.</li>
+      </ul>
+      <h3>Mind the cap</h3><ul>
+        <li class="edit">A dead project <b>doesn't count</b> toward your plan; reviving it as <b>Active</b> makes it count again.</li>
+        <li class="edit">If you're already at your active-project cap, the app warns you instead of reviving it.</li>
+        <li class="edit">The dialog shows your current usage (e.g. <b>3 / 5 active</b>) before you decide.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <p class="footnote">
+    Guide generated from the real implementation of <code>GraveyardView.tsx</code>, <code>ProjectClosureNotes.tsx</code> and <code>ReviveProjectModal.tsx</code>, with the strings from <code>messages/en.json</code> (<code>views.graveyard.*</code> and <code>views.closure.*</code>). Screenshots are faithful HTML reconstructions (dark theme).
+  </p>
+
+  </main>
+</div>
+
+</body>
+</html>

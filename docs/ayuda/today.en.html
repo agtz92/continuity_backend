@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Help · Today's View — Continuity</title>
+<link rel="stylesheet" href="_base.css" />
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><span class="dot">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+    </span>Continuity · Help</div>
+    <nav>
+      <a href="#intro">Today's View</a>
+      <a href="#anatomy">Anatomy</a>
+      <a href="#customize">Customize</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap hero" id="intro">
+  <div class="kicker">Step-by-step guide</div>
+  <h1>Today's View</h1>
+  <p class="lead">The <b>Today</b> tab is the first thing you see when you open Continuity. It gathers, in one place, what deserves your attention <em>today</em>: tasks coming due, projects going cold, what you've already finished, and the projects that are one step away from closing. This guide walks through every section and explains how to use it and how to customize it.</p>
+</div>
+
+<div class="wrap layout">
+
+  <nav class="toc">
+    <strong>In this guide</strong>
+    <ol>
+      <li><a href="#anatomy"><span class="n">1</span>General anatomy</a></li>
+      <li><a href="#header"><span class="n">2</span>Header &amp; greeting</a></li>
+      <li><a href="#counters"><span class="n">3</span>Counters</a></li>
+      <li><a href="#stalled"><span class="n">4</span>Stalled alert</a></li>
+      <li><a href="#focus"><span class="n">5</span>Today's Focus</a></li>
+      <li><a href="#routines"><span class="n">6</span>Routines for today</a></li>
+      <li><a href="#done"><span class="n">7</span>Done today</a></li>
+      <li><a href="#closeable"><span class="n">8</span>Close to the finish</a></li>
+      <li><a href="#sleeping"><span class="n">9</span>Sleeping projects</a></li>
+      <li><a href="#ideas"><span class="n">10</span>Stale ideas</a></li>
+      <li><a href="#active"><span class="n">11</span>Active / Launched</a></li>
+      <li><a href="#create"><span class="n">12</span>Create button (FAB)</a></li>
+      <li><a href="#customize"><span class="n">13</span>Customize Today</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+  <!-- 1 · ANATOMY -->
+  <section class="step" id="anatomy">
+    <div class="step-head"><span class="badge">1</span><h2>General anatomy</h2></div>
+    <p class="sub">How the view is built, top to bottom.</p>
+
+    <div class="shot">
+      <div class="chrome"><i></i><i></i><i></i><span class="tag">Continuity · /dashboard — Today tab</span></div>
+      <div class="canvas">
+        <div class="t-head">
+          <div><div class="t-date">Thursday, June 19</div><div class="t-greet">Good afternoon</div></div>
+          <div class="gear" title="Customize Today">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>
+          </div>
+        </div>
+
+        <div class="alert alert-amber" style="margin-bottom:12px">
+          <span class="icon amber" style="margin-top:2px">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+          </span>
+          <div>
+            <div style="font-weight:600;color:#fcd34d">2 projects need attention</div>
+            <div class="small" style="color:#fde68a99">No activity in 7+ days. Don't let them quietly die.</div>
+          </div>
+        </div>
+
+        <div class="card" style="margin:0 0 12px">
+          <div class="sec-title"><span class="icon accent"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></span>Today's Focus<span class="chip chip-task" style="margin-left:auto">3 tasks · 1 overdue</span></div>
+        </div>
+        <div class="card" style="margin:0 0 12px;opacity:.85"><div class="sec-title"><span class="icon accent"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.5 2A7.5 7.5 0 1 0 22 14.5 6 6 0 0 1 9.5 2z" fill="currentColor" fill-opacity=".15"/></svg></span>Done today<span class="chev">⌄</span></div></div>
+        <div class="card" style="margin:0;opacity:.7"><div class="sec-title"><span class="icon accent"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>Active projects<span class="count-pill count-accent" style="margin-left:auto">4</span></div></div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>Real view (dark theme). The order and which sections appear are <b>customizable</b> — see below.</span></div>
+
+    <ol class="anatomy-list">
+      <li><b>Header</b> — today's date, a greeting based on the time, and the gear for <b>Customize Today</b>.</li>
+      <li><b>Attention sections</b> — alerts and focus: what's urgent stays on top.</li>
+      <li><b>Progress sections</b> — "Done today", "Close to the finish line", active/launched projects.</li>
+      <li><b>Create button (FAB)</b> — floating bottom-right, to add a task/project/routine/idea.</li>
+    </ol>
+    <div class="note info">Sections <b>only appear when they have data</b>. If you have no stalled projects, the "Stalled alert" won't show; as you create your first project more blocks gradually appear. It's normal for a new user to see only a few sections at first.</div>
+  </section>
+
+  <!-- 2 · HEADER -->
+  <section class="step" id="header">
+    <div class="step-head"><span class="badge">2</span><h2>Header &amp; greeting</h2></div>
+    <p class="sub">Your orientation point when you open the app.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Header</span></div>
+        <div class="canvas"><div class="t-head">
+          <div><div class="t-date">Thursday, June 19</div><div class="t-greet">Good afternoon</div></div>
+          <div class="gear"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg></div>
+        </div></div></div>
+        <div class="caption"><span>▲</span><span>The greeting changes: <b>Good morning</b> (5–12h), <b>Good afternoon</b> (12–19h), <b>Good evening</b> (rest).</span></div>
+      </div>
+      <div class="how">
+        <h3>How to use it</h3>
+        <ul>
+          <li>The <b>date</b> and <b>greeting</b> are automatic; they aren't editable.</li>
+          <li>The <span class="pill">⚙ gear</span> opens <b>Customize Today</b> (step 13).</li>
+          <li>On mobile the greeting sits in the header; on desktop the gear appears at the top-right.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · COUNTERS -->
+  <section class="step" id="counters">
+    <div class="step-head"><span class="badge">3</span><h2>Counters</h2><span class="badge-mini" style="margin-left:4px">Mobile only</span></div>
+    <p class="sub">A quick number strip: active, launched, stalled, ideas and tasks.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Counters</span></div>
+        <div class="canvas"><div class="counters">
+          <div class="counter"><div class="lbl">Active</div><div class="val accent">4</div></div>
+          <div class="counter"><div class="lbl">Launched</div><div class="val a2">2</div></div>
+          <div class="counter"><div class="lbl">Stalled</div><div class="val amber">2</div></div>
+          <div class="counter"><div class="lbl">Ideas</div><div class="val purple">7</div></div>
+        </div></div></div>
+        <div class="caption"><span>▲</span><span>Scrolls horizontally. A <b>"Tasks" counter</b> sits at the end.</span></div>
+      </div>
+      <div class="how">
+        <h3>How to use it</h3>
+        <ul>
+          <li>A <b>quick</b> snapshot of your workspace's overall state.</li>
+          <li>Values are computed automatically from your projects, ideas and tasks.</li>
+        </ul>
+        <h3>How to edit it</h3>
+        <ul>
+          <li class="edit">It's a <b>hideable</b> section. You can hide it from <b>Customize Today</b>.</li>
+          <li class="edit">It currently shows <b>on mobile only</b> (it carries the <span class="badge-mini">Mobile</span> tag in the editor).</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · STALLED -->
+  <section class="step" id="stalled">
+    <div class="step-head"><span class="badge">4</span><h2>Stalled alert</h2></div>
+    <p class="sub">Projects with no activity in 7+ days — so they don't quietly die.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Stalled alert</span></div>
+        <div class="canvas">
+          <div class="alert alert-amber">
+            <span class="icon amber" style="margin-top:2px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></span>
+            <div style="flex:1">
+              <div style="font-weight:600;color:#fcd34d;margin-bottom:2px">2 projects need attention</div>
+              <div class="small" style="color:#fde68a99;margin-bottom:10px">No activity in 7+ days. Don't let them quietly die.</div>
+              <div class="row" style="flex-wrap:wrap;gap:8px">
+                <button class="tagbtn tagbtn-amber">New landing · 12d</button>
+                <button class="tagbtn tagbtn-amber">Mobile app · 9d</button>
+              </div>
+            </div>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>Each chip shows the name and the <b>days idle</b>.</span></div>
+      </div>
+      <div class="how">
+        <h3>How to use it</h3>
+        <ul>
+          <li><b>Tap a chip</b> to jump straight to that project and revive it.</li>
+          <li>Appears only if you have stalled projects (≥7 days without movement).</li>
+        </ul>
+        <h3>How to edit it</h3>
+        <ul>
+          <li class="edit"><b>Hideable</b> section from Customize Today.</li>
+          <li class="edit">To "clear" a project from here: open it and log an update or move a task forward.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · FOCUS -->
+  <section class="step" id="focus">
+    <div class="step-head"><span class="badge">5</span><h2>Today's Focus</h2><span class="pill" style="margin-left:4px">🔒 Always visible</span></div>
+    <p class="sub">The heart of the view: what actually needs doing today.</p>
+    <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Today's Focus</span></div>
+      <div class="canvas">
+        <div class="row" style="margin-bottom:14px">
+          <span class="icon accent"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></span>
+          <b>Today's Focus</b>
+          <span class="chip chip-task" style="margin-left:auto">3 tasks <span class="red">· 1 overdue</span></span>
+          <span class="chip chip-hours">4.5h total</span>
+        </div>
+        <div class="focus-grid">
+          <div class="fitem overdue">
+            <div class="row" style="gap:8px;margin-bottom:6px">
+              <span class="ftag red">Overdue</span>
+              <span class="xsmall" style="background:color-mix(in srgb,var(--red) 25%,transparent);color:#fecaca;padding:1px 6px;border-radius:5px;border:1px solid color-mix(in srgb,var(--red) 50%,transparent)">2d late</span>
+              <span class="xsmall muted">· New landing</span>
+            </div>
+            <div class="row" style="gap:8px">
+              <span class="icon muted"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></span>
+              <span>Write the hero copy</span><span class="chip chip-hours">2h</span>
+            </div>
+          </div>
+          <div class="fitem today">
+            <div class="row" style="gap:8px;margin-bottom:6px"><span class="ftag orange">Due today</span><span class="xsmall muted">· Mobile app</span></div>
+            <div class="row" style="gap:8px"><span class="icon muted"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></span><span>Review onboarding design</span></div>
+          </div>
+        </div>
+        <button class="tagbtn" style="margin-top:12px;background:color-mix(in srgb,var(--orange) 12%,transparent);color:#fed7aa;border:1px solid color-mix(in srgb,var(--orange) 30%,transparent)">View all tasks &nbsp;+2 more ›</button>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>Priority labels: <b class="red">Overdue</b>, <b class="orange">Due today</b>, <b class="amber">Stalled</b> and <b class="accent">Next step</b>.</span></div>
+    <div class="grid2" style="margin-top:20px">
+      <div class="how"><h3>How to use it</h3><ul>
+        <li>Click the <b>✓ circle</b> on the left to mark the task done.</li>
+        <li>Click the task <b>text</b> to open its editor.</li>
+        <li>Click the <b>project name</b> to jump to it.</li>
+        <li><b>"View all tasks"</b> opens the Tasks tab with the rest.</li>
+      </ul></div>
+      <div class="how"><h3>How to edit it</h3><ul>
+        <li class="edit">It's the <b>only section that cannot be hidden</b> (shown with 🔒 in the editor).</li>
+        <li class="edit">You can still <b>move</b> it in Customize Today.</li>
+        <li class="edit">Its content is filled from: dated tasks, project next steps, and stalled projects.</li>
+      </ul></div>
+    </div>
+    <div class="note info">If nothing is urgent you'll see <b>"Nothing pressing today."</b> with a hint to add your first project or next steps. That means you're on top of things, not that something is broken.</div>
+  </section>
+
+  <!-- 6 · ROUTINES -->
+  <section class="step" id="routines">
+    <div class="step-head"><span class="badge">6</span><h2>Routines for today</h2></div>
+    <p class="sub">Your recurring routines due today (plus overdue ones from the last 14 days).</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Routines for today</span></div>
+        <div class="canvas">
+          <div class="row" style="margin-bottom:12px"><span class="icon a2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg></span><b>Routines for today</b><span class="chip chip-task" style="margin-left:auto">2 routines</span></div>
+          <div class="sleeprow" style="background:var(--bg)"><span class="icon a2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg></span><span>Review weekly metrics</span><span class="resume" style="margin-left:auto;color:var(--accent)">Complete</span></div>
+          <div class="sleeprow" style="background:var(--bg);margin-top:8px"><span class="icon a2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg></span><span>Data backup</span><span class="resume" style="margin-left:auto;color:var(--accent)">Complete</span></div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>The counter on the right takes you to the <b>Routines</b> tab.</span></div>
+      </div>
+      <div class="how"><h3>How to use it</h3><ul>
+        <li><b>Complete</b> marks today's occurrence as done (it moves to "Done today").</li>
+        <li>The chip on the right shows how many are due today and how many overdue.</li>
+        <li>Tap a routine to <b>edit</b> it.</li>
+      </ul>
+      <h3>How to edit it</h3><ul>
+        <li class="edit"><b>Hideable</b> section from Customize Today.</li>
+        <li class="edit">The routines themselves are created/edited from the <b>Routines</b> tab or the Create button.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 7 · DONE -->
+  <section class="step" id="done">
+    <div class="step-head"><span class="badge">7</span><h2>Done today</h2></div>
+    <p class="sub">Your record of the day: completed tasks, routines and log entries.</p>
+    <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Done today</span></div>
+      <div class="canvas">
+        <div class="row" style="margin-bottom:12px;flex-wrap:wrap;gap:8px">
+          <span class="icon accent"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.5 2 11 6l4 1.5L11 9l-1.5 4L8 9 4 7.5 8 6z"/></svg></span><b>Done today</b>
+          <span class="chip" style="margin-left:auto;background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--accent);border-color:color-mix(in srgb,var(--accent) 30%,transparent)">3 tasks</span>
+          <span class="chip" style="background:color-mix(in srgb,var(--accent-2) 12%,transparent);color:var(--accent-2);border-color:color-mix(in srgb,var(--accent-2) 30%,transparent)">1 entry</span>
+          <span class="chip chip-hours">5h worked</span>
+        </div>
+        <div class="card" style="background:color-mix(in srgb,var(--surface) 40%,transparent);padding:14px">
+          <div style="border-left:2px solid color-mix(in srgb,var(--accent) 40%,transparent);padding-left:10px;margin-bottom:12px">
+            <div class="xsmall accent" style="text-transform:uppercase;letter-spacing:.06em;font-weight:600">Task · New landing</div>
+            <div class="small muted" style="text-decoration:line-through">Define the color palette</div>
+          </div>
+          <div style="border-left:2px solid color-mix(in srgb,var(--accent-2) 40%,transparent);padding-left:10px">
+            <div class="xsmall a2" style="text-transform:uppercase;letter-spacing:.06em;font-weight:600">New log · Mobile app</div>
+            <div class="small muted">Finished the sign-up flow, validation still pending.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>Filter with the <b>"N tasks"</b> / <b>"N entries"</b> chips to see just one type.</span></div>
+    <div class="grid2" style="margin-top:20px">
+      <div class="how"><h3>How to use it</h3><ul>
+        <li>Automatically gathers what you <b>completed today</b>.</li>
+        <li><b>Undo</b> (↩) reverts a task/routine you checked by mistake.</li>
+        <li>Shows <b>hours worked</b> and a breakdown by project.</li>
+      </ul></div>
+      <div class="how"><h3>How to edit it</h3><ul>
+        <li class="edit"><b>Hideable</b> section; it starts <b>collapsed</b> by default (tap the title to open it).</li>
+        <li class="edit">The filter chips are a <b>toggle</b>: tap again to see everything.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 8 · CLOSEABLE -->
+  <section class="step" id="closeable">
+    <div class="step-head"><span class="badge">8</span><h2>Close to the finish line</h2></div>
+    <p class="sub">Nearly-finished projects ("Almost there") and ones you can close with few tasks ("Quick win").</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Close to the finish line</span></div>
+        <div class="canvas">
+          <div class="row" style="margin-bottom:12px"><span class="icon accent"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></span><b>Close to the finish line</b><span class="count-pill count-accent" style="margin-left:auto">2</span></div>
+          <div class="pcards">
+            <div class="pcard almost">
+              <div class="xsmall accent" style="text-transform:uppercase;letter-spacing:.06em;font-weight:600">Almost there · 85%</div>
+              <div style="font-weight:600;margin:6px 0">New landing</div>
+              <div class="bar"><i style="width:85%"></i></div>
+              <div class="xsmall muted">1 task left · 6/7 done</div>
+            </div>
+            <div class="pcard">
+              <div class="xsmall accent" style="text-transform:uppercase;letter-spacing:.06em;font-weight:600">Quick win</div>
+              <div style="font-weight:600;margin:6px 0">Blog setup</div>
+              <div class="xsmall muted">Only 2 tasks away from finishing.</div>
+            </div>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span><b>Almost there</b> = ≥ a certain % complete; <b>Quick win</b> = very few open tasks.</span></div>
+      </div>
+      <div class="how"><h3>How to use it</h3><ul>
+        <li><b>Tap a card</b> to open the project and give it the final push.</li>
+        <li>The progress bar reflects done / total tasks.</li>
+      </ul>
+      <h3>How to edit it</h3><ul>
+        <li class="edit"><b>Hideable</b> section from Customize Today.</li>
+        <li class="edit">It appears on its own when projects qualify.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 9 · SLEEPING -->
+  <section class="step" id="sleeping">
+    <div class="step-head"><span class="badge">9</span><h2>Sleeping projects</h2></div>
+    <p class="sub">Projects going cold, color-coded by severity.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Sleeping projects</span></div>
+        <div class="canvas">
+          <div class="row" style="margin-bottom:12px"><span class="icon amber"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg></span><b>Sleeping projects</b><span class="count-pill count-amber" style="margin-left:auto">3</span></div>
+          <div class="sleeprow"><span class="sdot" style="background:var(--amber)"></span><div style="flex:1"><div class="row" style="gap:8px"><b style="font-size:14px">Newsletter</b><span class="chip" style="border-color:color-mix(in srgb,var(--amber) 30%,transparent);color:#fcd34d;background:var(--amber-soft)">10d idle</span></div><div class="xsmall muted">→ Write issue #3</div></div><button class="resume">Resume</button></div>
+          <div class="sleeprow"><span class="sdot" style="background:var(--orange)"></span><div style="flex:1"><div class="row" style="gap:8px"><b style="font-size:14px">Online course</b><span class="chip" style="border-color:color-mix(in srgb,var(--orange) 30%,transparent);color:#fed7aa;background:color-mix(in srgb,var(--orange) 15%,transparent)">22d idle</span></div></div><button class="resume">Resume</button></div>
+          <div class="sleeprow"><span class="sdot" style="background:var(--red)"></span><div style="flex:1"><div class="row" style="gap:8px"><b style="font-size:14px">Old app</b><span class="chip" style="border-color:color-mix(in srgb,var(--red) 30%,transparent);color:#fecaca;background:color-mix(in srgb,var(--red) 15%,transparent)">40d idle</span></div></div><button class="resume">Resume</button></div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>The dot and color escalate: <b class="amber">7–14d</b> → <b class="orange">15–30d</b> → <b class="red">30d+</b>.</span></div>
+      </div>
+      <div class="how"><h3>How to use it</h3><ul>
+        <li><b>"Resume"</b> opens the update log to reactivate the project.</li>
+        <li>Tap the <b>name</b> to open the project directly.</li>
+        <li>If it has a next step, you'll see it under the name (→ …).</li>
+      </ul>
+      <h3>How to edit it</h3><ul>
+        <li class="edit"><b>Hideable</b> section from Customize Today.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 10 · IDEAS -->
+  <section class="step" id="ideas">
+    <div class="step-head"><span class="badge">10</span><h2>Stale ideas</h2></div>
+    <p class="sub">Ideas that have been waiting 30+ days for a decision.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Stale ideas</span></div>
+        <div class="canvas">
+          <div class="alert alert-purple">
+            <span class="icon purple" style="margin-top:2px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"/></svg></span>
+            <div style="flex:1"><div style="font-weight:600;color:#e9d5ff;margin-bottom:2px">5 ideas waiting for 30+ days</div><div class="small" style="color:#e9d5ff99">Promote one into a project, or let it go to make room for new thinking.</div></div>
+            <span class="purple" style="align-self:center">›</span>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>It's a single block that <b>takes you to the Ideas tab</b> when tapped.</span></div>
+      </div>
+      <div class="how"><h3>How to use it</h3><ul>
+        <li><b>Tap the block</b> to go to Ideas and decide: promote to project or drop it.</li>
+        <li>Appears only if you have ideas 30+ days old.</li>
+      </ul>
+      <h3>How to edit it</h3><ul>
+        <li class="edit"><b>Hideable</b> section from Customize Today.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 11 · ACTIVE / LAUNCHED -->
+  <section class="step" id="active">
+    <div class="step-head"><span class="badge">11</span><h2>Active projects · Launched with tasks</h2></div>
+    <p class="sub">Compact cards for your in-progress projects and launched ones that still have pending work.</p>
+    <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Active projects / Launched</span></div>
+      <div class="canvas">
+        <div class="row" style="margin-bottom:12px"><span class="icon accent"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span><b>Active projects</b><span class="count-pill count-accent" style="margin-left:auto">2</span></div>
+        <div class="pcards" style="margin-bottom:18px">
+          <div class="pcard"><div style="font-weight:600;margin-bottom:6px">New landing</div><div class="bar"><i style="width:60%"></i></div><div class="xsmall muted">3/5 tasks · 8h total</div></div>
+          <div class="pcard"><div style="font-weight:600;margin-bottom:6px">Mobile app</div><div class="bar"><i style="width:30%"></i></div><div class="xsmall muted">2/7 tasks · 4h total</div></div>
+        </div>
+        <div class="row" style="margin-bottom:12px"><span class="icon a2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/></svg></span><b>Launched · still has tasks</b><span class="count-pill count-a2" style="margin-left:auto">1</span></div>
+        <div class="pcards"><div class="pcard"><div style="font-weight:600;margin-bottom:6px">Portfolio site</div><div class="bar"><i style="width:80%;background:var(--accent-2)"></i></div><div class="xsmall muted">4/5 tasks · launched</div></div></div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>Two distinct sections sharing the same card: task progress, hours, and "comeback" after a pause.</span></div>
+    <div class="grid2" style="margin-top:20px">
+      <div class="how"><h3>How to use it</h3><ul>
+        <li><b>Tap a card</b> to open the project.</li>
+        <li>They show task progress, total hours and today's hours.</li>
+      </ul></div>
+      <div class="how"><h3>How to edit it</h3><ul>
+        <li class="edit">Both are <b>hideable</b> and start <b>collapsed</b>.</li>
+        <li class="edit">Handy to hide if you prefer managing projects from the <b>Projects</b> tab.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 12 · FAB -->
+  <section class="step" id="create">
+    <div class="step-head"><span class="badge">12</span><h2>Create button (FAB)</h2></div>
+    <p class="sub">The floating <b>+</b> button to add things without leaving Today.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Create — action sheet</span></div>
+        <div class="canvas" style="display:flex;flex-direction:column;align-items:flex-end;gap:14px">
+          <div class="sheet" style="width:100%">
+            <div class="handle"></div>
+            <div class="stitle">Create</div>
+            <div class="arow"><span class="icon accent"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></span>New task</div>
+            <div class="arow"><span class="icon a2"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2z"/></svg></span>New project</div>
+            <div class="arow"><span class="icon a2"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg></span>New routine</div>
+            <div class="arow"><span class="icon purple"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"/></svg></span>New idea</div>
+          </div>
+          <div class="fab"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>Tapping <b>+</b> opens the sheet with the 4 creation actions.</span></div>
+      </div>
+      <div class="how"><h3>How to use it</h3><ul>
+        <li>A universal shortcut to create a <b>task, project, routine or idea</b>.</li>
+        <li>On desktop the Create button sits alongside access to <b>Loop</b> (the AI assistant).</li>
+      </ul>
+      <h3>How to edit it</h3><ul>
+        <li class="edit">The FAB <b>can't be hidden</b> or reordered: it's a fixed part of the view.</li>
+        <li class="edit">It disappears while you're in <b>Customize Today</b> mode.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 13 · CUSTOMIZE -->
+  <section class="step" id="customize">
+    <div class="step-head"><span class="badge">13</span><h2>Customize Today</h2></div>
+    <p class="sub">Reorder, hide and show sections however you like. This is the "edit" for the whole view.</p>
+
+    <h3 class="how" style="margin:6px 0 12px;font-size:13px;text-transform:uppercase;letter-spacing:.12em;color:var(--text-muted)">Step A · Enter the editor</h3>
+    <div class="caption" style="margin:0 0 14px"><span>→</span><span>Tap the <span class="pill">⚙ gear</span> in the header. (You also land here from the last onboarding step.)</span></div>
+
+    <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Customize Today — edit mode</span></div>
+      <div class="canvas">
+        <div class="cbar">
+          <span class="iconbtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></span>
+          <h4>Customize Today</h4>
+          <span class="btn-ghost"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.7 9.7 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg> Reset</span>
+          <span class="btn-primary">Done</span>
+        </div>
+
+        <div class="crow dragging">
+          <span class="grip"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
+          <span class="icon accent"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></span>
+          <div class="lbl-flex"><span style="font-weight:500">Today's Focus</span></div>
+          <span class="iconbtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+        </div>
+
+        <div class="crow">
+          <span class="grip"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
+          <span class="icon a2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span>
+          <div class="lbl-flex"><span style="font-weight:500">Counters</span><span class="badge-mini">Mobile</span></div>
+          <span class="iconbtn accent"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></span>
+        </div>
+
+        <div class="crow hidden">
+          <span class="grip"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
+          <span class="icon amber"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg></span>
+          <div class="lbl-flex"><span style="font-weight:500">Sleeping projects</span><span class="badge-hidden">Hidden</span></div>
+          <span class="iconbtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 10 8 10 8a18.5 18.5 0 0 1-2.16 3.19M6.61 6.61A18.5 18.5 0 0 0 2 12s3 8 10 8a9.12 9.12 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg></span>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>Each row = one section. <b>Drag ⠿</b> to reorder; the <b>eye</b> 👁 shows/hides; the <b>lock</b> 🔒 marks the ones that can't be hidden.</span></div>
+
+    <div class="grid2" style="margin-top:22px">
+      <div class="how"><h3>Editor actions</h3><ul>
+        <li>Drag a row's <b>⠿</b> handle to <b>change the order</b> (keyboard works too).</li>
+        <li>Tap the <b>eye</b> 👁 to <b>hide</b> a section; tap again to show it. Hidden ones show a dashed border and a <span class="badge-hidden">Hidden</span> tag.</li>
+        <li>Rows with a <b>lock</b> 🔒 (e.g. "Today's Focus") <b>can't be hidden</b>, but can be moved.</li>
+        <li>The <span class="badge-mini">Mobile</span> tag marks sections that currently show on phones only.</li>
+      </ul></div>
+      <div class="how"><h3>Save &amp; reset</h3><ul>
+        <li class="edit"><b>Done</b> (green button) or the <b>✕</b> exit the editor and save your layout.</li>
+        <li class="edit"><b>Reset</b> ↩ returns the default order and visibility.</li>
+        <li class="edit">On exit, Today <b>reloads</b> to reflect what you showed/hid.</li>
+        <li class="edit">Your setup is saved to your account (it syncs with the mobile app).</li>
+      </ul></div>
+    </div>
+
+    <h3 class="how" style="margin:24px 0 12px;font-size:13px;text-transform:uppercase;letter-spacing:.12em;color:var(--text-muted)">Hidden-sections footer</h3>
+    <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Today footer (normal mode)</span></div>
+      <div class="canvas" style="padding-top:8px">
+        <div class="hfooter"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 10 8 10 8a18.5 18.5 0 0 1-2.16 3.19M6.61 6.61A18.5 18.5 0 0 0 2 12s3 8 10 8a9.12 9.12 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg> 2 hidden sections · Customize</div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>When you have hidden sections, this footer appears at the bottom of Today and reminds you how many, with a shortcut to the editor.</span></div>
+  </section>
+
+  <p class="footnote">
+    Guide generated from the real implementation of <code>TodayView.tsx</code> and the strings in <code>messages/en.json</code>. The screenshots are faithful HTML reconstructions (dark theme). Next sections in this series: <b>Projects</b>, <b>Tasks</b>, <b>Routines</b>, <b>Ideas</b>, <b>Quick Notes</b>, <b>Log</b> and <b>Analytics</b>.
+  </p>
+
+  </main>
+</div>
+
+</body>
+</html>

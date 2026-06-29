@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Help · Analytics — Continuity</title>
+<link rel="stylesheet" href="_base.css" />
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><span class="dot">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+    </span>Continuity · Help</div>
+    <nav>
+      <a href="#intro">Analytics</a>
+      <a href="#overview">Anatomy</a>
+      <a href="#range">Range</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap hero" id="intro">
+  <div class="kicker">Step-by-step guide</div>
+  <h1>Analytics</h1>
+  <p class="lead">The <b>Analytics</b> tab is your control panel: it turns your activity —updates, completed tasks, logged hours, ideas— into charts and panels that tell you <em>how</em> you're doing, not just what's left. It's a <b>read-only</b> view: you don't edit anything here, but you do pick the <b>date range</b> that feeds every panel. This guide walks through each panel with a screenshot and explains what it's telling you.</p>
+</div>
+
+<div class="wrap layout">
+
+  <nav class="toc">
+    <strong>In this guide</strong>
+    <ol>
+      <li><a href="#overview"><span class="n">1</span>General anatomy</a></li>
+      <li><a href="#range"><span class="n">2</span>Range &amp; cadence</a></li>
+      <li><a href="#activity"><span class="n">3</span>Daily activity</a></li>
+      <li><a href="#topprojects"><span class="n">4</span>Most active</a></li>
+      <li><a href="#heatmap"><span class="n">5</span>By weekday</a></li>
+      <li><a href="#backlog"><span class="n">6</span>Backlog</a></li>
+      <li><a href="#breakdown"><span class="n">7</span>Status &amp; category</a></li>
+      <li><a href="#effort"><span class="n">8</span>Effort &amp; funnel</a></li>
+      <li><a href="#sleeping"><span class="n">9</span>Sleeping &amp; stale ideas</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+  <!-- 1 · OVERVIEW -->
+  <section class="step" id="overview">
+    <div class="step-head"><span class="badge">1</span><h2>General anatomy</h2></div>
+    <p class="sub">A title, a range selector, and a stack of independent panels.</p>
+
+    <div class="shot">
+      <div class="chrome"><i></i><i></i><i></i><span class="tag">Continuity · /dashboard — Analytics tab</span></div>
+      <div class="canvas">
+        <div class="row" style="justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+          <div class="row"><span class="icon accent"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6"/><rect x="12" y="7" width="3" height="10"/><rect x="17" y="13" width="3" height="4"/></svg></span><b style="font-size:17px">Analytics</b></div>
+          <div style="display:inline-flex;gap:4px;background:var(--surface);padding:4px;border-radius:9px;border:1px solid var(--border)">
+            <span class="xsmall muted" style="padding:5px 11px;border-radius:6px">7d</span>
+            <span class="xsmall" style="padding:5px 11px;border-radius:6px;background:var(--border);color:var(--text);font-weight:600">30d</span>
+            <span class="xsmall muted" style="padding:5px 11px;border-radius:6px">90d</span>
+            <span class="xsmall muted" style="padding:5px 11px;border-radius:6px">1y</span>
+            <span class="xsmall muted" style="padding:5px 11px;border-radius:6px">All</span>
+          </div>
+        </div>
+        <div class="card" style="margin:0 0 10px;padding:13px"><div class="sec-title" style="font-size:14px"><span class="icon amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>Cadence</div></div>
+        <div class="card" style="margin:0 0 10px;padding:13px;opacity:.9"><div class="sec-title" style="font-size:14px"><span class="icon accent"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></span>Daily activity</div></div>
+        <div class="row" style="gap:10px;opacity:.8">
+          <div class="card" style="margin:0;padding:13px;flex:1"><div class="sec-title" style="font-size:14px"><span class="icon a2"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span>Most active</div></div>
+          <div class="card" style="margin:0;padding:13px;flex:1"><div class="sec-title" style="font-size:14px"><span class="icon purple"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>By weekday</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>Real view (dark theme). On desktop panels stack; some sit side by side in pairs.</span></div>
+
+    <ol class="anatomy-list">
+      <li><b>Title + range selector</b> — at the top. The range (7d/30d/90d/1y/All) feeds <b>every</b> panel at once.</li>
+      <li><b>Cadence &amp; activity</b> — your recent pulse: how many days you were active and the daily curve.</li>
+      <li><b>Project panels</b> — most active, backlog, status/category, effort, sleeping.</li>
+      <li><b>Idea panels</b> — the idea funnel and stale ideas.</li>
+    </ol>
+    <div class="note info">On <b>mobile</b> you'll see a strip of <b>chips</b> (Activity · Cadence · Status · …) and <b>one panel</b> at a time: tap a chip to switch panel. On <b>desktop</b> they're all stacked. While it recomputes after you change the range, <b>“refreshing…”</b> appears next to the title.</div>
+  </section>
+
+  <!-- 2 · RANGE + CADENCE -->
+  <section class="step" id="range">
+    <div class="step-head"><span class="badge">2</span><h2>Date range &amp; Cadence</h2></div>
+    <p class="sub">The only thing you "edit" here, plus your activity pulse for that range.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Range selector</span></div>
+        <div class="canvas">
+          <div style="display:inline-flex;gap:4px;background:var(--surface);padding:4px;border-radius:9px;border:1px solid var(--border);margin-bottom:16px">
+            <span class="xsmall muted" style="padding:6px 12px;border-radius:6px">7d</span>
+            <span class="xsmall" style="padding:6px 12px;border-radius:6px;background:var(--border);color:var(--text);font-weight:600">30d</span>
+            <span class="xsmall muted" style="padding:6px 12px;border-radius:6px">90d</span>
+            <span class="xsmall muted" style="padding:6px 12px;border-radius:6px">1y</span>
+            <span class="xsmall muted" style="padding:6px 12px;border-radius:6px">All</span>
+          </div>
+          <div class="card" style="margin:0;padding:14px">
+            <div class="sec-title" style="font-size:14px;margin-bottom:12px"><span class="icon amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>Cadence</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div style="background:color-mix(in srgb,var(--bg) 50%,transparent);border:1px solid var(--border);border-radius:10px;padding:12px"><div style="font-size:26px;font-weight:700">18</div><div class="xsmall muted" style="margin-top:2px">Active days</div></div>
+              <div style="background:color-mix(in srgb,var(--bg) 50%,transparent);border:1px solid var(--border);border-radius:10px;padding:12px"><div style="font-size:26px;font-weight:700">112</div><div class="xsmall muted" style="margin-top:2px">Events</div></div>
+            </div>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>The active range is highlighted. Here: over the <b>last 30 days</b> there was movement on <b>18 days</b> and <b>112 events</b> in total.</span></div>
+      </div>
+      <div class="how">
+        <h3>How to use it</h3>
+        <ul>
+          <li><b>Active days</b> = how many days in the range had at least one update or completed task.</li>
+          <li><b>Events</b> = the total of those interactions in the range.</li>
+          <li>Together they're your "pulse": many events but few active days = you work in bursts.</li>
+        </ul>
+        <h3>How to edit it</h3>
+        <ul>
+          <li class="edit">Tap <span class="pill">7d</span> <span class="pill">30d</span> <span class="pill">90d</span> <span class="pill">1y</span> <span class="pill">All</span> to change the range.</li>
+          <li class="edit">It's the <b>only</b> editable thing in the view; it <b>recomputes every panel</b> at once.</li>
+          <li class="edit">The default on entry is <b>30 days</b>.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · ACTIVITY -->
+  <section class="step" id="activity">
+    <div class="step-head"><span class="badge">3</span><h2>Daily activity</h2></div>
+    <p class="sub">Two lines: updates and completed tasks, day by day.</p>
+    <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Daily activity</span></div>
+      <div class="canvas">
+        <div class="row" style="margin-bottom:14px"><span class="icon accent"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></span><b style="font-size:14px">Daily activity</b></div>
+        <svg viewBox="0 0 600 200" width="100%" height="200" style="display:block">
+          <line x1="36" y1="20" x2="36" y2="170" stroke="var(--border)"/>
+          <line x1="36" y1="170" x2="588" y2="170" stroke="var(--border)"/>
+          <g stroke="var(--border)" stroke-dasharray="3 3" opacity=".5"><line x1="36" y1="60" x2="588" y2="60"/><line x1="36" y1="100" x2="588" y2="100"/><line x1="36" y1="140" x2="588" y2="140"/></g>
+          <polyline fill="none" stroke="var(--accent)" stroke-width="2.5" points="36,140 105,110 174,120 243,70 312,90 381,45 450,75 519,55 588,40"/>
+          <polyline fill="none" stroke="var(--accent-2)" stroke-width="2.5" points="36,160 105,150 174,135 243,140 312,115 381,125 450,95 519,110 588,85"/>
+          <g fill="var(--text-muted)" font-size="10"><text x="36" y="186">6/1</text><text x="174" y="186">6/8</text><text x="312" y="186">6/15</text><text x="450" y="186">6/22</text><text x="555" y="186">6/29</text></g>
+        </svg>
+        <div class="row" style="gap:18px;justify-content:center;margin-top:10px">
+          <span class="row" style="gap:6px"><span style="width:14px;height:3px;border-radius:2px;background:var(--accent);display:inline-block"></span><span class="xsmall muted">Updates</span></span>
+          <span class="row" style="gap:6px"><span style="width:14px;height:3px;border-radius:2px;background:var(--accent-2);display:inline-block"></span><span class="xsmall muted">Tasks</span></span>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span><b class="accent">Green</b> line = updates (log entries); <b class="a2">blue</b> line = completed tasks. The X axis is labelled every few days.</span></div>
+    <div class="grid2" style="margin-top:20px">
+      <div class="how"><h3>How to use it</h3><ul>
+        <li>Look for the <b>trend</b>, not single days: are you climbing, dropping, or holding pace?</li>
+        <li>Hover a point to see that <b>day's detail</b> in a tooltip.</li>
+        <li>Blue spikes without green = you closed tasks but didn't log progress (or vice versa).</li>
+      </ul></div>
+      <div class="how"><h3>How to edit it</h3><ul>
+        <li class="edit">Read-only. Change what you see by adjusting the <b>date range</b> (section 2).</li>
+        <li class="edit">With long ranges (1y / All) the curve smooths out and labels space apart.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 4 · TOP PROJECTS -->
+  <section class="step" id="topprojects">
+    <div class="step-head"><span class="badge">4</span><h2>Most active</h2></div>
+    <p class="sub">Top 5 projects by interactions (updates + completed tasks) in the range.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Most active</span></div>
+        <div class="canvas">
+          <div style="margin-bottom:2px"><b style="font-size:14px"><span class="a2" style="margin-right:6px">↗</span>Most active</b></div>
+          <div class="xsmall muted" style="margin-bottom:12px">Top 5 by interactions (updates + completed tasks)</div>
+          <ul style="list-style:none;margin:0;padding:0;display:grid;gap:8px">
+            <li class="sleeprow" style="padding:9px 12px"><div style="flex:1"><div class="small">New landing</div><div class="xsmall muted">active</div></div><span class="accent xsmall row" style="gap:2px">▲ +6</span><b style="font-size:16px">24</b></li>
+            <li class="sleeprow" style="padding:9px 12px"><div style="flex:1"><div class="small">Mobile app</div><div class="xsmall muted">active</div></div><span class="accent xsmall row" style="gap:2px">▲ +2</span><b style="font-size:16px">18</b></li>
+            <li class="sleeprow" style="padding:9px 12px"><div style="flex:1"><div class="small">Newsletter</div><div class="xsmall muted">stalled</div></div><span class="red xsmall row" style="gap:2px">▼ -4</span><b style="font-size:16px">9</b></li>
+            <li class="sleeprow" style="padding:9px 12px"><div style="flex:1"><div class="small">Portfolio site</div><div class="xsmall muted">launched</div></div><span class="muted xsmall row" style="gap:2px">– 0</span><b style="font-size:16px">5</b></li>
+          </ul>
+        </div></div>
+        <div class="caption"><span>▲</span><span>The big number is <b>interactions</b>; the arrow is the <b>change</b> vs the previous period (<b class="accent">▲ up</b>, <b class="red">▼ down</b>, – flat).</span></div>
+      </div>
+      <div class="how"><h3>How to use it</h3><ul>
+        <li>Confirms <b>where your energy actually went</b> in the range.</li>
+        <li>The arrow compares against the <b>previous period of the same length</b>: spot projects cooling off (▼).</li>
+        <li>Under each name you see the project's <b>status</b> (active, stalled, launched…).</li>
+      </ul>
+      <h3>How to edit it</h3><ul>
+        <li class="edit">Read-only. If there was no activity in the range, you'll see <b>“No activity in this range.”</b></li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 5 · WEEKDAY HEATMAP -->
+  <section class="step" id="heatmap">
+    <div class="step-head"><span class="badge">5</span><h2>By weekday</h2></div>
+    <p class="sub">Which days do you tend to make progress? A heatmap from Monday to Sunday.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">By weekday</span></div>
+        <div class="canvas">
+          <div class="row" style="margin-bottom:14px"><span class="icon purple"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span><b style="font-size:14px">By weekday</b></div>
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;text-align:center">
+            <div><div style="aspect-ratio:1;border-radius:8px;display:grid;place-items:center;font-size:12px;font-weight:600;background:rgba(52,211,153,.85)">21</div><div class="xsmall muted" style="margin-top:5px">Mon</div></div>
+            <div><div style="aspect-ratio:1;border-radius:8px;display:grid;place-items:center;font-size:12px;font-weight:600;background:rgba(52,211,153,.65)">16</div><div class="xsmall muted" style="margin-top:5px">Tue</div></div>
+            <div><div style="aspect-ratio:1;border-radius:8px;display:grid;place-items:center;font-size:12px;font-weight:600;background:rgba(52,211,153,1)">25</div><div class="xsmall muted" style="margin-top:5px">Wed</div></div>
+            <div><div style="aspect-ratio:1;border-radius:8px;display:grid;place-items:center;font-size:12px;font-weight:600;background:rgba(52,211,153,.5)">12</div><div class="xsmall muted" style="margin-top:5px">Thu</div></div>
+            <div><div style="aspect-ratio:1;border-radius:8px;display:grid;place-items:center;font-size:12px;font-weight:600;background:rgba(52,211,153,.4)">9</div><div class="xsmall muted" style="margin-top:5px">Fri</div></div>
+            <div><div style="aspect-ratio:1;border-radius:8px;display:grid;place-items:center;font-size:12px;font-weight:600;background:rgba(52,211,153,.08)">2</div><div class="xsmall muted" style="margin-top:5px">Sat</div></div>
+            <div><div style="aspect-ratio:1;border-radius:8px;display:grid;place-items:center;font-size:12px;font-weight:600;background:rgba(52,211,153,.08)">0</div><div class="xsmall muted" style="margin-top:5px">Sun</div></div>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>More <b class="accent">intense</b> = more interactions that day. Here <b>Wednesday</b> is your strong day and you rest on weekends.</span></div>
+      </div>
+      <div class="how"><h3>How to use it</h3><ul>
+        <li>Reveals your <b>weekly pattern</b>: which days you perform best and when you dip.</li>
+        <li>The number inside each cell is that day's <b>interaction count</b>.</li>
+        <li>Handy for <b>planning</b>: schedule hard work on your strong days.</li>
+      </ul>
+      <h3>How to edit it</h3><ul>
+        <li class="edit">Read-only. It accumulates across the whole chosen range.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 6 · BACKLOG -->
+  <section class="step" id="backlog">
+    <div class="step-head"><span class="badge">6</span><h2>Backlog</h2></div>
+    <p class="sub">Health of your open work: what's overdue, what's coming, and what's near done.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Backlog</span></div>
+        <div class="canvas">
+          <div style="margin-bottom:2px"><b style="font-size:14px"><span class="amber" style="margin-right:6px">⚠</span>Backlog</b></div>
+          <div class="xsmall muted" style="margin-bottom:14px">14 open tasks total</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div style="background:color-mix(in srgb,var(--bg) 50%,transparent);border:1px solid var(--border);border-radius:10px;padding:11px"><div class="xsmall red row" style="gap:5px">⚠ Overdue</div><div style="font-size:22px;font-weight:600;margin-top:4px;color:#fca5a5">3</div></div>
+            <div style="background:color-mix(in srgb,var(--bg) 50%,transparent);border:1px solid var(--border);border-radius:10px;padding:11px"><div class="xsmall amber row" style="gap:5px">◷ Due soon (7d)</div><div style="font-size:22px;font-weight:600;margin-top:4px;color:#fcd34d">5</div></div>
+            <div style="background:color-mix(in srgb,var(--bg) 50%,transparent);border:1px solid var(--border);border-radius:10px;padding:11px"><div class="xsmall accent row" style="gap:5px">◎ Quick wins</div><div style="font-size:22px;font-weight:600;margin-top:4px;color:var(--accent)">2</div></div>
+            <div style="background:color-mix(in srgb,var(--bg) 50%,transparent);border:1px solid var(--border);border-radius:10px;padding:11px"><div class="xsmall a2 row" style="gap:5px">🏆 Almost there</div><div style="font-size:22px;font-weight:600;margin-top:4px;color:var(--accent-2)">1</div></div>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>The subtitle is your total open tasks. Each tile highlights an actionable group.</span></div>
+      </div>
+      <div class="how"><h3>How to use it</h3><ul>
+        <li><b>Overdue</b> and <b>Due soon (7d)</b> = what to handle now so it doesn't pile up.</li>
+        <li><b>Quick wins</b> = projects with ≤2 open tasks (close them fast).</li>
+        <li><b>Almost there</b> = projects ≥80% complete, one push from done.</li>
+      </ul>
+      <h3>How to edit it</h3><ul>
+        <li class="edit">Read-only; to move the numbers, go to <b>Tasks</b> or <b>Projects</b> and advance open work.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 7 · STATUS / CATEGORY -->
+  <section class="step" id="breakdown">
+    <div class="step-head"><span class="badge">7</span><h2>By status and category</h2></div>
+    <p class="sub">How your projects split: by lifecycle stage and by category.</p>
+    <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">By status and category</span></div>
+      <div class="canvas">
+        <div style="margin-bottom:2px"><b style="font-size:14px"><span style="color:#22d3ee;margin-right:6px">◔</span>By status and category</b></div>
+        <div class="xsmall muted" style="margin-bottom:16px">12 projects</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+          <div>
+            <div class="xsmall muted" style="text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Status</div>
+            <div style="display:grid;gap:11px">
+              <div><div class="row" style="justify-content:space-between"><span class="xsmall muted">Idea</span><span class="xsmall muted">2</span></div><div class="bar" style="margin:5px 0 0"><i style="width:17%;background:var(--amber)"></i></div></div>
+              <div><div class="row" style="justify-content:space-between"><span class="xsmall muted">Active</span><span class="xsmall muted">5</span></div><div class="bar" style="margin:5px 0 0"><i style="width:42%;background:var(--accent)"></i></div></div>
+              <div><div class="row" style="justify-content:space-between"><span class="xsmall muted">Stalled</span><span class="xsmall muted">2</span></div><div class="bar" style="margin:5px 0 0"><i style="width:17%;background:var(--red)"></i></div></div>
+              <div><div class="row" style="justify-content:space-between"><span class="xsmall muted">Launched</span><span class="xsmall muted">3</span></div><div class="bar" style="margin:5px 0 0"><i style="width:25%;background:var(--accent-2)"></i></div></div>
+            </div>
+          </div>
+          <div>
+            <div class="xsmall muted" style="text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Category</div>
+            <div style="display:grid;gap:11px">
+              <div class="row" style="justify-content:space-between"><span class="row" style="gap:8px"><span class="sdot" style="background:var(--accent)"></span><span class="small">Work</span></span><span class="xsmall muted">6 proj · 71 interactions</span></div>
+              <div class="row" style="justify-content:space-between"><span class="row" style="gap:8px"><span class="sdot" style="background:var(--purple)"></span><span class="small">Personal</span></span><span class="xsmall muted">4 proj · 28 interactions</span></div>
+              <div class="row" style="justify-content:space-between"><span class="row" style="gap:8px"><span class="sdot" style="background:var(--orange)"></span><span class="small">Side projects</span></span><span class="xsmall muted">2 proj · 13 interactions</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>Left: bars by <b>status</b> (each color = a stage). Right: your <b>categories</b> with project count and interactions.</span></div>
+    <div class="grid2" style="margin-top:20px">
+      <div class="how"><h3>How to use it</h3><ul>
+        <li>Check the <b>balance</b>: too many "Stalled" or "Idea" versus "Active" is a signal.</li>
+        <li>The subtitle counts the <b>total projects</b> considered.</li>
+        <li>The <b>category</b> side shows where your projects and activity concentrate.</li>
+      </ul></div>
+      <div class="how"><h3>How to edit it</h3><ul>
+        <li class="edit">Read-only. Category colors are the ones you set when creating them.</li>
+        <li class="edit">With no categories you'll see <b>“No categories.”</b>; with no projects, <b>“No data.”</b></li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 8 · EFFORT + FUNNEL -->
+  <section class="step" id="effort">
+    <div class="step-head"><span class="badge">8</span><h2>Effort &amp; Idea funnel</h2></div>
+    <p class="sub">Logged hours per project, and how many ideas turn into projects.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Effort</span></div>
+        <div class="canvas">
+          <div style="margin-bottom:2px"><b style="font-size:14px"><span class="orange" style="margin-right:6px">⏳</span>Effort</b></div>
+          <div class="xsmall muted" style="margin-bottom:12px">64% coverage (only tasks with logged hours are counted)</div>
+          <div class="row" style="align-items:baseline;gap:8px;margin-bottom:14px"><span style="font-size:30px;font-weight:600">37.5</span><span class="small muted">hours in range</span></div>
+          <ul style="list-style:none;margin:0;padding:0;display:grid;gap:8px">
+            <li class="row" style="justify-content:space-between"><span class="small">New landing</span><span class="xsmall muted">16 h</span></li>
+            <li class="row" style="justify-content:space-between"><span class="small">Mobile app</span><span class="xsmall muted">12.5 h</span></li>
+            <li class="row" style="justify-content:space-between"><span class="small">Newsletter</span><span class="xsmall muted">9 h</span></li>
+          </ul>
+        </div></div>
+        <div class="caption"><span>▲</span><span>The big number is <b>total hours</b>. <b>Coverage</b> warns how many tasks carry hours (otherwise the total underestimates).</span></div>
+      </div>
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Idea funnel</span></div>
+        <div class="canvas">
+          <div style="margin-bottom:2px"><b style="font-size:14px"><span style="color:#f472b6;margin-right:6px">➜</span>Idea funnel</b></div>
+          <div class="xsmall muted" style="margin-bottom:14px">Ideas created vs promoted to projects</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:left">
+            <div style="background:color-mix(in srgb,var(--bg) 50%,transparent);border:1px solid var(--border);border-radius:10px;padding:12px"><div style="font-size:24px;font-weight:600">9</div><div class="xsmall muted" style="margin-top:2px">Created</div></div>
+            <div style="background:color-mix(in srgb,var(--bg) 50%,transparent);border:1px solid var(--border);border-radius:10px;padding:12px"><div style="font-size:24px;font-weight:600;color:var(--accent)">3</div><div class="xsmall muted" style="margin-top:2px">Promoted</div></div>
+            <div style="background:color-mix(in srgb,var(--bg) 50%,transparent);border:1px solid var(--border);border-radius:10px;padding:12px"><div style="font-size:24px;font-weight:600">33<span class="small muted">%</span></div><div class="xsmall muted" style="margin-top:2px">Rate</div></div>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span><b>Created</b> → <b class="accent">Promoted</b> → conversion <b>Rate</b> to project.</span></div>
+      </div>
+    </div>
+    <div class="grid2" style="margin-top:20px">
+      <div class="how"><h3>How to use it</h3><ul>
+        <li><b>Effort</b> splits your hours per project: what you actually spend time on.</li>
+        <li>Low <b>coverage</b> = log hours on more tasks so the total is reliable.</li>
+        <li><b>Funnel</b>: a very low rate suggests you hoard ideas without deciding.</li>
+      </ul></div>
+      <div class="how"><h3>How to edit it</h3><ul>
+        <li class="edit">Read-only. Hours come from the <b>hours logged on your tasks</b>.</li>
+        <li class="edit">No hours in range: <b>“No tasks with logged hours in this range.”</b></li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 9 · SLEEPING + STALE -->
+  <section class="step" id="sleeping">
+    <div class="step-head"><span class="badge">9</span><h2>Sleeping · Stale ideas</h2></div>
+    <p class="sub">What's cooling off: projects with no recent activity and ideas not promoted.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Sleeping</span></div>
+        <div class="canvas">
+          <div style="margin-bottom:2px"><b style="font-size:14px"><span style="color:#818cf8;margin-right:6px">☾</span>Sleeping</b></div>
+          <div class="xsmall muted" style="margin-bottom:12px">Projects with no recent activity (≥7 days)</div>
+          <ul style="list-style:none;margin:0;padding:0;display:grid;gap:8px">
+            <li class="sleeprow" style="padding:9px 12px"><span class="small" style="flex:1">Newsletter</span><span class="chip" style="border-color:color-mix(in srgb,var(--amber) 30%,transparent);color:#fcd34d;background:var(--amber-soft)">7-14d</span><span class="xsmall muted">10d</span></li>
+            <li class="sleeprow" style="padding:9px 12px"><span class="small" style="flex:1">Online course</span><span class="chip" style="border-color:color-mix(in srgb,var(--orange) 30%,transparent);color:#fed7aa;background:color-mix(in srgb,var(--orange) 15%,transparent)">15-30d</span><span class="xsmall muted">22d</span></li>
+            <li class="sleeprow" style="padding:9px 12px"><span class="small" style="flex:1">Old app</span><span class="chip" style="border-color:color-mix(in srgb,var(--red) 30%,transparent);color:#fecaca;background:color-mix(in srgb,var(--red) 15%,transparent)">30+d</span><span class="xsmall muted">40d</span></li>
+          </ul>
+        </div></div>
+        <div class="caption"><span>▲</span><span>The badge groups severity (<b class="amber">7-14d</b> → <b class="orange">15-30d</b> → <b class="red">30+d</b>) and on the right are the <b>exact days</b> idle.</span></div>
+      </div>
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Stale ideas</span></div>
+        <div class="canvas">
+          <div style="margin-bottom:2px"><b style="font-size:14px"><span style="color:#facc15;margin-right:6px">💡</span>Stale ideas</b></div>
+          <div class="xsmall muted" style="margin-bottom:12px">Not promoted in ≥30 days</div>
+          <ul style="list-style:none;margin:0;padding:0;display:grid;gap:8px">
+            <li class="sleeprow" style="padding:9px 12px"><span class="small" style="flex:1">Recipes app</span><span class="xsmall muted">45d</span></li>
+            <li class="sleeprow" style="padding:9px 12px"><span class="small" style="flex:1">Weekly podcast</span><span class="xsmall muted">38d</span></li>
+            <li class="sleeprow" style="padding:9px 12px"><span class="small" style="flex:1">Notion template</span><span class="xsmall muted">31d</span></li>
+          </ul>
+        </div></div>
+        <div class="caption"><span>▲</span><span>Ideas sitting <b>30+ days</b> without becoming a project; on the right, their age.</span></div>
+      </div>
+    </div>
+    <div class="grid2" style="margin-top:20px">
+      <div class="how"><h3>How to use it</h3><ul>
+        <li>It's your <b>rescue</b> list: reactivate a project or drop an idea to free up space.</li>
+        <li>"Sleeping" complements the <b>Today</b> alert, but here you see the full list.</li>
+        <li>To act, open the project or idea from their respective tabs.</li>
+      </ul></div>
+      <div class="how"><h3>How to edit it</h3><ul>
+        <li class="edit">Read-only. If all is on track: <b>“Nothing sleeping. Good pace.”</b> and <b>“No stale ideas.”</b></li>
+      </ul></div>
+    </div>
+    <div class="note info">Every panel is <b>read-only</b>: Analytics doesn't change your data, it <em>reflects</em> it. The only lever is the <b>date range</b> up top. If a panel comes up empty, it's almost always a lack of data in that range — widen it or log more activity.</div>
+  </section>
+
+  <p class="footnote">
+    Guide generated from the real implementation of <code>AnalyticsView.tsx</code> and the panels in <code>components/dashboard/analytics/*</code>, with strings from <code>messages/en.json</code>. Screenshots are faithful HTML reconstructions (dark theme) with illustrative data. Other guides in this series: <b>Today</b>, <b>Projects</b>, <b>Tasks</b>, <b>Routines</b>, <b>Ideas</b>, <b>Quick Notes</b> and <b>Log</b>.
+  </p>
+
+  </main>
+</div>
+
+</body>
+</html>

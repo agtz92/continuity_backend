@@ -29,7 +29,7 @@ Los demás trozos viven en módulos dedicados (re-importados con `import *`):
   (un módulo por dominio: `projects`/`tasks`/`routines`/`notes`/`ideas`/`categories`/
   `quick_notes`); su `__init__.py` importa cada submódulo para disparar el registro
   `@tool`. **Una write tool nueva** va en el módulo de su dominio (no en un único archivo).
-Detalle del refactor: `../AUDITORIA_CODIGO.md`.
+Detalle del refactor: `AUDITORIA_CODIGO.md`.
 
 ## CMS público (`core/cms`) — schema sin auth para el sitio de marketing
 
@@ -101,7 +101,7 @@ cliente (`bugTopics.ts`) y debe mantenerse en sync; el backend guarda `topic` co
 Notas top-level **categorizables** y **opcionalmente ligadas a un proyecto** (o sueltas),
 cada una con una lista ordenable de **secciones plegables** (toggles tipo Notion). Distinto
 de `Idea` (captura plana) y de `ProjectNote` (sub-notas encerradas en un proyecto). Plan,
-wireframes y detalle: `../docs/quick-notes/PLAN.md`.
+wireframes y detalle: `docs/quick-notes/PLAN.md`.
 
 - **Modelos** (`core/models.py`, ambos heredan de `TimestampedModel`):
   - `QuickNote` → `title`, `category` (FK `Category`, `SET_NULL`), `project` (FK `Project`,

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ayuda · Ideas — Continuity</title>
+<link rel="stylesheet" href="_base.css" />
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><span class="dot">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+    </span>Continuity · Ayuda</div>
+    <nav>
+      <a href="#intro">Ideas</a>
+      <a href="#card">Tarjeta</a>
+      <a href="#create">Capturar</a>
+      <a href="#promote">Promover</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap hero" id="intro">
+  <div class="kicker">Guía paso a paso</div>
+  <h1>Parking lot de ideas</h1>
+  <p class="lead">La pestaña <b>Ideas</b> es tu <em>parking lot</em>: aparcas aquí ocurrencias nuevas para no abandonar lo que ya estás haciendo, y las promueves a proyecto cuando estás listo. Es el espacio que separa “tener una idea” de “arrancar un proyecto”. Esta guía recorre la lista, la tarjeta de idea, cómo capturar, cómo promover y cómo buscar — cada una con su captura. El acento de esta vista es <b class="purple">púrpura</b>.</p>
+</div>
+
+<div class="wrap layout">
+
+  <nav class="toc">
+    <strong>En esta guía</strong>
+    <ol>
+      <li><a href="#overview"><span class="n">1</span>Vista general</a></li>
+      <li><a href="#card"><span class="n">2</span>Anatomía de una idea</a></li>
+      <li><a href="#create"><span class="n">3</span>Capturar una idea</a></li>
+      <li><a href="#promote"><span class="n">4</span>Promover a proyecto</a></li>
+      <li><a href="#filters"><span class="n">5</span>Buscar entre ideas</a></li>
+      <li><a href="#empty"><span class="n">6</span>Estado vacío</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+  <!-- 1 · VISTA GENERAL -->
+  <section class="step" id="overview">
+    <div class="step-head"><span class="badge">1</span><h2>Vista general</h2></div>
+    <p class="sub">El encabezado, el buscador y la cuadrícula de tarjetas de idea.</p>
+
+    <div class="shot">
+      <div class="chrome"><i></i><i></i><i></i><span class="tag">Continuity · /dashboard — pestaña Ideas</span></div>
+      <div class="canvas">
+        <div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:6px">
+          <h3 style="margin:0;font-size:18px;font-weight:600">Parking lot de ideas</h3>
+          <div class="row" style="gap:8px">
+            <div class="row" style="gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 10px;min-width:200px;color:var(--text-muted)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <span class="small">Buscar ideas...</span>
+            </div>
+            <button class="tagbtn" style="background:var(--purple);color:#2e1065;font-weight:600;display:inline-flex;align-items:center;gap:6px">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Capturar
+            </button>
+          </div>
+        </div>
+        <div class="small muted" style="margin-bottom:14px">Aparca aquí ideas nuevas para no abandonar lo que ya estás haciendo. Promuévelas cuando estés listo.</div>
+
+        <div class="pcards">
+          <div class="pcard" style="background:color-mix(in srgb,var(--purple) 6%,transparent);border-color:color-mix(in srgb,var(--purple) 25%,transparent)">
+            <div class="row" style="gap:8px;align-items:flex-start;margin-bottom:6px">
+              <span class="icon purple" style="margin-top:1px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"/></svg></span>
+              <b style="color:#e9d5ff">App de hábitos</b>
+            </div>
+            <div class="small" style="color:#d8b4fe;font-style:italic;margin-bottom:6px">→ La gente no necesita más datos, necesita constancia.</div>
+            <div class="xsmall muted">Una app minimalista, sin gamificación agresiva.</div>
+          </div>
+          <div class="pcard" style="background:color-mix(in srgb,var(--purple) 6%,transparent);border-color:color-mix(in srgb,var(--purple) 25%,transparent)">
+            <div class="row" style="gap:8px;align-items:flex-start;margin-bottom:6px">
+              <span class="icon purple" style="margin-top:1px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"/></svg></span>
+              <b style="color:#e9d5ff">Newsletter semanal</b>
+            </div>
+            <div class="xsmall muted">Resumen de lo que aprendo cada semana.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>Vista real (tema oscuro). Las ideas se muestran como <b class="purple">tarjetas púrpura</b> en una cuadrícula de dos columnas.</span></div>
+
+    <ol class="anatomy-list">
+      <li><b>Encabezado</b> — título “Parking lot de ideas”, buscador y botón <b>Capturar</b> (en escritorio).</li>
+      <li><b>Subtítulo</b> — recuerda para qué sirve: aparcar sin abandonar lo de ahora.</li>
+      <li><b>Cuadrícula de tarjetas</b> — cada idea con su bombilla, título, motivo y notas.</li>
+      <li><b>Botón Crear (FAB)</b> — flotante púrpura abajo a la derecha (en móvil), atajo para capturar.</li>
+    </ol>
+    <div class="note info">El parking lot no tiene fechas ni estados: una idea solo espera. Si lleva mucho tiempo sin decisión, la vista <b>Today</b> te avisará con la sección <b>“Ideas estancadas”</b> (30+ días) para que la promuevas o la sueltes.</div>
+  </section>
+
+  <!-- 2 · TARJETA -->
+  <section class="step" id="card">
+    <div class="step-head"><span class="badge">2</span><h2>Anatomía de una idea</h2></div>
+    <p class="sub">Qué muestra cada tarjeta y qué hace cada botón.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Tarjeta de idea</span></div>
+        <div class="canvas">
+          <div class="pcard" style="background:color-mix(in srgb,var(--purple) 6%,transparent);border-color:color-mix(in srgb,var(--purple) 25%,transparent)">
+            <div class="row" style="gap:8px;align-items:flex-start;margin-bottom:8px">
+              <span class="icon purple" style="margin-top:1px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"/></svg></span>
+              <b style="color:#e9d5ff;font-size:15px">App de hábitos</b>
+            </div>
+            <div class="small" style="color:#d8b4fe;font-style:italic;margin-bottom:8px">→ La gente no necesita más datos, necesita constancia.</div>
+            <div class="small muted" style="margin-bottom:14px">Una app minimalista, sin rachas ni gamificación agresiva. Solo: ¿lo hiciste hoy, sí o no?</div>
+            <div class="row" style="gap:8px;flex-wrap:wrap">
+              <button class="tagbtn" style="background:color-mix(in srgb,var(--purple) 20%,transparent);color:#e9d5ff">Promover a proyecto</button>
+              <button class="tagbtn" style="background:var(--border);color:var(--text-muted);display:inline-flex;align-items:center;gap:5px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Editar</button>
+              <button class="tagbtn" style="background:var(--border);color:var(--text-muted)">Eliminar</button>
+            </div>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>De arriba abajo: <b>bombilla + título</b>, <b class="purple">motivo</b> (→), <b>notas</b> y los tres botones.</span></div>
+      </div>
+      <div class="how">
+        <h3>Qué muestra</h3>
+        <ul>
+          <li>La <b>bombilla</b> 💡 púrpura y el <b>título</b> de la idea (lo único obligatorio).</li>
+          <li>El <b>motivo</b> en cursiva tras una flecha (→): tu “por qué importa”, si lo escribiste.</li>
+          <li>Las <b>notas</b> libres debajo, también opcionales.</li>
+        </ul>
+        <h3>Cómo editar</h3>
+        <ul>
+          <li class="edit"><span class="pill">Promover a proyecto</span> convierte la idea en un proyecto nuevo.</li>
+          <li class="edit"><span class="pill">Editar</span> abre la idea para cambiar título, motivo o notas.</li>
+          <li class="edit"><span class="pill">Eliminar</span> la descarta para dejar sitio a algo nuevo.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="note info">El <b>motivo</b> y las <b>notas</b> se ocultan si están vacíos: una tarjeta puede ser solo una bombilla y un título. Aun así, escribir el “por qué” ayuda mucho cuando vuelvas a la idea semanas después.</div>
+  </section>
+
+  <!-- 3 · CAPTURAR -->
+  <section class="step" id="create">
+    <div class="step-head"><span class="badge">3</span><h2>Capturar una idea</h2></div>
+    <p class="sub">Apárcala en segundos sin perder el hilo de lo que estabas haciendo.</p>
+
+    <h3 class="how" style="margin:6px 0 12px;font-size:13px;text-transform:uppercase;letter-spacing:.12em;color:var(--text-muted)">Paso A · Abrir el captador</h3>
+    <div class="caption" style="margin:0 0 14px"><span>→</span><span>Toca <span class="pill">+ Capturar</span> (escritorio) o el <span class="pill">FAB púrpura</span> abajo a la derecha (móvil).</span></div>
+
+    <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Capturar idea — modal</span></div>
+      <div class="canvas">
+        <div class="card" style="max-width:440px;margin:0 auto">
+          <div class="sec-title" style="margin-bottom:4px"><span class="icon purple"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"/></svg></span>Capturar idea</div>
+          <div class="small muted" style="margin:0 0 14px 28px">Aparcala aquí para no distraerte de lo que estás haciendo.</div>
+
+          <div class="xsmall muted" style="text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:4px">Idea *</div>
+          <div style="background:var(--border);border:1px solid var(--border);border-radius:8px;padding:9px 11px;font-size:13px;margin-bottom:12px">App de hábitos</div>
+
+          <div class="xsmall muted" style="text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:4px">¿Por qué importa?</div>
+          <div style="background:var(--border);border:1px solid var(--border);border-radius:8px;padding:9px 11px;font-size:13px;color:var(--text-muted);margin-bottom:12px">Motivación opcional — útil cuando la promuevas más tarde.</div>
+
+          <div class="xsmall muted" style="text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:4px">Notas</div>
+          <div style="background:var(--border);border:1px solid var(--border);border-radius:8px;padding:9px 11px;font-size:13px;min-height:48px;margin-bottom:16px"></div>
+
+          <div class="row" style="gap:8px">
+            <button class="tagbtn" style="flex:1;text-align:center;background:var(--purple);color:#2e1065;font-weight:600">Capturar</button>
+            <button class="tagbtn" style="background:var(--border);color:var(--text-muted)">Cancelar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>Solo el campo <b>Idea</b> (con *) es obligatorio. <b>Motivo</b> y <b>Notas</b> puedes dejarlos para después.</span></div>
+
+    <div class="grid2" style="margin-top:20px">
+      <div class="how"><h3>Cómo se usa</h3><ul>
+        <li>Escribe un <b>título</b> corto: con eso basta para aparcar la idea.</li>
+        <li>Opcional: el <b>“¿por qué importa?”</b> y unas <b>notas</b> para tu yo del futuro.</li>
+        <li><b>Capturar</b> la guarda y la suma a la cuadrícula al instante.</li>
+      </ul></div>
+      <div class="how"><h3>Cómo editar</h3><ul>
+        <li class="edit">El mismo modal se reutiliza para <b>editar</b> (con el título “Editar idea”).</li>
+        <li class="edit">Sin título, el botón <b>Capturar</b> queda deshabilitado.</li>
+        <li class="edit"><b>Cancelar</b> o la ✕ cierran sin guardar.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 4 · PROMOVER -->
+  <section class="step" id="promote">
+    <div class="step-head"><span class="badge">4</span><h2>Promover a proyecto</h2></div>
+    <p class="sub">Cuando una idea ya merece arrancar, conviértela en proyecto con un toque.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Promover a proyecto</span></div>
+        <div class="canvas">
+          <div class="pcard" style="background:color-mix(in srgb,var(--purple) 6%,transparent);border-color:color-mix(in srgb,var(--purple) 25%,transparent);margin-bottom:12px">
+            <div class="row" style="gap:8px;align-items:flex-start;margin-bottom:6px">
+              <span class="icon purple" style="margin-top:1px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"/></svg></span>
+              <b style="color:#e9d5ff">App de hábitos</b>
+            </div>
+            <div class="row" style="gap:8px"><button class="tagbtn" style="background:var(--purple);color:#2e1065;font-weight:600">Promover a proyecto ›</button></div>
+          </div>
+          <div style="text-align:center;color:var(--text-muted)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom:2px"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
+          </div>
+          <div class="pcard" style="margin-top:8px">
+            <div class="row" style="gap:8px;margin-bottom:6px"><span class="icon accent"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2z"/></svg></span><b style="font-size:14px">App de hábitos</b><span class="count-pill count-accent" style="margin-left:auto">Proyecto activo</span></div>
+            <div class="bar"><i style="width:0%"></i></div>
+            <div class="xsmall muted">0/0 tareas · listo para planear</div>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>La idea sale del parking lot y aparece como <b class="accent">proyecto activo</b> en la pestaña Proyectos.</span></div>
+      </div>
+      <div class="how">
+        <h3>Cómo se usa</h3>
+        <ul>
+          <li>Toca <span class="pill">Promover a proyecto</span> en la tarjeta.</li>
+          <li>Se crea un <b>proyecto</b> con el título y el motivo de la idea como punto de partida.</li>
+          <li>La idea <b>desaparece de Ideas</b>: ya no es un “quizás”, es un proyecto.</li>
+        </ul>
+        <h3>Cómo editar</h3>
+        <ul>
+          <li class="edit">Desde el proyecto añade tareas, próximos pasos y horas.</li>
+          <li class="edit">Si te arrepientes, gestiona el proyecto desde la pestaña <b>Proyectos</b>.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="note info">Promover es de un solo sentido: la idea se transforma en proyecto. Si solo querías guardarla, usa <b>Editar</b> en lugar de promover.</div>
+  </section>
+
+  <!-- 5 · BUSCAR -->
+  <section class="step" id="filters">
+    <div class="step-head"><span class="badge">5</span><h2>Buscar entre ideas</h2></div>
+    <p class="sub">El buscador filtra por título, motivo y notas mientras escribes.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Buscar ideas</span></div>
+        <div class="canvas">
+          <div class="row" style="gap:8px;background:var(--surface);border:1px solid color-mix(in srgb,var(--purple) 30%,transparent);border-radius:8px;padding:8px 11px;margin-bottom:14px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-muted)"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <span class="small">hábitos</span>
+          </div>
+          <div class="pcards">
+            <div class="pcard" style="background:color-mix(in srgb,var(--purple) 6%,transparent);border-color:color-mix(in srgb,var(--purple) 25%,transparent)">
+              <div class="row" style="gap:8px;align-items:flex-start;margin-bottom:4px"><span class="icon purple" style="margin-top:1px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"/></svg></span><b style="color:#e9d5ff;font-size:14px">App de hábitos</b></div>
+              <div class="xsmall muted">Una app minimalista, sin gamificación.</div>
+            </div>
+          </div>
+          <div class="small muted" style="margin-top:14px;padding:10px;text-align:center;border:1px dashed var(--border);border-radius:10px">No hay ideas que coincidan con “rutinas”</div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>Si nada coincide verás <b>“No hay ideas que coincidan con …”</b> con tu término entre comillas.</span></div>
+      </div>
+      <div class="how">
+        <h3>Cómo se usa</h3>
+        <ul>
+          <li>Escribe en el <b>buscador</b>: filtra en vivo, sin botón de buscar.</li>
+          <li>Coincide con <b>título</b>, <b>motivo</b> y <b>notas</b> de cada idea.</li>
+          <li>Borra el texto para ver de nuevo todas las ideas.</li>
+        </ul>
+        <h3>Cómo editar</h3>
+        <ul>
+          <li class="edit">No hay categorías ni etiquetas: el buscador es el único filtro.</li>
+          <li class="edit">El orden lo decide la app; tú decides qué promover o soltar.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · ESTADO VACÍO -->
+  <section class="step" id="empty">
+    <div class="step-head"><span class="badge">6</span><h2>Estado vacío</h2></div>
+    <p class="sub">Lo que ves antes de aparcar tu primera idea.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Ideas — sin capturas aún</span></div>
+        <div class="canvas">
+          <div class="card" style="text-align:center;padding:36px 20px;border-style:dashed">
+            <div class="icon purple" style="display:inline-grid;margin-bottom:12px"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"/></svg></div>
+            <div class="muted" style="margin-bottom:16px">Aún no has capturado ideas.</div>
+            <button class="tagbtn" style="background:var(--purple);color:#2e1065;font-weight:600">Capturar primera idea</button>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>Un único botón <b>“Capturar primera idea”</b> abre el mismo modal del paso 3.</span></div>
+      </div>
+      <div class="how">
+        <h3>Cómo se usa</h3>
+        <ul>
+          <li>Aparece cuando <b>no tienes ninguna idea</b> guardada.</li>
+          <li>El botón central abre el captador para empezar.</li>
+          <li>En cuanto capturas una, el estado vacío da paso a la cuadrícula.</li>
+        </ul>
+        <div class="note">Tip: usa el parking lot como descarga mental. Mejor aparcar una idea floja que perderla — siempre puedes <b>Eliminar</b> las que no cuajen.</div>
+      </div>
+    </div>
+  </section>
+
+  <p class="footnote">
+    Guía generada a partir de la implementación real de <code>IdeasView.tsx</code> e <code>IdeaModal.tsx</code> y los textos de <code>messages/es.json</code> (<code>views.ideas.*</code>, <code>modals.idea.*</code>). Las capturas son reconstrucciones fieles en HTML (tema oscuro, acento púrpura). Parte de la serie de guías de Continuity: <b>Today</b>, <b>Proyectos</b>, <b>Tareas</b>, <b>Rutinas</b>, <b>Ideas</b>, <b>Quick Notes</b> y <b>Analytics</b>.
+  </p>
+
+  </main>
+</div>
+
+</body>
+</html>

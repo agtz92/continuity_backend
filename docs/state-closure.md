@@ -4,7 +4,7 @@
 > feature de cierre de estados, verificado contra el código. El estado vive en producción
 > (estado `killed`, stalled a 14 días vía `detect_stalled_projects`, notas de cierre, graveyard +
 > `GraveyardInsight`, autopsia IA en `core/services/autopsy.py`), web y móvil. El brief de diseño
-> original se archivó en [`../../docs/_archive/state-closure/STATE_CLOSURE_FINAL.md`](../../docs/_archive/state-closure/STATE_CLOSURE_FINAL.md);
+> original se archivó en [`_archive/state-closure/STATE_CLOSURE_FINAL.md`](_archive/state-closure/STATE_CLOSURE_FINAL.md);
 > donde ese brief y el código discrepen, **prevalece el código** (y este documento, que recoge las
 > correcciones). Las "Decisiones abiertas" (§14) siguen siendo el pendiente real de producto.
 

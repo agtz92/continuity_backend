@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ayuda · Today's View — Continuity</title>
+<link rel="stylesheet" href="_base.css" />
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><span class="dot">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+    </span>Continuity · Ayuda</div>
+    <nav>
+      <a href="#intro">Today's View</a>
+      <a href="#anatomia">Anatomía</a>
+      <a href="#editar">Personalizar</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap hero" id="intro">
+  <div class="kicker">Guía paso a paso</div>
+  <h1>Today's View</h1>
+  <p class="lead">La pestaña <b>Today</b> es lo primero que ves al entrar a Continuity. Reúne, en un solo lugar, lo que merece tu atención <em>hoy</em>: tareas que vencen, proyectos que se están enfriando, lo que ya completaste y los proyectos que están a un paso de cerrarse. Esta guía recorre cada sección con una captura y explica cómo usarla y cómo personalizarla.</p>
+</div>
+
+<div class="wrap layout">
+
+  <nav class="toc">
+    <strong>En esta guía</strong>
+    <ol>
+      <li><a href="#anatomia"><span class="n">1</span>Anatomía general</a></li>
+      <li><a href="#encabezado"><span class="n">2</span>Encabezado y saludo</a></li>
+      <li><a href="#contadores"><span class="n">3</span>Contadores</a></li>
+      <li><a href="#detenidos"><span class="n">4</span>Alerta de detenidos</a></li>
+      <li><a href="#enfoque"><span class="n">5</span>Enfoque de hoy</a></li>
+      <li><a href="#rutinas"><span class="n">6</span>Rutinas para hoy</a></li>
+      <li><a href="#hecho"><span class="n">7</span>Hecho hoy</a></li>
+      <li><a href="#cerrar"><span class="n">8</span>Cerca de la meta</a></li>
+      <li><a href="#durmiendo"><span class="n">9</span>Proyectos durmiendo</a></li>
+      <li><a href="#ideas"><span class="n">10</span>Ideas estancadas</a></li>
+      <li><a href="#activos"><span class="n">11</span>Proyectos activos / Lanzados</a></li>
+      <li><a href="#crear"><span class="n">12</span>Botón Crear (FAB)</a></li>
+      <li><a href="#editar"><span class="n">13</span>Personalizar Today</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+  <!-- 1 · ANATOMÍA -->
+  <section class="step" id="anatomia">
+    <div class="step-head"><span class="badge">1</span><h2>Anatomía general</h2></div>
+    <p class="sub">Cómo se arma la vista de arriba hacia abajo.</p>
+
+    <div class="shot">
+      <div class="chrome"><i></i><i></i><i></i><span class="tag">Continuity · /dashboard — pestaña Today</span></div>
+      <div class="canvas">
+        <div class="t-head">
+          <div><div class="t-date">jueves, 19 de junio</div><div class="t-greet">Buenas tardes</div></div>
+          <div class="gear" title="Personalizar Today">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>
+          </div>
+        </div>
+
+        <!-- mini stalled alert -->
+        <div class="alert alert-amber" style="margin-bottom:12px">
+          <span class="icon amber" style="margin-top:2px">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+          </span>
+          <div>
+            <div style="font-weight:600;color:#fcd34d">2 proyectos necesitan atención</div>
+            <div class="small" style="color:#fde68a99">Sin actividad en 7+ días. No dejes que mueran en silencio.</div>
+          </div>
+        </div>
+
+        <!-- mini focus -->
+        <div class="card" style="margin:0 0 12px">
+          <div class="sec-title"><span class="icon accent"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></span>Enfoque de hoy<span class="chip chip-task" style="margin-left:auto">3 tareas · 1 vencidas</span></div>
+        </div>
+        <div class="card" style="margin:0 0 12px;opacity:.85"><div class="sec-title"><span class="icon accent"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.5 2A7.5 7.5 0 1 0 22 14.5 6 6 0 0 1 9.5 2z" fill="currentColor" fill-opacity=".15"/></svg></span>Hecho hoy<span class="chev">⌄</span></div></div>
+        <div class="card" style="margin:0;opacity:.7"><div class="sec-title"><span class="icon accent"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>Proyectos activos<span class="count-pill count-accent" style="margin-left:auto">4</span></div></div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>Vista real (tema oscuro). El orden y qué secciones aparecen son <b>personalizables</b> — más abajo.</span></div>
+
+    <ol class="anatomy-list">
+      <li><b>Encabezado</b> — fecha de hoy, saludo según la hora y el engrane para <b>Personalizar Today</b>.</li>
+      <li><b>Secciones de atención</b> — alertas y enfoque: lo urgente arriba.</li>
+      <li><b>Secciones de progreso</b> — “Hecho hoy”, “Cerca de la meta”, proyectos activos/lanzados.</li>
+      <li><b>Botón Crear (FAB)</b> — flotante abajo a la derecha, para añadir tarea/proyecto/rutina/idea.</li>
+    </ol>
+    <div class="note info">Las secciones <b>solo aparecen cuando tienen datos</b>. Si no tienes proyectos estancados, la “Alerta de detenidos” no se muestra; al crear tu primer proyecto irán apareciendo más bloques. Es normal que un usuario nuevo vea pocas secciones al inicio.</div>
+  </section>
+
+  <!-- 2 · ENCABEZADO -->
+  <section class="step" id="encabezado">
+    <div class="step-head"><span class="badge">2</span><h2>Encabezado y saludo</h2></div>
+    <p class="sub">Tu punto de orientación al abrir la app.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Encabezado</span></div>
+        <div class="canvas"><div class="t-head">
+          <div><div class="t-date">jueves, 19 de junio</div><div class="t-greet">Buenas tardes</div></div>
+          <div class="gear"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg></div>
+        </div></div></div>
+        <div class="caption"><span>▲</span><span>El saludo cambia: <b>Buenos días</b> (5–12h), <b>Buenas tardes</b> (12–19h), <b>Buenas noches</b> (resto).</span></div>
+      </div>
+      <div class="how">
+        <h3>Cómo se usa</h3>
+        <ul>
+          <li>La <b>fecha</b> y el <b>saludo</b> son automáticos; no se editan.</li>
+          <li>El <span class="pill">⚙ engrane</span> abre <b>Personalizar Today</b> (paso 13).</li>
+          <li>En móvil el saludo va en la cabecera; en escritorio el engrane aparece arriba a la derecha.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · CONTADORES -->
+  <section class="step" id="contadores">
+    <div class="step-head"><span class="badge">3</span><h2>Contadores</h2><span class="badge-mini" style="margin-left:4px">Solo móvil</span></div>
+    <p class="sub">Tira de números rápidos: activos, lanzados, estancados, ideas y tareas.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Contadores</span></div>
+        <div class="canvas"><div class="counters">
+          <div class="counter"><div class="lbl">Activos</div><div class="val accent">4</div></div>
+          <div class="counter"><div class="lbl">Lanzados</div><div class="val a2">2</div></div>
+          <div class="counter"><div class="lbl">Estancados</div><div class="val amber">2</div></div>
+          <div class="counter"><div class="lbl">Ideas</div><div class="val purple">7</div></div>
+        </div></div></div>
+        <div class="caption"><span>▲</span><span>Se desliza horizontalmente. <b>Contador “Tareas”</b> incluido al final.</span></div>
+      </div>
+      <div class="how">
+        <h3>Cómo se usa</h3>
+        <ul>
+          <li>Vista <b>rápida</b> del estado general de tu workspace.</li>
+          <li>Los valores se calculan solos a partir de tus proyectos, ideas y tareas.</li>
+        </ul>
+        <h3>Cómo editar</h3>
+        <ul>
+          <li class="edit">Es una sección <b>ocultable</b>. Puedes esconderla desde <b>Personalizar Today</b>.</li>
+          <li class="edit">Hoy se muestra <b>solo en móvil</b> (lleva la etiqueta <span class="badge-mini">Móvil</span> en el editor).</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · ALERTA DETENIDOS -->
+  <section class="step" id="detenidos">
+    <div class="step-head"><span class="badge">4</span><h2>Alerta de detenidos</h2></div>
+    <p class="sub">Proyectos sin actividad en 7+ días — para que no mueran en silencio.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Alerta de detenidos</span></div>
+        <div class="canvas">
+          <div class="alert alert-amber">
+            <span class="icon amber" style="margin-top:2px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></span>
+            <div style="flex:1">
+              <div style="font-weight:600;color:#fcd34d;margin-bottom:2px">2 proyectos necesitan atención</div>
+              <div class="small" style="color:#fde68a99;margin-bottom:10px">Sin actividad en 7+ días. No dejes que mueran en silencio.</div>
+              <div class="row" style="flex-wrap:wrap;gap:8px">
+                <button class="tagbtn tagbtn-amber">Landing nueva · 12d</button>
+                <button class="tagbtn tagbtn-amber">App móvil · 9d</button>
+              </div>
+            </div>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>Cada chip muestra el nombre y los <b>días sin actividad</b>.</span></div>
+      </div>
+      <div class="how">
+        <h3>Cómo se usa</h3>
+        <ul>
+          <li><b>Toca un chip</b> para saltar directo a ese proyecto y reactivarlo.</li>
+          <li>Aparece solo si tienes proyectos estancados (≥7 días sin movimiento).</li>
+        </ul>
+        <h3>Cómo editar</h3>
+        <ul>
+          <li class="edit">Sección <b>ocultable</b> desde Personalizar Today.</li>
+          <li class="edit">Para “limpiar” un proyecto de aquí: ábrelo y registra una actualización (log) o avanza una tarea.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · ENFOQUE DE HOY -->
+  <section class="step" id="enfoque">
+    <div class="step-head"><span class="badge">5</span><h2>Enfoque de hoy</h2><span class="pill" style="margin-left:4px">🔒 Siempre visible</span></div>
+    <p class="sub">El corazón de la vista: lo que de verdad toca hacer hoy.</p>
+    <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Enfoque de hoy</span></div>
+      <div class="canvas">
+        <div class="row" style="margin-bottom:14px">
+          <span class="icon accent"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></span>
+          <b>Enfoque de hoy</b>
+          <span class="chip chip-task" style="margin-left:auto">3 tareas <span class="red">· 1 vencidas</span></span>
+          <span class="chip chip-hours">4.5h en total</span>
+        </div>
+        <div class="focus-grid">
+          <div class="fitem overdue">
+            <div class="row" style="gap:8px;margin-bottom:6px">
+              <span class="ftag red">Vencida</span>
+              <span class="xsmall" style="background:color-mix(in srgb,var(--red) 25%,transparent);color:#fecaca;padding:1px 6px;border-radius:5px;border:1px solid color-mix(in srgb,var(--red) 50%,transparent)">2d de retraso</span>
+              <span class="xsmall muted">· Landing nueva</span>
+            </div>
+            <div class="row" style="gap:8px">
+              <span class="icon muted"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></span>
+              <span>Escribir copy del hero</span><span class="chip chip-hours">2h</span>
+            </div>
+          </div>
+          <div class="fitem today">
+            <div class="row" style="gap:8px;margin-bottom:6px"><span class="ftag orange">Para hoy</span><span class="xsmall muted">· App móvil</span></div>
+            <div class="row" style="gap:8px"><span class="icon muted"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></span><span>Revisar diseño de onboarding</span></div>
+          </div>
+        </div>
+        <button class="tagbtn" style="margin-top:12px;background:color-mix(in srgb,var(--orange) 12%,transparent);color:#fed7aa;border:1px solid color-mix(in srgb,var(--orange) 30%,transparent)">Ver todas las tareas &nbsp;+2 más ›</button>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>Etiquetas por prioridad: <b class="red">Vencida</b>, <b class="orange">Para hoy</b>, <b class="amber">Estancado</b> y <b class="accent">Próximo paso</b>.</span></div>
+    <div class="grid2" style="margin-top:20px">
+      <div class="how"><h3>Cómo se usa</h3><ul>
+        <li>Clic en el <b>círculo ✓</b> a la izquierda para marcar la tarea como hecha.</li>
+        <li>Clic en el <b>texto</b> de la tarea para abrir su editor.</li>
+        <li>Clic en el <b>nombre del proyecto</b> para saltar a él.</li>
+        <li><b>“Ver todas las tareas”</b> abre la pestaña Tareas con el resto.</li>
+      </ul></div>
+      <div class="how"><h3>Cómo editar</h3><ul>
+        <li class="edit">Es la <b>única sección que no se puede ocultar</b> (lleva 🔒 en el editor).</li>
+        <li class="edit">Sí puedes <b>moverla</b> de posición en Personalizar Today.</li>
+        <li class="edit">Su contenido se llena con: tareas con fecha, próximos pasos de proyectos y proyectos estancados.</li>
+      </ul></div>
+    </div>
+    <div class="note info">Si no hay nada urgente verás <b>“Nada apremiante hoy.”</b> con una pista para añadir tu primer proyecto o próximos pasos. Eso significa que vas al día, no que algo falle.</div>
+  </section>
+
+  <!-- 6 · RUTINAS -->
+  <section class="step" id="rutinas">
+    <div class="step-head"><span class="badge">6</span><h2>Rutinas para hoy</h2></div>
+    <p class="sub">Tus rutinas recurrentes que tocan hoy (y las atrasadas de hasta 14 días).</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Rutinas para hoy</span></div>
+        <div class="canvas">
+          <div class="row" style="margin-bottom:12px"><span class="icon a2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg></span><b>Rutinas para hoy</b><span class="chip chip-task" style="margin-left:auto">2 rutinas</span></div>
+          <div class="sleeprow" style="background:var(--bg)"><span class="icon a2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg></span><span>Revisar métricas semanales</span><span class="resume" style="margin-left:auto;color:var(--accent)">Completar</span></div>
+          <div class="sleeprow" style="background:var(--bg);margin-top:8px"><span class="icon a2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg></span><span>Backup de datos</span><span class="resume" style="margin-left:auto;color:var(--accent)">Completar</span></div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>El contador del lado derecho lleva a la pestaña <b>Rutinas</b>.</span></div>
+      </div>
+      <div class="how"><h3>Cómo se usa</h3><ul>
+        <li><b>Completar</b> marca la ocurrencia de hoy como hecha (pasa a “Hecho hoy”).</li>
+        <li>El chip de la derecha muestra cuántas vencen hoy y cuántas atrasadas.</li>
+        <li>Toca una rutina para <b>editarla</b>.</li>
+      </ul>
+      <h3>Cómo editar</h3><ul>
+        <li class="edit">Sección <b>ocultable</b> desde Personalizar Today.</li>
+        <li class="edit">Las rutinas en sí se crean/editan desde la pestaña <b>Rutinas</b> o con el botón Crear.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 7 · HECHO HOY -->
+  <section class="step" id="hecho">
+    <div class="step-head"><span class="badge">7</span><h2>Hecho hoy</h2></div>
+    <p class="sub">Tu registro del día: tareas completadas, rutinas y entradas de log.</p>
+    <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Hecho hoy</span></div>
+      <div class="canvas">
+        <div class="row" style="margin-bottom:12px;flex-wrap:wrap;gap:8px">
+          <span class="icon accent"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.5 2 11 6l4 1.5L11 9l-1.5 4L8 9 4 7.5 8 6z"/></svg></span><b>Hecho hoy</b>
+          <span class="chip" style="margin-left:auto;background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--accent);border-color:color-mix(in srgb,var(--accent) 30%,transparent)">3 tareas</span>
+          <span class="chip" style="background:color-mix(in srgb,var(--accent-2) 12%,transparent);color:var(--accent-2);border-color:color-mix(in srgb,var(--accent-2) 30%,transparent)">1 entrada</span>
+          <span class="chip chip-hours">5h trabajadas</span>
+        </div>
+        <div class="card" style="background:color-mix(in srgb,var(--surface) 40%,transparent);padding:14px">
+          <div style="border-left:2px solid color-mix(in srgb,var(--accent) 40%,transparent);padding-left:10px;margin-bottom:12px">
+            <div class="xsmall accent" style="text-transform:uppercase;letter-spacing:.06em;font-weight:600">Tarea · Landing nueva</div>
+            <div class="small muted" style="text-decoration:line-through">Definir paleta de colores</div>
+          </div>
+          <div style="border-left:2px solid color-mix(in srgb,var(--accent-2) 40%,transparent);padding-left:10px">
+            <div class="xsmall a2" style="text-transform:uppercase;letter-spacing:.06em;font-weight:600">Nuevo log · App móvil</div>
+            <div class="small muted">Terminé el flujo de registro, falta validación.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>Filtra con los chips <b>“N tareas”</b> / <b>“N entradas”</b> para ver solo un tipo.</span></div>
+    <div class="grid2" style="margin-top:20px">
+      <div class="how"><h3>Cómo se usa</h3><ul>
+        <li>Recopila automáticamente lo que <b>completaste hoy</b>.</li>
+        <li><b>Deshacer</b> (↩) revierte una tarea/rutina marcada por error.</li>
+        <li>Muestra <b>horas trabajadas</b> y un desglose por proyecto.</li>
+      </ul></div>
+      <div class="how"><h3>Cómo editar</h3><ul>
+        <li class="edit">Sección <b>ocultable</b>; arranca <b>colapsada</b> por defecto (toca el título para abrirla).</li>
+        <li class="edit">Los chips de filtro son un <b>toggle</b>: vuelve a tocarlos para ver todo.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 8 · CERCA DE LA META -->
+  <section class="step" id="cerrar">
+    <div class="step-head"><span class="badge">8</span><h2>Cerca de la meta</h2></div>
+    <p class="sub">Proyectos casi terminados (“Casi listo”) y los que cierras con pocas tareas (“Quick win”).</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Cerca de la meta</span></div>
+        <div class="canvas">
+          <div class="row" style="margin-bottom:12px"><span class="icon accent"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></span><b>Cerca de la meta</b><span class="count-pill count-accent" style="margin-left:auto">2</span></div>
+          <div class="pcards">
+            <div class="pcard almost">
+              <div class="xsmall accent" style="text-transform:uppercase;letter-spacing:.06em;font-weight:600">Casi listo · 85%</div>
+              <div style="font-weight:600;margin:6px 0">Landing nueva</div>
+              <div class="bar"><i style="width:85%"></i></div>
+              <div class="xsmall muted">1 tarea pendiente · 6/7 hechas</div>
+            </div>
+            <div class="pcard">
+              <div class="xsmall accent" style="text-transform:uppercase;letter-spacing:.06em;font-weight:600">Quick win</div>
+              <div style="font-weight:600;margin:6px 0">Blog setup</div>
+              <div class="xsmall muted">Solo 2 tareas para terminar.</div>
+            </div>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span><b>Casi listo</b> = ≥ cierto % completado; <b>Quick win</b> = muy pocas tareas abiertas.</span></div>
+      </div>
+      <div class="how"><h3>Cómo se usa</h3><ul>
+        <li><b>Toca una tarjeta</b> para abrir el proyecto y darle el empujón final.</li>
+        <li>La barra de progreso refleja tareas hechas / totales.</li>
+      </ul>
+      <h3>Cómo editar</h3><ul>
+        <li class="edit">Sección <b>ocultable</b> desde Personalizar Today.</li>
+        <li class="edit">Aparece sola cuando hay proyectos que califican.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 9 · DURMIENDO -->
+  <section class="step" id="durmiendo">
+    <div class="step-head"><span class="badge">9</span><h2>Proyectos durmiendo</h2></div>
+    <p class="sub">Proyectos que se están enfriando, con código de color por gravedad.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Proyectos durmiendo</span></div>
+        <div class="canvas">
+          <div class="row" style="margin-bottom:12px"><span class="icon amber"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg></span><b>Proyectos durmiendo</b><span class="count-pill count-amber" style="margin-left:auto">3</span></div>
+          <div class="sleeprow"><span class="sdot" style="background:var(--amber)"></span><div style="flex:1"><div class="row" style="gap:8px"><b style="font-size:14px">Newsletter</b><span class="chip" style="border-color:color-mix(in srgb,var(--amber) 30%,transparent);color:#fcd34d;background:var(--amber-soft)">10d sin actividad</span></div><div class="xsmall muted">→ Escribir la edición #3</div></div><button class="resume">Retomar</button></div>
+          <div class="sleeprow"><span class="sdot" style="background:var(--orange)"></span><div style="flex:1"><div class="row" style="gap:8px"><b style="font-size:14px">Curso online</b><span class="chip" style="border-color:color-mix(in srgb,var(--orange) 30%,transparent);color:#fed7aa;background:color-mix(in srgb,var(--orange) 15%,transparent)">22d sin actividad</span></div></div><button class="resume">Retomar</button></div>
+          <div class="sleeprow"><span class="sdot" style="background:var(--red)"></span><div style="flex:1"><div class="row" style="gap:8px"><b style="font-size:14px">App vieja</b><span class="chip" style="border-color:color-mix(in srgb,var(--red) 30%,transparent);color:#fecaca;background:color-mix(in srgb,var(--red) 15%,transparent)">40d sin actividad</span></div></div><button class="resume">Retomar</button></div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>El punto y el color escalan: <b class="amber">7–14d</b> → <b class="orange">15–30d</b> → <b class="red">30d+</b>.</span></div>
+      </div>
+      <div class="how"><h3>Cómo se usa</h3><ul>
+        <li><b>“Retomar”</b> abre el registro de actualización para reactivar el proyecto.</li>
+        <li>Toca el <b>nombre</b> para abrir el proyecto directamente.</li>
+        <li>Si tiene próximo paso, lo verás bajo el nombre (→ …).</li>
+      </ul>
+      <h3>Cómo editar</h3><ul>
+        <li class="edit">Sección <b>ocultable</b> desde Personalizar Today.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 10 · IDEAS -->
+  <section class="step" id="ideas">
+    <div class="step-head"><span class="badge">10</span><h2>Ideas estancadas</h2></div>
+    <p class="sub">Ideas que llevan 30+ días esperando una decisión.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Ideas estancadas</span></div>
+        <div class="canvas">
+          <div class="alert alert-purple">
+            <span class="icon purple" style="margin-top:2px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"/></svg></span>
+            <div style="flex:1"><div style="font-weight:600;color:#e9d5ff;margin-bottom:2px">5 ideas esperando hace 30+ días</div><div class="small" style="color:#e9d5ff99">Promueve una a proyecto, o suéltala para dar espacio a algo nuevo.</div></div>
+            <span class="purple" style="align-self:center">›</span>
+          </div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>Es un único bloque que <b>lleva a la pestaña Ideas</b> al tocarlo.</span></div>
+      </div>
+      <div class="how"><h3>Cómo se usa</h3><ul>
+        <li><b>Toca el bloque</b> para ir a Ideas y decidir: promover a proyecto o descartar.</li>
+        <li>Aparece solo si tienes ideas con 30+ días de antigüedad.</li>
+      </ul>
+      <h3>Cómo editar</h3><ul>
+        <li class="edit">Sección <b>ocultable</b> desde Personalizar Today.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 11 · ACTIVOS / LANZADOS -->
+  <section class="step" id="activos">
+    <div class="step-head"><span class="badge">11</span><h2>Proyectos activos · Lanzados con tareas</h2></div>
+    <p class="sub">Tarjetas compactas de tus proyectos en marcha y de los ya lanzados que aún tienen pendientes.</p>
+    <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Proyectos activos / Lanzados</span></div>
+      <div class="canvas">
+        <div class="row" style="margin-bottom:12px"><span class="icon accent"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span><b>Proyectos activos</b><span class="count-pill count-accent" style="margin-left:auto">2</span></div>
+        <div class="pcards" style="margin-bottom:18px">
+          <div class="pcard"><div style="font-weight:600;margin-bottom:6px">Landing nueva</div><div class="bar"><i style="width:60%"></i></div><div class="xsmall muted">3/5 tareas · 8h totales</div></div>
+          <div class="pcard"><div style="font-weight:600;margin-bottom:6px">App móvil</div><div class="bar"><i style="width:30%"></i></div><div class="xsmall muted">2/7 tareas · 4h totales</div></div>
+        </div>
+        <div class="row" style="margin-bottom:12px"><span class="icon a2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/></svg></span><b>Lanzados · aún tienen tareas</b><span class="count-pill count-a2" style="margin-left:auto">1</span></div>
+        <div class="pcards"><div class="pcard"><div style="font-weight:600;margin-bottom:6px">Portafolio web</div><div class="bar"><i style="width:80%;background:var(--accent-2)"></i></div><div class="xsmall muted">4/5 tareas · lanzado</div></div></div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>Dos secciones distintas pero con la misma tarjeta: progreso, horas y “regreso” tras una pausa.</span></div>
+    <div class="grid2" style="margin-top:20px">
+      <div class="how"><h3>Cómo se usa</h3><ul>
+        <li><b>Toca una tarjeta</b> para abrir el proyecto.</li>
+        <li>Muestran progreso de tareas, horas totales y de hoy.</li>
+      </ul></div>
+      <div class="how"><h3>Cómo editar</h3><ul>
+        <li class="edit">Ambas son <b>ocultables</b> y arrancan <b>colapsadas</b>.</li>
+        <li class="edit">Útil ocultarlas si prefieres gestionar proyectos desde la pestaña <b>Proyectos</b>.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 12 · FAB -->
+  <section class="step" id="crear">
+    <div class="step-head"><span class="badge">12</span><h2>Botón Crear (FAB)</h2></div>
+    <p class="sub">El botón flotante <b>+</b> para añadir cosas sin salir de Today.</p>
+    <div class="grid2">
+      <div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Crear — hoja de acciones</span></div>
+        <div class="canvas" style="display:flex;flex-direction:column;align-items:flex-end;gap:14px">
+          <div class="sheet" style="width:100%">
+            <div class="handle"></div>
+            <div class="stitle">Crear</div>
+            <div class="arow"><span class="icon accent"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></span>Nueva tarea</div>
+            <div class="arow"><span class="icon a2"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2z"/></svg></span>Nuevo proyecto</div>
+            <div class="arow"><span class="icon a2"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg></span>Nueva rutina</div>
+            <div class="arow"><span class="icon purple"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"/></svg></span>Nueva idea</div>
+          </div>
+          <div class="fab"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div>
+        </div></div>
+        <div class="caption"><span>▲</span><span>Tocar <b>+</b> abre la hoja con las 4 acciones de creación.</span></div>
+      </div>
+      <div class="how"><h3>Cómo se usa</h3><ul>
+        <li>Atajo universal para crear <b>tarea, proyecto, rutina o idea</b>.</li>
+        <li>En escritorio el botón Crear convive con el acceso a <b>Loop</b> (asistente IA).</li>
+      </ul>
+      <h3>Cómo editar</h3><ul>
+        <li class="edit">El FAB <b>no se oculta</b> ni se reordena: es parte fija de la vista.</li>
+        <li class="edit">Desaparece mientras estás en modo <b>Personalizar Today</b>.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 13 · PERSONALIZAR -->
+  <section class="step" id="editar">
+    <div class="step-head"><span class="badge">13</span><h2>Personalizar Today</h2></div>
+    <p class="sub">Reordena, oculta y muestra secciones a tu gusto. Aquí está el “editar” de toda la vista.</p>
+
+    <h3 class="how" style="margin:6px 0 12px;font-size:13px;text-transform:uppercase;letter-spacing:.12em;color:var(--text-muted)">Paso A · Entrar al editor</h3>
+    <div class="caption" style="margin:0 0 14px"><span>→</span><span>Toca el <span class="pill">⚙ engrane</span> del encabezado. (También llegas aquí desde el último paso del onboarding.)</span></div>
+
+    <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Personalizar Today — modo edición</span></div>
+      <div class="canvas">
+        <div class="cbar">
+          <span class="iconbtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></span>
+          <h4>Personalizar Today</h4>
+          <span class="btn-ghost"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.7 9.7 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg> Restablecer</span>
+          <span class="btn-primary">Listo</span>
+        </div>
+
+        <div class="crow dragging">
+          <span class="grip"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
+          <span class="icon accent"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></span>
+          <div class="lbl-flex"><span style="font-weight:500">Enfoque de hoy</span></div>
+          <span class="iconbtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+        </div>
+
+        <div class="crow">
+          <span class="grip"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
+          <span class="icon a2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span>
+          <div class="lbl-flex"><span style="font-weight:500">Contadores</span><span class="badge-mini">Móvil</span></div>
+          <span class="iconbtn accent"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></span>
+        </div>
+
+        <div class="crow hidden">
+          <span class="grip"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
+          <span class="icon amber"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg></span>
+          <div class="lbl-flex"><span style="font-weight:500">Proyectos durmiendo</span><span class="badge-hidden">Oculta</span></div>
+          <span class="iconbtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 10 8 10 8a18.5 18.5 0 0 1-2.16 3.19M6.61 6.61A18.5 18.5 0 0 0 2 12s3 8 10 8a9.12 9.12 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg></span>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>Cada fila = una sección. <b>Arrastra ⠿</b> para reordenar; el <b>ojo</b> 👁 muestra/oculta; el <b>candado</b> 🔒 marca las que no se pueden ocultar.</span></div>
+
+    <div class="grid2" style="margin-top:22px">
+      <div class="how"><h3>Acciones del editor</h3><ul>
+        <li>Arrastra el icono <b>⠿</b> de una fila para <b>cambiar el orden</b> (también funciona con teclado).</li>
+        <li>Toca el <b>ojo</b> 👁 para <b>ocultar</b> una sección; vuelve a tocarlo para mostrarla. Las ocultas se ven con borde punteado y la etiqueta <span class="badge-hidden">Oculta</span>.</li>
+        <li>Las filas con <b>candado</b> 🔒 (p. ej. “Enfoque de hoy”) <b>no se ocultan</b>, pero sí se mueven.</li>
+        <li>La etiqueta <span class="badge-mini">Móvil</span> indica secciones que hoy solo se ven en celular.</li>
+      </ul></div>
+      <div class="how"><h3>Guardar y reiniciar</h3><ul>
+        <li class="edit"><b>Listo</b> (botón verde) o la <b>✕</b> salen del editor y guardan tu layout.</li>
+        <li class="edit"><b>Restablecer</b> ↩ devuelve el orden y la visibilidad por defecto.</li>
+        <li class="edit">Al salir, Today se <b>recarga</b> para reflejar lo que hayas mostrado/ocultado.</li>
+        <li class="edit">Tu configuración se guarda en tu cuenta (se sincroniza con la app móvil).</li>
+      </ul></div>
+    </div>
+
+    <h3 class="how" style="margin:24px 0 12px;font-size:13px;text-transform:uppercase;letter-spacing:.12em;color:var(--text-muted)">Pie de secciones ocultas</h3>
+    <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Pie de Today (modo normal)</span></div>
+      <div class="canvas" style="padding-top:8px">
+        <div class="hfooter"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 10 8 10 8a18.5 18.5 0 0 1-2.16 3.19M6.61 6.61A18.5 18.5 0 0 0 2 12s3 8 10 8a9.12 9.12 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg> 2 secciones ocultas · Personalizar</div>
+      </div>
+    </div>
+    <div class="caption"><span>▲</span><span>Cuando tienes secciones ocultas, este pie aparece al final de Today y te recuerda cuántas, con acceso directo al editor.</span></div>
+  </section>
+
+  <p class="footnote">
+    Guía generada a partir de la implementación real de <code>TodayView.tsx</code> y los textos de <code>messages/es.json</code>. Las capturas son reconstrucciones fieles en HTML (tema oscuro). Próximas secciones de esta serie: <b>Proyectos</b>, <b>Tareas</b>, <b>Rutinas</b>, <b>Ideas</b>, <b>Quick Notes</b>, <b>Log</b> y <b>Analytics</b>.
+  </p>
+
+  </main>
+</div>
+
+</body>
+</html>
