@@ -118,3 +118,56 @@ def test_valid_token_lets_request_through(client):
     body = response.json()
     assert body.get("errors") is None
     assert body["data"]["dashboard"]["projects"] == []
+
+
+# --- Transient DB error sanitizing ----------------------------------------
+#
+# A stale pooled Postgres connection (Supabase idle timeout / failover) raises
+# psycopg's "server closed the connection unexpectedly" mid-request. The view
+# must never forward that raw text to clients — it rewrites it to a generic
+# message + a stable `DB_UNAVAILABLE` code the clients localize.
+
+
+class _Result:
+    """Minimal stand-in for strawberry's ExecutionResult (only `.errors`)."""
+
+    def __init__(self, errors):
+        self.errors = errors
+
+
+def test_sanitizer_masks_operationalerror_instance():
+    from django.db import OperationalError
+    from graphql import GraphQLError
+
+    err = GraphQLError(
+        "server closed the connection unexpectedly",
+        original_error=OperationalError("consuming input failed"),
+    )
+    assert auth._is_transient_db_error(err) is True
+
+    [out] = auth.sanitize_graphql_errors(_Result([err]))
+    assert out["message"] == auth._DB_ERROR_MESSAGE
+    assert out["extensions"]["code"] == "DB_UNAVAILABLE"
+    # Raw psycopg text must not leak.
+    assert "server closed the connection" not in out["message"]
+
+
+def test_sanitizer_matches_connection_text_without_db_instance():
+    from graphql import GraphQLError
+
+    err = GraphQLError("consuming input failed: server closed the connection")
+    assert auth._is_transient_db_error(err) is True
+    [out] = auth.sanitize_graphql_errors(_Result([err]))
+    assert out["extensions"]["code"] == "DB_UNAVAILABLE"
+
+
+def test_sanitizer_passes_through_application_errors():
+    """Quota / not-found errors keep their message and code untouched."""
+    from graphql import GraphQLError
+
+    err = GraphQLError("Project not found", extensions={"code": "NOT_FOUND"})
+    assert auth._is_transient_db_error(err) is False
+
+    [out] = auth.sanitize_graphql_errors(_Result([err]))
+    assert out["message"] == "Project not found"
+    assert out["extensions"]["code"] == "NOT_FOUND"

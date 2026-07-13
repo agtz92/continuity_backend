@@ -8,7 +8,8 @@ reading a blog post don't have a session.
 from __future__ import annotations
 
 import strawberry
-from strawberry.django.views import GraphQLView
+
+from core.auth import _SanitizingGraphQLView
 
 from .schema_public import CmsPublicQuery
 
@@ -16,7 +17,10 @@ from .schema_public import CmsPublicQuery
 public_schema = strawberry.Schema(query=CmsPublicQuery)
 
 
-class PublicGraphQLView(GraphQLView):
-    """GraphQL view with no auth check. Schema is reads-only."""
+class PublicGraphQLView(_SanitizingGraphQLView):
+    """GraphQL view with no auth check. Schema is reads-only.
+
+    Inherits transient-DB-error scrubbing so the marketing site never receives
+    raw psycopg internals on a stale-connection hiccup (see core/auth.py)."""
 
     pass

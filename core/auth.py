@@ -4,6 +4,7 @@ from typing import Optional
 import jwt
 from jwt import PyJWKClient
 from django.conf import settings
+from django.db import InterfaceError, OperationalError
 from django.http import JsonResponse
 from django_ratelimit.core import is_ratelimited
 from strawberry.django.views import GraphQLView
@@ -11,6 +12,68 @@ from strawberry.django.views import GraphQLView
 
 class JWTAuthError(Exception):
     pass
+
+
+# --- Transient DB/connection error sanitizing -----------------------------
+#
+# When a pooled Postgres connection dies server-side (Supabase idle timeout,
+# failover, restart), a resolver hitting it raises psycopg's
+# "server closed the connection unexpectedly / consuming input failed". By
+# default Strawberry forwards that raw text to the client as a GraphQL error
+# message. We never want DB internals reaching web/mobile — and we want the
+# clients to recognize it as a *transient, retryable* failure — so we rewrite
+# such errors to a generic message + a stable `DB_UNAVAILABLE` code. The root
+# cause is separately mitigated by CONN_HEALTH_CHECKS (see settings.py); this is
+# defense-in-depth for the residual cases (mid-request death, failover).
+
+_DB_ERROR_MESSAGE = "The server is temporarily unavailable. Please try again."
+
+# Fallback substring match for when the exception isn't a Django DB error
+# instance (e.g. wrapped/re-raised) but is clearly a connection failure.
+_DB_ERROR_MARKERS = (
+    "server closed the connection",
+    "consuming input failed",
+    "connection already closed",
+    "connection is closed",
+    "terminating connection",
+    "ssl connection has been closed",
+    "could not connect to server",
+    "connection reset by peer",
+)
+
+
+def _is_transient_db_error(err) -> bool:
+    """True if a GraphQLError wraps a transient DB/connection failure."""
+    original = getattr(err, "original_error", None) or err
+    if isinstance(original, (OperationalError, InterfaceError)):
+        return True
+    text = str(getattr(err, "message", "") or original).lower()
+    return any(marker in text for marker in _DB_ERROR_MARKERS)
+
+
+def sanitize_graphql_errors(result) -> list:
+    """Return `result.errors` formatted for the client, masking transient DB
+    errors. Application errors (quota, not-found, auth) pass through untouched."""
+    formatted = []
+    for err in result.errors or []:
+        entry = dict(err.formatted)
+        if _is_transient_db_error(err):
+            entry["message"] = _DB_ERROR_MESSAGE
+            extensions = dict(entry.get("extensions") or {})
+            extensions["code"] = "DB_UNAVAILABLE"
+            entry["extensions"] = extensions
+        formatted.append(entry)
+    return formatted
+
+
+class _SanitizingGraphQLView(GraphQLView):
+    """GraphQLView that scrubs transient DB internals out of error responses."""
+
+    def process_result(self, request, result):
+        data = super().process_result(request, result)
+        if result.errors:
+            data["errors"] = sanitize_graphql_errors(result)
+        return data
 
 
 def _client_ip(request) -> str:
@@ -176,7 +239,7 @@ def authenticate_request(
     return None
 
 
-class JWTAuthGraphQLView(GraphQLView):
+class JWTAuthGraphQLView(_SanitizingGraphQLView):
     """GraphQL view that requires a valid Supabase JWT and exposes user_id on context."""
 
     def dispatch(self, request, *args, **kwargs):

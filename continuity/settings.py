@@ -122,6 +122,14 @@ else:
         "default": dj_database_url.config(
             default=_DATABASE_URL,
             conn_max_age=600,
+            # Persistent connections (conn_max_age > 0) are cheap, but Supabase's
+            # pooler closes idle server-side connections before our 10-min TTL
+            # elapses. Without a health check Django reuses the now-dead socket and
+            # psycopg raises "server closed the connection unexpectedly" on the next
+            # request (classic symptom: a tab left open for days, then reloaded).
+            # CONN_HEALTH_CHECKS makes Django validate the connection at the start of
+            # each request and transparently reconnect if it's dead. Django 4.1+.
+            conn_health_checks=True,
             ssl_require=_DATABASE_URL.startswith("postgres") and not DEBUG,
         )
     }
