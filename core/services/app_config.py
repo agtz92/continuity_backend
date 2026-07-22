@@ -46,6 +46,10 @@ DEFAULTS: dict[str, Any] = {
     "established_min_activity_days": 30,
     # Reclaim only fires once reclaim_warned_at is this many days old.
     "reclaim_warn_grace_days": 7,
+    # UTC hour at which the daily pass fires. run_beta_lifecycle is invoked hourly
+    # (piggybacking the notifications cron) and no-ops off this hour. Change it
+    # here or from /admin/beta — never in the cron command.
+    "lifecycle_run_hour_utc": 15,
     # Gradual launch: the inactivity clock never counts from before this date
     # (ISO "YYYY-MM-DD"). Empty = no floor (cold-start from real dates). Set to
     # the launch day so everyone ramps from day 0 instead of being mid-sequence.

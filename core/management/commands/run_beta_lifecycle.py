@@ -6,10 +6,12 @@ warn + grace window. Respects app_config.dry_run (default True): in dry_run
 nothing is sent and no state changes — only preview rows in email_sends.
 
 Piggybacks on the hourly notifications cron instead of a dedicated daily
-service: it's invoked every hour but does real work only during --hour (UTC,
-default 15) unless --force. The furthest-due step per user plus EmailSend
-idempotency make an accidental extra run a no-op, but the hour gate keeps
-emails to a sane local time and avoids 24 redundant passes a day.
+service: it's invoked every hour but does real work only during the run hour
+(app_config `lifecycle_run_hour_utc`, default 15; overridable with --hour) or
+under --force. The hour lives in config so it's changed from /admin/beta, never
+in the cron command. The furthest-due step per user plus EmailSend idempotency
+make an accidental extra run a no-op, but the hour gate keeps emails to a sane
+local time and avoids 24 redundant passes a day.
 """
 
 from __future__ import annotations
@@ -31,8 +33,8 @@ class Command(BaseCommand):
         parser.add_argument(
             "--hour",
             type=int,
-            default=15,
-            help="UTC hour at which the daily pass fires when invoked hourly (default 15).",
+            default=None,
+            help="Override the UTC run hour (default: app_config lifecycle_run_hour_utc, or 15).",
         )
 
     def handle(self, *args, **options):
@@ -41,10 +43,13 @@ class Command(BaseCommand):
         from core.services import app_config
 
         now = timezone.now()
-        if not options["force"] and now.hour != options["hour"]:
+        target_hour = options["hour"]
+        if target_hour is None:
+            target_hour = app_config.get_int("lifecycle_run_hour_utc")
+        if not options["force"] and now.hour != target_hour:
             # Not the daily slot — the hourly cron invoked us; do nothing.
             self.stdout.write(
-                f"Beta lifecycle: skipped (UTC hour {now.hour} != {options['hour']})"
+                f"Beta lifecycle: skipped (UTC hour {now.hour} != {target_hour})"
             )
             return
 
