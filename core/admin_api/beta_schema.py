@@ -54,11 +54,21 @@ class BetaLabeledCount:
     count: int
 
 
+# AppConfig key holding the cron heartbeat (last-run timestamp/mode/summary).
+# It's operational state, not a tunable knob: written by run_beta_lifecycle,
+# surfaced via adminBetaPipeline, and hidden from the adminAppConfig knob list.
+HEARTBEAT_KEY = "beta_lifecycle_last_run"
+
+
 @strawberry.type
 class BetaPipeline:
     status_counts: list[BetaLabeledCount]
     threshold_counts: list[BetaLabeledCount]
     recent_reclaims: list[BetaUserRow]
+    # Cron heartbeat: null when run_beta_lifecycle has never run.
+    last_run_at: Optional[str]
+    last_run_mode: str
+    last_run_summary: str
 
 
 @strawberry.type
@@ -207,10 +217,14 @@ class AdminBetaQuery:
                 "-updated_at"
             )[:10]
         )
+        hb = app_config.get(HEARTBEAT_KEY) or {}
         return BetaPipeline(
             status_counts=status_counts,
             threshold_counts=threshold_counts,
             recent_reclaims=_build_rows(reclaimed, now),
+            last_run_at=hb.get("at") or None,
+            last_run_mode=hb.get("mode") or "",
+            last_run_summary=hb.get("summary") or "",
         )
 
     @strawberry.field(name="adminAppConfig")
@@ -218,9 +232,12 @@ class AdminBetaQuery:
         _admin_user_id(info)
         from core.models import AppConfig
 
-        # Surface defaults even for keys not yet persisted.
+        # Surface defaults even for keys not yet persisted. The cron heartbeat is
+        # operational state, not a knob — keep it out of the config list.
         merged = dict(app_config.DEFAULTS)
         for row in AppConfig.objects.all():
+            if row.key == HEARTBEAT_KEY:
+                continue
             merged[row.key] = row.value
         return [
             AppConfigRow(key=k, value_json=json.dumps(v)) for k, v in sorted(merged.items())
