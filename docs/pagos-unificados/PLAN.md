@@ -43,13 +43,18 @@ de que nada que venga de un cobro escribe `plan` fuera de `apply_entitlement()`.
 
 ## 1. Antes de escribir código — tres cosas que hay que verificar
 
+> **Alta de la cuenta:** [`SETUP-REVENUECAT.md`](SETUP-REVENUECAT.md) — qué crear
+> en el dashboard y qué variables poner en Render. Las tres incógnitas de abajo
+> no se pueden resolver hasta tener eso arriba.
+
 No las adivines. Cada una cambia el código y ninguna está confirmada:
 
 1. **El valor exacto de `store` que RevenueCat manda para Web Billing.** El
-   webhook actual mapea `APP_STORE` / `MAC_APP_STORE` / `PLAY_STORE` en
-   `core/billing/store_plans.py::_STORE_TO_SOURCE`. Falta el de web
-   (probablemente `RC_BILLING`, sin confirmar). Verifícalo con un evento de
-   sandbox real o en la documentación de webhooks antes de escribir el mapeo.
+   webhook mapea `APP_STORE` / `MAC_APP_STORE` / `PLAY_STORE` en
+   `core/billing/catalog.py::_STORE_TO_SOURCE`. Falta confirmar el de web: hoy
+   acepta `RC_BILLING` y `WEB_BILLING` a ciegas, con un `TODO(verificar)`, para
+   no perder eventos por una diferencia de nombre. Confírmalo con un evento de
+   sandbox real y deja una sola grafía.
 2. **Si los eventos de Web Billing traen `expiration_at_ms`** como los de tienda,
    o usan otro campo para el fin de periodo.
 3. **Cómo se obtiene el enlace al customer portal**: si lo genera el SDK web en
