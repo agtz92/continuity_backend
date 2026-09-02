@@ -393,7 +393,15 @@ class UsageView(View):
             return early
         snap = quotas.get_usage(request.user_id)
         profile = quotas.get_or_create_profile(request.user_id)
-        from core.billing.plans import period_for_price
+        from core.assistant.models import STORE_SOURCES
+        from core.billing.catalog import period_for_profile
+
+        # `has_subscription` used to mean "has a Stripe subscription". Now
+        # that a plan can also come from the App Store or Google Play it means
+        # "someone is charging this account", whichever channel that is —
+        # otherwise mobile purchasers would see the upgrade CTA forever.
+        # One column now answers that for every channel.
+        has_subscription = bool(profile.billing_transaction_id)
 
         return JsonResponse(
             {
@@ -404,15 +412,20 @@ class UsageView(View):
                 "monthly_token_cap": snap.monthly_token_cap,
                 "reset_at": snap.reset_at.isoformat(),
                 "is_billing_exempt": profile.is_billing_exempt,
-                "has_subscription": bool(profile.stripe_subscription_id),
+                "has_subscription": has_subscription,
                 "plan_renews_at": (
                     profile.plan_renews_at.isoformat()
                     if profile.plan_renews_at
                     else None
                 ),
                 "had_retention_offer": profile.had_retention_offer,
-                "subscription_period": period_for_price(profile.stripe_price_id),
+                "subscription_period": period_for_profile(profile),
                 "cancel_at_period_end": profile.cancel_at_period_end,
+                # Which channel sold the plan, so each client can send the user
+                # to the right place to manage it — and hide its own checkout
+                # when it isn't the one that sold it.
+                "billing_source": profile.billing_source or "",
+                "store_managed": profile.billing_source in STORE_SOURCES,
             }
         )
 

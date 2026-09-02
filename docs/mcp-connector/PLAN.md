@@ -1,5 +1,9 @@
 # Plan: Conector MCP remoto de Continuity para Claude
 
+> **Pagos, precios y suscripciones — fuente de verdad:** [Integración de pagos web y móvil](../integracion-pagos-web-y-movil.md).
+> Lo que este documento diga sobre Stripe, cobros, planes de pago o tiendas es
+> contexto; ante cualquier diferencia, manda ese.
+
 > **⚑ ESTADO (actualizado 2026-06-26): BACKEND CONSTRUIDO Y EN VIVO, FALTA EL LANZAMIENTO EN UI.**
 > El servidor MCP está implementado, desplegado y testeado: ruta `/mcp/` (`continuity/urls.py`),
 > OAuth 2.1 completo (`core/mcp/oauth/`), adaptador/policy/authz/jsonrpc (`core/mcp/`), y

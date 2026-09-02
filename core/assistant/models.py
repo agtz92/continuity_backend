@@ -57,6 +57,37 @@ class BillingExemptReason(models.TextChoices):
     MANUAL = "manual", "Manual"
 
 
+class BillingSource(models.TextChoices):
+    """Who issued the user's current paid entitlement.
+
+    Empty means "nobody is charging for this plan" — free users, and also
+    billing-exempt users, whose plan comes from `is_billing_exempt`.
+
+    This column is what makes several payment channels safe: every writer
+    goes through `core.billing.entitlements.apply_entitlement`, which refuses
+    to let one source overwrite another source's live entitlement. See
+    `docs/integracion-pagos-web-y-movil.md`.
+    """
+
+    #: RevenueCat Web Billing. Stripe is still the card processor underneath,
+    #: but it is no longer the *biller* — the subscription, the plan changes
+    #: and the customer portal all live in RevenueCat.
+    WEB = "web", "Web (RevenueCat Web Billing)"
+    APPLE = "apple", "App Store"
+    GOOGLE = "google", "Google Play"
+
+
+#: Sold by an app store. The user cancels or switches plan in the store's own
+#: UI, and we deep-link them there.
+STORE_SOURCES = frozenset({BillingSource.APPLE.value, BillingSource.GOOGLE.value})
+
+#: Every source whose subscription is managed outside our own UI. Since the
+#: web moved to RevenueCat's customer portal, that is all of them — we no
+#: longer own a checkout or a cancel button for anyone. This is the set to
+#: check before offering to sell, change or cancel a plan.
+EXTERNALLY_MANAGED_SOURCES = STORE_SOURCES | frozenset({BillingSource.WEB.value})
+
+
 class AccountProfile(models.Model):
     """Per-user billing / quota / cache-version row.
 
@@ -69,16 +100,35 @@ class AccountProfile(models.Model):
         max_length=16, choices=Plan.choices, default=Plan.FREE
     )
     plan_renews_at = models.DateTimeField(null=True, blank=True)
-    stripe_customer_id = models.CharField(max_length=255, blank=True, default="")
-    stripe_subscription_id = models.CharField(max_length=255, blank=True, default="")
-    # Active price id within the current subscription. Lets us derive the
-    # billing period (monthly/annual) and the plan without round-tripping
-    # to Stripe on every settings/billing page load.
-    stripe_price_id = models.CharField(max_length=255, blank=True, default="")
-    # True when the user clicked "Downgrade to Free" — Stripe keeps the
-    # subscription active until `plan_renews_at`, then auto-deletes it. We
-    # mirror this so the UI can show "scheduled to cancel on X" + a
-    # reactivate button without round-tripping to Stripe.
+    # Which channel sold the current paid plan. "" for free/exempt users.
+    # Guards against a stale event from one source clobbering another's
+    # entitlement — see core/billing/entitlements.py.
+    billing_source = models.CharField(
+        max_length=16, choices=BillingSource.choices, blank=True, default="",
+        db_index=True,
+    )
+    # --- Current subscription, whoever sold it ---
+    # One set of columns for all three channels. They used to be prefixed
+    # `stripe_` (when Stripe was the only biller) plus a parallel `store_` set
+    # for the app stores; that split made every reader branch on the source to
+    # ask the same question twice. `billing_source` above says who, these say
+    # what. See `docs/pagos-unificados/PLAN.md`.
+    #
+    #: Customer identifier in the issuer's system.
+    billing_customer_id = models.CharField(max_length=255, blank=True, default="")
+    #: Stable per-subscription id. RevenueCat/stores: original transaction id
+    #: or purchase token. Indexed because store webhooks arrive keyed by it —
+    #: they carry no notion of our user_id beyond what we sent at purchase.
+    billing_transaction_id = models.CharField(
+        max_length=255, blank=True, default="", db_index=True
+    )
+    #: Product/price identifier of the active plan. Encodes plan + period, so
+    #: we can answer "Pro, annual" without round-tripping to the issuer on
+    #: every billing page load.
+    billing_product_id = models.CharField(max_length=255, blank=True, default="")
+    # True when auto-renew was switched off. Access continues until
+    # `plan_renews_at`; the issuer ends it then. We mirror it so the UI can
+    # show "scheduled to cancel on X" without asking the issuer every time.
     cancel_at_period_end = models.BooleanField(default=False)
     is_admin = models.BooleanField(default=False, db_index=True)
     is_billing_exempt = models.BooleanField(default=False, db_index=True)

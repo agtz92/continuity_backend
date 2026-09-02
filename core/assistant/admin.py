@@ -14,7 +14,7 @@ class AccountProfileAdmin(admin.ModelAdmin):
         "updated_at",
     )
     list_filter = ("plan", "is_admin")
-    search_fields = ("user_id", "stripe_customer_id")
+    search_fields = ("user_id", "billing_customer_id")
 
 
 @admin.register(Conversation)

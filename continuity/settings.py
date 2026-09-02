@@ -251,36 +251,53 @@ ASSISTANT_RATE_LIMIT_BURST = config(
 )
 ASSISTANT_RATE_LIMIT_IP = config("ASSISTANT_RATE_LIMIT_IP", default="60/m")
 
-# Stripe billing
-STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY", default="")
-STRIPE_WEBHOOK_SECRET = config("STRIPE_WEBHOOK_SECRET", default="")
-STRIPE_PRICE_PRO_MONTHLY = config("STRIPE_PRICE_PRO_MONTHLY", default="")
-STRIPE_PRICE_PRO_ANNUAL = config("STRIPE_PRICE_PRO_ANNUAL", default="")
-STRIPE_PRICE_STUDIO_MONTHLY = config("STRIPE_PRICE_STUDIO_MONTHLY", default="")
-STRIPE_PRICE_STUDIO_ANNUAL = config("STRIPE_PRICE_STUDIO_ANNUAL", default="")
-# Monetary amounts (integer cents) for the prices above. Used by the admin
-# billing overview to estimate MRR/ARR without round-tripping to Stripe. Keep
-# these in sync with Stripe Dashboard → Product catalog → Prices.
-STRIPE_PRICE_PRO_MONTHLY_AMOUNT_CENTS = config(
-    "STRIPE_PRICE_PRO_MONTHLY_AMOUNT_CENTS", default=0, cast=int
+# ---------------------------------------------------------------------------
+# Billing — every channel (web, App Store, Google Play) goes through RevenueCat.
+# Stripe is NOT an issuer here; it is only the card processor underneath Web
+# Billing, which is why a card fee appears below and nothing else Stripe does.
+# Model: docs/integracion-pagos-web-y-movil.md
+# Migration in progress: docs/pagos-unificados/PLAN.md
+# ---------------------------------------------------------------------------
+# Shared secret echoed by RevenueCat in the Authorization header of every
+# webhook delivery. Empty = the endpoint rejects everything, which is the
+# right default: an unauthenticated billing webhook is worse than none.
+REVENUECAT_WEBHOOK_AUTH = config("REVENUECAT_WEBHOOK_AUTH", default="")
+# Product identifiers as created in App Store Connect, Play Console and
+# RevenueCat Web Billing. Use the SAME id on all three for a given plan+period.
+STORE_PRODUCT_PRO_MONTHLY = config("STORE_PRODUCT_PRO_MONTHLY", default="")
+STORE_PRODUCT_PRO_ANNUAL = config("STORE_PRODUCT_PRO_ANNUAL", default="")
+STORE_PRODUCT_STUDIO_MONTHLY = config("STORE_PRODUCT_STUDIO_MONTHLY", default="")
+STORE_PRODUCT_STUDIO_ANNUAL = config("STORE_PRODUCT_STUDIO_ANNUAL", default="")
+# Gross price in cents — ONE value per product, shared by every channel. That
+# is what makes price parity structural: charging differently per channel is
+# not something you can do by forgetting to set a variable.
+PRICE_PRO_MONTHLY_AMOUNT_CENTS = config(
+    "PRICE_PRO_MONTHLY_AMOUNT_CENTS", default=900, cast=int
 )
-STRIPE_PRICE_PRO_ANNUAL_AMOUNT_CENTS = config(
-    "STRIPE_PRICE_PRO_ANNUAL_AMOUNT_CENTS", default=0, cast=int
+PRICE_PRO_ANNUAL_AMOUNT_CENTS = config(
+    "PRICE_PRO_ANNUAL_AMOUNT_CENTS", default=8400, cast=int
 )
-STRIPE_PRICE_STUDIO_MONTHLY_AMOUNT_CENTS = config(
-    "STRIPE_PRICE_STUDIO_MONTHLY_AMOUNT_CENTS", default=0, cast=int
+PRICE_STUDIO_MONTHLY_AMOUNT_CENTS = config(
+    "PRICE_STUDIO_MONTHLY_AMOUNT_CENTS", default=2400, cast=int
 )
-STRIPE_PRICE_STUDIO_ANNUAL_AMOUNT_CENTS = config(
-    "STRIPE_PRICE_STUDIO_ANNUAL_AMOUNT_CENTS", default=0, cast=int
+PRICE_STUDIO_ANNUAL_AMOUNT_CENTS = config(
+    "PRICE_STUDIO_ANNUAL_AMOUNT_CENTS", default=22800, cast=int
 )
-STRIPE_CURRENCY = config("STRIPE_CURRENCY", default="usd")
-# Where success/cancel/portal redirects send the user back.
+BILLING_CURRENCY = config("BILLING_CURRENCY", default="usd")
+# Commission the stores keep. 0.15 while under $1M/year (Apple Small Business
+# Program — requires enrolling; Google Play applies it automatically).
+STORE_COMMISSION_RATE = config("STORE_COMMISSION_RATE", default=0.15, cast=float)
+# Web-channel fees, used only to estimate net revenue in the admin dashboard.
+# RevenueCat is free below $2,500 monthly tracked revenue, so on a small
+# account this overstates the cost — the safe direction to be wrong in.
+CARD_FEE_PERCENT = config("CARD_FEE_PERCENT", default=0.029, cast=float)
+CARD_FEE_FIXED_CENTS = config("CARD_FEE_FIXED_CENTS", default=30, cast=int)
+REVENUECAT_FEE_PERCENT = config("REVENUECAT_FEE_PERCENT", default=0.01, cast=float)
+# Shows the "sandbox" badge in the admin panel. RevenueCat delivers sandbox and
+# production events to the same endpoint, so this is a deliberate flag rather
+# than something inferred from a key prefix.
+BILLING_TEST_MODE = config("BILLING_TEST_MODE", default=False, cast=bool)
+# Where billing redirects send the user back.
 BILLING_FRONTEND_BASE_URL = config(
     "BILLING_FRONTEND_BASE_URL", default="http://localhost:3000"
 )
-# Retention coupons (Stripe Dashboard → Products → Coupons). The cancellation
-# flow maps the user's reason to one of these. Leave empty to disable the
-# offer step for that bracket.
-STRIPE_COUPON_RETENTION_30_3M = config("STRIPE_COUPON_RETENTION_30_3M", default="")
-STRIPE_COUPON_RETENTION_25_3M = config("STRIPE_COUPON_RETENTION_25_3M", default="")
-STRIPE_COUPON_RETENTION_20_3M = config("STRIPE_COUPON_RETENTION_20_3M", default="")

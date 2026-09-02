@@ -4,7 +4,7 @@ Backs the `deleteAccount` GraphQL mutation (Apple App Store requirement:
 in-app account deletion). App data is removed in a single transaction, then the
 Supabase auth user is deleted so the account can no longer sign in.
 
-Note: this does NOT cancel a Stripe subscription — the UI warns the user to
+Note: this does NOT cancel the subscription at the store — the UI warns the user to
 cancel billing on the web first.
 """
 

@@ -776,7 +776,7 @@ class Mutation:
     def delete_account(self, info: Info) -> bool:
         """Permanently delete the authenticated user's account + all their data
         (Apple App Store requirement). Erases app data then the Supabase auth
-        user. Does NOT cancel Stripe — the client warns the user to cancel
+        user. Does NOT cancel the subscription — the client warns the user to cancel
         billing on the web first."""
         uid = _user_id(info)
         account_deletion.delete_account(uid)

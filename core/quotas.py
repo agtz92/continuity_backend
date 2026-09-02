@@ -113,7 +113,7 @@ def effective_plan(profile: AccountProfile) -> str:
 
     Today this just returns `profile.plan` — `is_billing_exempt` is
     intentionally orthogonal (plan dictates features, exempt dictates
-    Stripe billing). Centralized so future logic (e.g. trial overrides)
+    billing). Centralized so future logic (e.g. trial overrides)
     has one place to live.
     """
     return profile.plan

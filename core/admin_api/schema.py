@@ -283,7 +283,7 @@ class AdminUsersQuery:
         """Ficha completa de un usuario para el detalle admin.
 
         Reúne en una sola respuesta todo lo disperso de un usuario: identidad de
-        Supabase auth, plan/flags/datos de Stripe del perfil local, conteos de
+        Supabase auth, plan/flags/identificadores de cobro del perfil local, conteos de
         objetos, uso de los últimos 30 días, preferencias de notificaciones e
         interacciones desglosadas por canal. Más pesado que el summary de lista,
         por eso es un resolver de un solo usuario.
@@ -382,9 +382,9 @@ class AdminUsersQuery:
             is_admin=bool(profile.is_admin) if profile else False,
             is_billing_exempt=bool(profile.is_billing_exempt) if profile else False,
             plan_renews_at=(profile.plan_renews_at if profile else None),
-            stripe_customer_id=(profile.stripe_customer_id if profile else ""),
-            stripe_subscription_id=(
-                profile.stripe_subscription_id if profile else ""
+            billing_customer_id=(profile.billing_customer_id if profile else ""),
+            billing_transaction_id=(
+                profile.billing_transaction_id if profile else ""
             ),
             created_at=_parse_dt(s_user.created_at),
             last_sign_in_at=_parse_dt(s_user.last_sign_in_at),
@@ -410,9 +410,9 @@ class AdminUsersMutation:
     ) -> AdminUserSummary:
         """Cambia manualmente el plan de un usuario (override admin).
 
-        Permite forzar el plan sin pasar por Stripe (soporte, cortesías, etc.).
+        Permite forzar el plan sin pasar por un cobro (soporte, cortesías, etc.).
         Crea el ``AccountProfile`` si no existe y audita el antes/después. NO
-        toca Stripe: solo el estado local del plan.
+        toca al emisor: solo el estado local del plan.
 
         Args:
             info: Contexto GraphQL; debe ser admin.

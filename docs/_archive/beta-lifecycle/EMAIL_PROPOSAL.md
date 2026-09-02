@@ -1,5 +1,9 @@
 # EMAIL_PROPOSAL.md — Copys propuestos para el sistema de ciclo de vida beta
 
+> **Pagos, precios y suscripciones — fuente de verdad:** [Integración de pagos web y móvil](../../integracion-pagos-web-y-movil.md).
+> Lo que este documento diga sobre Stripe, cobros, planes de pago o tiendas es
+> contexto; ante cualquier diferencia, manda ese.
+
 Borradores de **subjects + cuerpos** para todos los emails de producto del feature. Son
 **propuestas** para que tú (el dueño del copy) edites y apruebes — tú controlas subjects y
 cuerpos finales. Aquí dejo drafts listos para shipear con ajustes ligeros, más las convenciones

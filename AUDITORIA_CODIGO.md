@@ -1,5 +1,9 @@
 # Auditoría de Código — Modularidad y Legibilidad (re-auditoría 2)
 
+> **Pagos, precios y suscripciones — fuente de verdad:** [Integración de pagos web y móvil](docs/integracion-pagos-web-y-movil.md).
+> Lo que este documento diga sobre Stripe, cobros, planes de pago o tiendas es
+> contexto; ante cualquier diferencia, manda ese.
+
 **Proyecto:** Continuity (monorepo: `frontend/` Next.js+Apollo, `backend/` Django+Strawberry, `mobile/` Expo/React Native)
 **Alcance:** Todo el código fuente excepto dependencias, build, código generado, migraciones y tests.
 **Naturaleza:** Solo lectura. Este reporte no modifica código.

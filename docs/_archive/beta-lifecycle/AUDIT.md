@@ -1,5 +1,9 @@
 # AUDIT.md — Beta lifecycle management (Fase 0)
 
+> **Pagos, precios y suscripciones — fuente de verdad:** [Integración de pagos web y móvil](../../integracion-pagos-web-y-movil.md).
+> Lo que este documento diga sobre Stripe, cobros, planes de pago o tiendas es
+> contexto; ante cualquier diferencia, manda ese.
+
 > **⚑ NOTA (2026-06-26):** Este documento es la auditoría de la Fase 0 (estado *previo* al
 > trabajo). La propuesta que sigue de aquí (`PROPOSAL.md`) **ya está implementada y
 > desplegada** — ver el banner de estado en ese archivo. Se conserva como referencia histórica

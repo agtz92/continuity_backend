@@ -1,5 +1,9 @@
 # Teams — Plan de implementación
 
+> **Pagos, precios y suscripciones — fuente de verdad:** [Integración de pagos web y móvil](../integracion-pagos-web-y-movil.md).
+> Lo que este documento diga sobre Stripe, cobros, planes de pago o tiendas es
+> contexto; ante cualquier diferencia, manda ese.
+
 > **⚑ ESTADO (2026-06-29): PROPUESTA — diseño aprobado en lo macro, pendiente de codear.**
 > Decisiones de producto cerradas con el dueño: **(1) dirección B2B**, **(2) privacidad =
 > solo contexto del team**, **(3) asignación modelo B**, **(4) plan de billing nuevo "Teams"**.

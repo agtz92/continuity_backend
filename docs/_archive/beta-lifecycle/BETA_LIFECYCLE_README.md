@@ -1,5 +1,9 @@
 # Beta lifecycle — operación y deploy
 
+> **Pagos, precios y suscripciones — fuente de verdad:** [Integración de pagos web y móvil](../../integracion-pagos-web-y-movil.md).
+> Lo que este documento diga sobre Stripe, cobros, planes de pago o tiendas es
+> contexto; ante cualquier diferencia, manda ese.
+
 > **⚑ ESTADO (actualizado 2026-06-26): IMPLEMENTADO Y DESPLEGADO.** El sistema está en código
 > y corre como cron en Render (`run_beta_lifecycle`). Lo único que falta para envíos reales es
 > apagar el flag `dry_run` (sigue en `true` por seguridad — ver abajo). Esta guía es operativa

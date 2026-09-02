@@ -86,8 +86,10 @@ class AdminUserDetail:
     is_admin: bool
     is_billing_exempt: bool
     plan_renews_at: Optional[dt.datetime]
-    stripe_customer_id: str
-    stripe_subscription_id: str
+    # Identifiers at whichever issuer sold the plan — see `billing_source`.
+    # Renamed from `stripe_*`: they now carry App Store / Google Play ids too.
+    billing_customer_id: str
+    billing_transaction_id: str
     created_at: Optional[dt.datetime]
     last_sign_in_at: Optional[dt.datetime]
     email_confirmed_at: Optional[dt.datetime]
@@ -233,6 +235,23 @@ class PlanPeriodBreakdown:
 
 
 @strawberry.type
+class SourceBreakdown:
+    """Revenue split by who sold the subscription.
+
+    Gross is what subscribers are billed; net is what survives the channel's
+    cut — Apple and Google keep a commission, the web channel pays card
+    processing plus RevenueCat. Both
+    numbers matter and they are not close to each other, so the dashboard
+    shows them side by side rather than picking one.
+    """
+
+    source: str  # "web" | "apple" | "google"
+    count: int
+    gross_monthly_cents: int
+    net_monthly_cents: int
+
+
+@strawberry.type
 class UpcomingChurnRow:
     user_id: strawberry.ID
     email: str
@@ -247,11 +266,16 @@ class AdminBillingOverview:
     currency: str  # ISO 4217 lowercase ("usd", "mxn")
     is_test_mode: bool
     paying_subscribers: int
-    mrr_cents: int
+    mrr_cents: int  # gross — what subscribers are billed
+    # Net of store commission and web-channel fees. Diverges from `mrr_cents` as
+    # the mobile channel grows, which is exactly why it's reported.
+    net_mrr_cents: int
     arr_cents: int
+    net_arr_cents: int
     billing_exempt_count: int
     pending_cancellations: int
     breakdown: list[PlanPeriodBreakdown]
+    by_source: list[SourceBreakdown]
     upcoming_churn: list[UpcomingChurnRow]
 
 
@@ -262,11 +286,19 @@ class AdminSubscriberRow:
     plan: str
     period: str  # "monthly" | "annual" | "" when unknown
     monthly_cents: int
+    # "web" | "apple" | "google", or "unknown" if the row was left half
+    # written — we never guess a channel.
+    billing_source: str
+    net_monthly_cents: int
     plan_renews_at: Optional[dt.datetime]
     cancel_at_period_end: bool
     is_billing_exempt: bool
-    stripe_customer_id: str
-    stripe_subscription_id: str
+    # One set of identifiers for every channel. Which issuer they belong to is
+    # `billing_source`; the admin UI must branch on that before deep-linking,
+    # since a card-processor URL is meaningless for a Play purchase token.
+    billing_customer_id: str
+    billing_transaction_id: str
+    billing_product_id: str
 
 
 @strawberry.type
@@ -318,6 +350,7 @@ __all__ = [
     "RecentSignup",
     "AdminSystemStats",
     "PlanPeriodBreakdown",
+    "SourceBreakdown",
     "UpcomingChurnRow",
     "AdminBillingOverview",
     "AdminSubscriberRow",

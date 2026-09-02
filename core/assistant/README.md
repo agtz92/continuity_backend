@@ -1,5 +1,9 @@
 # AI Assistant
 
+> **Pagos, precios y suscripciones — fuente de verdad:** [Integración de pagos web y móvil](../../docs/integracion-pagos-web-y-movil.md).
+> Lo que este documento diga sobre Stripe, cobros, planes de pago o tiendas es
+> contexto; ante cualquier diferencia, manda ese.
+
 Chat-with-Claude inside Continuity. Read-only today (Phase 1), mutation
 support coming next (Phase 2).
 

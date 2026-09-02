@@ -1,5 +1,9 @@
 # Backend — notas para agentes
 
+> **Pagos, precios y suscripciones — fuente de verdad:** [Integración de pagos web y móvil](docs/integracion-pagos-web-y-movil.md).
+> Lo que este documento diga sobre Stripe, cobros, planes de pago o tiendas es
+> contexto; ante cualquier diferencia, manda ese.
+
 Django + Strawberry GraphQL. Auth Supabase JWT (`core/auth.py` → `info.context.user_id`).
 El schema raíz fusiona las apps con `merge_types()` en `core/schema.py`. Admin gateado por
 `_admin_user_id(info)` (`core/admin_api/permissions.py`) + auditoría `audit_record(...)`

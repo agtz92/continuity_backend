@@ -1,6 +1,11 @@
 # Continuity (`continuu.it`)
 ### The project manager that makes you *finish* — built for people who start more than they finish
 
+> **Payments, pricing and subscriptions — source of truth:**
+> [Integración de pagos web y móvil](docs/integracion-pagos-web-y-movil.md).
+> Anything this document says about Stripe, prices or billing is context; where
+> the two differ, that one wins.
+
 > **How to read this document.** It is organized in layers. The first two sections give
 > a business reader the full value of the product in about two minutes. Each section
 > after that adds depth, ending with a clearly separated **Technical Annex** for anyone
@@ -178,7 +183,7 @@ Continuity is a real, running product, not a prototype — but like any active p
 | **Web frontend** | **Next.js 15** (App Router), **React 19**, **Apollo Client** (GraphQL), **Tailwind CSS**, **next-intl** (English/Spanish). Hosted on Vercel. |
 | **Mobile** | **Expo SDK 54 / React Native**, **NativeWind** (Tailwind for RN), Apollo Client, built/distributed via **EAS**; first build in TestFlight (bundle `it.continuu.app`). |
 | **AI** | Anthropic Claude — a fast model for normal chat and a stronger "deep" model (Sonnet) for harder requests, gated by plan. |
-| **Payments** | **Stripe** (subscriptions for Pro/Studio). |
+| **Payments** | **Stripe** on the web (subscriptions for Pro/Studio), plus **App Store / Google Play** in-app purchases relayed through RevenueCat. All three write through one entitlement layer so a single account can only be billed by one of them. Same USD prices on every channel. |
 | **Transactional email** | **Resend** (bilingual welcome + lifecycle emails). |
 | **Notifications** | Telegram today; WhatsApp planned. |
 
@@ -303,8 +308,15 @@ Confirmed in `backend/core/models.py`:
 
 ## I. Open items / to confirm
 
-- **Exact subscription prices** (the dollar amounts for Pro and Studio) live in Stripe and were
-  not read from the codebase — confirm separately before quoting them.
+- ~~**Exact subscription prices** live in Stripe and were not read from the codebase.~~
+  *Resolved:* they are now documented in
+  [Integración de pagos web y móvil](docs/integracion-pagos-web-y-movil.md) — Pro $9/month
+  ($7 billed annually), Studio $24/month ($19 billed annually), identical in USD on the web
+  and in both app stores.
+- **In-app purchases are backend-complete but not yet sellable.** The entitlement layer,
+  the store webhook, the cross-channel guards and net-of-commission reporting are built and
+  tested; what remains is the store paperwork (products, agreements, Apple's Small Business
+  Program) and the native paywall screen that depends on it.
 - **Mobile push notifications** are backend-complete (Expo provider, token table, registration
   mutation, hourly-cron dispatch); what's pending is the mobile client flipping
   `PUSH_BACKEND_READY` to register tokens. Calendar and account self-deletion are already shipped

@@ -1,5 +1,9 @@
 # PROPOSAL.md — Beta lifecycle management (diseño técnico)
 
+> **Pagos, precios y suscripciones — fuente de verdad:** [Integración de pagos web y móvil](../../integracion-pagos-web-y-movil.md).
+> Lo que este documento diga sobre Stripe, cobros, planes de pago o tiendas es
+> contexto; ante cualquier diferencia, manda ese.
+
 > **⚑ ESTADO (actualizado 2026-06-26): IMPLEMENTADO.** Este diseño ya está construido. En
 > código: campos beta/exención en `AccountProfile` (`core/assistant/models.py`), decisión de
 > enrolamiento en `_apply_enrollment_decision` (`core/assistant/quotas.py`), servicio

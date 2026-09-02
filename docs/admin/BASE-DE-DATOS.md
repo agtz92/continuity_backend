@@ -1,5 +1,9 @@
 # Admon → Base de datos
 
+> **Pagos, precios y suscripciones — fuente de verdad:** [Integración de pagos web y móvil](../integracion-pagos-web-y-movil.md).
+> Lo que este documento diga sobre Stripe, cobros, planes de pago o tiendas es
+> contexto; ante cualquier diferencia, manda ese.
+
 Hub de administración para **revisar la información relevante del proyecto y tomar acciones**.
 Vive en *Admon → Sistema → Base de datos* (`/admin/database`,
 `frontend/src/app/(app)/admin/database/page.tsx`). Gateado por `_admin_user_id` como todo el

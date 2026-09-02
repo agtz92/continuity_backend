@@ -1,5 +1,9 @@
 # Beta lifecycle — documentación de implementación
 
+> **Pagos, precios y suscripciones — fuente de verdad:** [Integración de pagos web y móvil](integracion-pagos-web-y-movil.md).
+> Lo que este documento diga sobre Stripe, cobros, planes de pago o tiendas es
+> contexto; ante cualquier diferencia, manda ese.
+
 Sistema que **separa el cohorte beta de la exención de billing**, envía welcome +
 una secuencia de inactividad por **Resend** (bilingüe en/es), y **reclama cupos
 beta** no usados. Cron diario en Render. `dry_run=true` por default hasta go-live.
