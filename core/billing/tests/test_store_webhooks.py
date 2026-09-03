@@ -53,6 +53,7 @@ def _payload(
     expiration_ms: int = 1_800_000_000_000,
     store: str = "APP_STORE",
     cancel_reason: str | None = None,
+    environment: str | None = None,
 ) -> dict:
     event = {
         "id": event_id,
@@ -65,6 +66,8 @@ def _payload(
     }
     if cancel_reason:
         event["cancel_reason"] = cancel_reason
+    if environment:
+        event["environment"] = environment
     return {"api_version": "1.0", "event": event}
 
 
@@ -247,3 +250,78 @@ class TestIdempotencyAndSafety:
     def test_missing_event_id_is_rejected(self, client, store_settings):
         res = _post(client, {"event": {"type": "RENEWAL"}})
         assert res.status_code == 400
+
+
+@pytest.mark.django_db
+class TestSandboxEnvironment:
+    """Test purchases must not move plans on a production database.
+
+    RevenueCat delivers sandbox and production events to the same endpoint,
+    so the only thing separating them is `BILLING_TEST_MODE`.
+    """
+
+    def test_sandbox_event_is_recorded_but_not_applied(
+        self, client, store_settings, free_profile
+    ):
+        store_settings.BILLING_TEST_MODE = False
+        res = _post(
+            client, _payload(free_profile.user_id, environment="SANDBOX")
+        )
+
+        assert res.status_code == 200
+        free_profile.refresh_from_db()
+        assert free_profile.plan == Plan.FREE.value
+
+        # The payload still has to survive: it is how we answer questions
+        # about a channel's event shape.
+        row = StoreWebhookEvent.objects.get(event_id="evt_1")
+        assert row.outcome == "sandbox_ignored"
+        assert row.payload["event"]["environment"] == "SANDBOX"
+
+    def test_sandbox_event_applies_when_test_mode_is_on(
+        self, client, store_settings, free_profile
+    ):
+        store_settings.BILLING_TEST_MODE = True
+        res = _post(
+            client, _payload(free_profile.user_id, environment="SANDBOX")
+        )
+
+        assert res.status_code == 200
+        free_profile.refresh_from_db()
+        assert free_profile.plan == Plan.PRO.value
+        assert free_profile.billing_source == BillingSource.APPLE.value
+
+    def test_production_event_applies(self, client, store_settings, free_profile):
+        store_settings.BILLING_TEST_MODE = False
+        res = _post(
+            client, _payload(free_profile.user_id, environment="PRODUCTION")
+        )
+
+        assert res.status_code == 200
+        free_profile.refresh_from_db()
+        assert free_profile.plan == Plan.PRO.value
+
+    def test_absent_environment_is_treated_as_production(
+        self, client, store_settings, free_profile
+    ):
+        """Dropping a real purchase is worse than applying a sandbox one."""
+        store_settings.BILLING_TEST_MODE = False
+        res = _post(client, _payload(free_profile.user_id))
+
+        assert res.status_code == 200
+        free_profile.refresh_from_db()
+        assert free_profile.plan == Plan.PRO.value
+
+    def test_sandbox_row_is_not_retried_on_redelivery(
+        self, client, store_settings, free_profile
+    ):
+        """`sandbox_ignored` is a decision, not a failure — don't reprocess it."""
+        store_settings.BILLING_TEST_MODE = False
+        _post(client, _payload(free_profile.user_id, environment="SANDBOX"))
+
+        store_settings.BILLING_TEST_MODE = True
+        res = _post(client, _payload(free_profile.user_id, environment="SANDBOX"))
+
+        assert res.json()["status"] == "duplicate"
+        free_profile.refresh_from_db()
+        assert free_profile.plan == Plan.FREE.value

@@ -169,15 +169,19 @@ se **rechaza a propósito** (queda logueada como error y `outcome="unusable"`):
 otorgar un plan por default ahí dejaría que un producto mal configurado
 regalara Studio.
 
-**Mientras pruebas en sandbox:**
+**Sobre `BILLING_TEST_MODE` — déjala apagada en Render:**
 
-```bash
-BILLING_TEST_MODE=true                    # muestra la insignia "sandbox" en admin
-```
+RevenueCat entrega sandbox y producción **al mismo endpoint**, así que esta
+bandera es lo único que los separa. Apagada (producción), un evento con
+`environment: SANDBOX` se **registra pero no se aplica**: queda con
+`outcome="sandbox_ignored"` y no mueve el plan de nadie. Encendida
+(local/staging), se procesa normal.
 
-RevenueCat entrega sandbox y producción al mismo endpoint, así que esto es una
-bandera deliberada y no algo que se infiera de un prefijo de llave. **Acuérdate
-de quitarla** antes de cobrar de verdad.
+Por eso puedes hacer la compra de prueba contra producción sin ensuciar
+datos: el payload se guarda igual —que es lo que necesitas para leer los
+campos de la §7— pero tu cuenta no se promueve a Studio.
+
+La bandera también pinta la insignia "sandbox" en el panel de admin.
 
 **Ya tienen el default correcto — tócalas sólo si cambia el negocio:**
 

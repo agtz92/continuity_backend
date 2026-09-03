@@ -293,9 +293,11 @@ STORE_COMMISSION_RATE = config("STORE_COMMISSION_RATE", default=0.15, cast=float
 CARD_FEE_PERCENT = config("CARD_FEE_PERCENT", default=0.029, cast=float)
 CARD_FEE_FIXED_CENTS = config("CARD_FEE_FIXED_CENTS", default=30, cast=int)
 REVENUECAT_FEE_PERCENT = config("REVENUECAT_FEE_PERCENT", default=0.01, cast=float)
-# Shows the "sandbox" badge in the admin panel. RevenueCat delivers sandbox and
-# production events to the same endpoint, so this is a deliberate flag rather
-# than something inferred from a key prefix.
+# Whether this deployment acts on sandbox purchases. RevenueCat delivers
+# sandbox and production events to the same endpoint, so this flag is the only
+# thing separating them: off (production) records test events without applying
+# them, on (local/staging) processes them normally. Also shows the "sandbox"
+# badge in the admin panel.
 BILLING_TEST_MODE = config("BILLING_TEST_MODE", default=False, cast=bool)
 # Where billing redirects send the user back.
 BILLING_FRONTEND_BASE_URL = config(

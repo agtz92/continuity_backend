@@ -16,6 +16,11 @@ delivery mechanism. The rationale and the alternative are written up in
 The store is authoritative about *payment*; this endpoint is authoritative
 about *entitlement*. The mobile client never grants itself a plan from a
 local receipt — it asks the backend, which only knows what arrived here.
+
+Sandbox and production events arrive at this same endpoint, so
+`BILLING_TEST_MODE` decides whether a test purchase may actually move
+someone's plan. It is off in production: sandbox events get recorded and
+nothing else.
 """
 
 from __future__ import annotations
@@ -88,6 +93,32 @@ def _authorized(request) -> bool:
         return False
     provided = request.META.get("HTTP_AUTHORIZATION", "") or ""
     return hmac.compare_digest(provided, expected)
+
+
+def _accepts_sandbox() -> bool:
+    """Whether this deployment may act on test purchases.
+
+    RevenueCat delivers sandbox and production events to the *same* endpoint,
+    so without this a test purchase would promote a real account on the real
+    database — the tester's own, usually, which is why it goes unnoticed until
+    the audit log looks wrong. `BILLING_TEST_MODE` is what separates them: on
+    in local and staging, off in production.
+
+    Sandbox events are still recorded either way; only applying them is
+    gated. That matters because the stored payload is how we answer questions
+    about a channel's event shape (see `docs/pagos-unificados/PLAN.md` §1).
+    """
+    return bool(getattr(settings, "BILLING_TEST_MODE", False))
+
+
+def _is_sandbox(event: dict) -> bool:
+    """True only when the event says outright that it is a test purchase.
+
+    A missing or unrecognized `environment` counts as production on purpose:
+    dropping a real purchase is far worse than applying a sandbox one, so the
+    ambiguous case fails towards granting.
+    """
+    return (event.get("environment") or "").upper() == "SANDBOX"
 
 
 def _parse_user_id(app_user_id: str) -> Optional[uuid.UUID]:
@@ -228,6 +259,20 @@ def store_webhook(request):
     if not created and row.outcome not in {"", "error"}:
         logger.info("Duplicate store event %s (%s) — already applied", event_id, event_type)
         return JsonResponse({"status": "duplicate"})
+
+    # Recorded above, deliberately not applied here: a test purchase must not
+    # move anyone's plan on a production database.
+    if _is_sandbox(event) and not _accepts_sandbox():
+        row.outcome = "sandbox_ignored"
+        row.save(update_fields=["outcome"])
+        logger.info(
+            "Sandbox store event %s (%s, %s) recorded but not applied "
+            "(BILLING_TEST_MODE is off)",
+            event_id,
+            event_type,
+            source,
+        )
+        return JsonResponse({"status": "sandbox_ignored"})
 
     try:
         ent = _to_entitlement(event)
