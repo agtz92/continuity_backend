@@ -278,10 +278,10 @@ PRICE_PRO_ANNUAL_AMOUNT_CENTS = config(
     "PRICE_PRO_ANNUAL_AMOUNT_CENTS", default=8400, cast=int
 )
 PRICE_STUDIO_MONTHLY_AMOUNT_CENTS = config(
-    "PRICE_STUDIO_MONTHLY_AMOUNT_CENTS", default=2400, cast=int
+    "PRICE_STUDIO_MONTHLY_AMOUNT_CENTS", default=1900, cast=int
 )
 PRICE_STUDIO_ANNUAL_AMOUNT_CENTS = config(
-    "PRICE_STUDIO_ANNUAL_AMOUNT_CENTS", default=22800, cast=int
+    "PRICE_STUDIO_ANNUAL_AMOUNT_CENTS", default=19000, cast=int
 )
 BILLING_CURRENCY = config("BILLING_CURRENCY", default="usd")
 # Commission the stores keep. 0.15 while under $1M/year (Apple Small Business

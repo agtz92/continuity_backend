@@ -35,7 +35,7 @@ re-litigue:
 **Riesgo aceptado explícitamente:** RevenueCat queda como punto único de falla
 para el 100% del ingreso. Por eso las pruebas end-to-end no son trámite.
 
-**Lo que NO cambia:** los precios ($9 / $84 / $24 / $228 USD, idénticos en los
+**Lo que NO cambia:** los precios ($9 / $84 / $19 / $190 USD, idénticos en los
 tres canales), la capa de titularidad `core/billing/entitlements.py`, y la regla
 de que nada que venga de un cobro escribe `plan` fuera de `apply_entitlement()`.
 
@@ -166,7 +166,7 @@ el caso "una fuente no pisa la titularidad de otra" sigue siendo el corazón.
 > `1 − fee de tarjeta − 1% de RevenueCat`; el de tienda sigue siendo la comisión.
 >
 > **Precios: un solo juego de importes** (`PRICE_*_AMOUNT_CENTS`) para los tres
-> canales, con los valores reales por defecto (900 / 8400 / 2400 / 22800). Ya no
+> canales, con los valores reales por defecto (900 / 8400 / 1900 / 19000). Ya no
 > hay herencia entre catálogos: la paridad dejó de depender de dejar una variable
 > sin poner y pasó a ser que sólo existe un número.
 >

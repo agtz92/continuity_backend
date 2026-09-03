@@ -49,8 +49,8 @@ preguntar quién lo vendió.
 |---|---|---:|---|---|
 | Pro | mensual | $9 | `STORE_PRODUCT_PRO_MONTHLY` | `it.continuu.pro_monthly` |
 | Pro | anual | $84 | `STORE_PRODUCT_PRO_ANNUAL` | `it.continuu.pro_annual` |
-| Studio | mensual | $24 | `STORE_PRODUCT_STUDIO_MONTHLY` | `it.continuu.studio_monthly` |
-| Studio | anual | $228 | `STORE_PRODUCT_STUDIO_ANNUAL` | `it.continuu.studio_annual` |
+| Studio | mensual | $19 | `STORE_PRODUCT_STUDIO_MONTHLY` | `it.continuu.studio_monthly` |
+| Studio | anual | $190 | `STORE_PRODUCT_STUDIO_ANNUAL` | `it.continuu.studio_annual` |
 
 Sobre los identificadores: el estilo con prefijo es por Apple, donde los
 product ids son únicos dentro de la cuenta y **no se pueden reutilizar aunque
@@ -185,8 +185,8 @@ de quitarla** antes de cobrar de verdad.
 |---|---:|---|
 | `PRICE_PRO_MONTHLY_AMOUNT_CENTS` | `900` | Estimación de ingreso en admin |
 | `PRICE_PRO_ANNUAL_AMOUNT_CENTS` | `8400` | ” |
-| `PRICE_STUDIO_MONTHLY_AMOUNT_CENTS` | `2400` | ” |
-| `PRICE_STUDIO_ANNUAL_AMOUNT_CENTS` | `22800` | ” |
+| `PRICE_STUDIO_MONTHLY_AMOUNT_CENTS` | `1900` | ” |
+| `PRICE_STUDIO_ANNUAL_AMOUNT_CENTS` | `19000` | ” |
 | `BILLING_CURRENCY` | `usd` | Moneda de referencia |
 | `STORE_COMMISSION_RATE` | `0.15` | Comisión de tienda. Subir a `0.30` al pasar $1M/año |
 | `CARD_FEE_PERCENT` | `0.029` | Fee de tarjeta del canal web |
