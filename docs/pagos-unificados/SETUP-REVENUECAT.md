@@ -208,12 +208,9 @@ el número real es 30% y el panel te va a mentir a favor.
 Son las de [`PLAN.md` §1](PLAN.md). Ninguna se puede adivinar y las tres cambian
 código:
 
-1. **Qué manda RevenueCat en el campo `store` para Web Billing.** Hoy
-   `catalog.py::_STORE_TO_SOURCE` acepta `RC_BILLING` y `WEB_BILLING` a ciegas
-   para no perder eventos por una diferencia de nombre, con un
-   `TODO(verificar)`. Dispara una compra de prueba en Web Billing y **mira el
-   payload crudo**: queda guardado en `StoreWebhookEvent.payload`, o se ve en el
-   log de entregas del dashboard.
+1. ~~**Qué manda RevenueCat en el campo `store` para Web Billing.**~~
+   ✅ **Resuelto: es `RC_BILLING`**, confirmado en la documentación de webhooks.
+   Ya está fijo en `catalog.py::_STORE_TO_SOURCE`, sin `TODO`.
 2. **Si los eventos de Web Billing traen `expiration_at_ms`** como los de
    tienda. De ese campo sale `period_end`, que alimenta `plan_renews_at` y la
    resolución de conflictos entre canales. Si viene con otro nombre, la fecha de
@@ -223,7 +220,13 @@ código:
    mutation de GraphQL o se van todas — o sea, decide parte del diseño de la
    Fase B.
 
-Para leer el payload de la nº1 y la nº2 sin adivinar:
+**Ojo con el evento de prueba del dashboard:** el botón *Send test webhook*
+manda un fixture enlatado con `"store": "PLAY_STORE"` y
+`"product_id": "test_product"`, sea cual sea tu configuración. Sirve para
+comprobar la autenticación (un 200 significa que el secreto coincide), **no**
+para conocer la forma de los eventos de un canal.
+
+Para leer el payload de la nº2 sin adivinar:
 
 ```sql
 select event_type, source, product_id, outcome, payload

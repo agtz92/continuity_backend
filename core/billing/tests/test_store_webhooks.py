@@ -325,3 +325,39 @@ class TestSandboxEnvironment:
         assert res.json()["status"] == "duplicate"
         free_profile.refresh_from_db()
         assert free_profile.plan == Plan.FREE.value
+
+
+@pytest.mark.django_db
+class TestStoreMapping:
+    """Which `store` values grant a plan, and which deliberately don't."""
+
+    def test_unmapped_store_grants_nothing(
+        self, client, store_settings, free_profile
+    ):
+        """`WEB_BILLING` was a guess; the documented value is `RC_BILLING`.
+
+        Kept as a regression test because the failure is silent: an unmapped
+        store drops the event, and nobody notices until someone has paid.
+        """
+        res = _post(client, _payload(free_profile.user_id, store="WEB_BILLING"))
+
+        assert res.status_code == 200
+        free_profile.refresh_from_db()
+        assert free_profile.plan == Plan.FREE.value
+        assert StoreWebhookEvent.objects.get(event_id="evt_1").outcome == "unusable"
+
+    def test_test_store_grants_nothing(self, client, store_settings, free_profile):
+        """RevenueCat's virtual store is for exercising a paywall, not selling."""
+        res = _post(client, _payload(free_profile.user_id, store="TEST_STORE"))
+
+        assert res.status_code == 200
+        free_profile.refresh_from_db()
+        assert free_profile.plan == Plan.FREE.value
+
+    def test_promotional_grants_nothing(self, client, store_settings, free_profile):
+        """Comps go through `is_billing_exempt`, not through a store event."""
+        res = _post(client, _payload(free_profile.user_id, store="PROMOTIONAL"))
+
+        assert res.status_code == 200
+        free_profile.refresh_from_db()
+        assert free_profile.plan == Plan.FREE.value

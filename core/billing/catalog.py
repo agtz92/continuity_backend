@@ -47,17 +47,27 @@ _AMOUNT_SETTINGS = {
     (Plan.STUDIO.value, "annual"): "PRICE_STUDIO_ANNUAL_AMOUNT_CENTS",
 }
 
-# RevenueCat's `store` field -> our BillingSource. `RC_BILLING` is Web Billing.
-# TODO(verificar): confirmar el valor exacto que manda RevenueCat para web con
-# un evento de sandbox real — es la incógnita nº1 de docs/pagos-unificados/PLAN.md.
-# Se aceptan las dos grafías vistas en su documentación para no perder eventos
-# por una diferencia de nombre.
+# RevenueCat's `store` field -> our BillingSource.
+#
+# The full documented set is AMAZON, APP_STORE, MAC_APP_STORE, PADDLE,
+# PLAY_STORE, PROMOTIONAL, RC_BILLING, ROKU, STRIPE and TEST_STORE. Only the
+# four below are mapped, and the omissions are deliberate: an unmapped store
+# makes `source_for_store` return None, which drops the event as unusable
+# rather than granting a plan we can't attribute to a channel we sell on.
+#
+# Worth knowing about two of the unmapped ones:
+#   - TEST_STORE is RevenueCat's virtual store for testing without Apple or
+#     Google. Its purchases will not grant anything here.
+#   - PROMOTIONAL is a comp granted from RevenueCat's dashboard. We comp
+#     through `is_billing_exempt` instead, so those events stay unusable on
+#     purpose — two ways to give away a plan is one too many.
 _STORE_TO_SOURCE = {
     "APP_STORE": BillingSource.APPLE.value,
     "MAC_APP_STORE": BillingSource.APPLE.value,
     "PLAY_STORE": BillingSource.GOOGLE.value,
+    # Web Billing. Confirmed against RevenueCat's webhook docs, not guessed:
+    # this used to also accept a `WEB_BILLING` spelling that does not exist.
     "RC_BILLING": BillingSource.WEB.value,
-    "WEB_BILLING": BillingSource.WEB.value,
 }
 
 

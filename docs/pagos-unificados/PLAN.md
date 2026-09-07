@@ -49,14 +49,19 @@ de que nada que venga de un cobro escribe `plan` fuera de `apply_entitlement()`.
 
 No las adivines. Cada una cambia el código y ninguna está confirmada:
 
-1. **El valor exacto de `store` que RevenueCat manda para Web Billing.** El
-   webhook mapea `APP_STORE` / `MAC_APP_STORE` / `PLAY_STORE` en
-   `core/billing/catalog.py::_STORE_TO_SOURCE`. Falta confirmar el de web: hoy
-   acepta `RC_BILLING` y `WEB_BILLING` a ciegas, con un `TODO(verificar)`, para
-   no perder eventos por una diferencia de nombre. Confírmalo con un evento de
-   sandbox real y deja una sola grafía.
+1. ~~**El valor exacto de `store` que RevenueCat manda para Web Billing.**~~
+   ✅ **Resuelto (7 sep) por documentación, no por compra.** Es **`RC_BILLING`**.
+   El `WEB_BILLING` que aceptábamos en paralelo **no existe**; era una
+   invención defensiva y se quitó. El conjunto documentado completo es
+   `AMAZON`, `APP_STORE`, `MAC_APP_STORE`, `PADDLE`, `PLAY_STORE`,
+   `PROMOTIONAL`, `RC_BILLING`, `ROKU`, `STRIPE`, `TEST_STORE`; mapeamos
+   cuatro y el resto cae como `unusable` a propósito (ver el comentario de
+   `_STORE_TO_SOURCE`). Cubierto por `TestStoreMapping`.
 2. **Si los eventos de Web Billing traen `expiration_at_ms`** como los de tienda,
-   o usan otro campo para el fin de periodo.
+   o usan otro campo para el fin de periodo. **Parcialmente resuelto:** el campo
+   es parte del esquema común y vino presente en el evento de prueba de
+   RevenueCat; falta verlo en un evento `RC_BILLING` real. El código ya lo lee,
+   así que no hay nada que cambiar salvo que aparezca vacío.
 3. **Cómo se obtiene el enlace al customer portal**: si lo genera el SDK web en
    cliente o hace falta una llamada de servidor. De esto depende si sobrevive
    alguna mutation de GraphQL o si se van todas.
