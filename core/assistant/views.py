@@ -393,8 +393,9 @@ class UsageView(View):
             return early
         snap = quotas.get_usage(request.user_id)
         profile = quotas.get_or_create_profile(request.user_id)
-        from core.assistant.models import STORE_SOURCES
+        from core.assistant.models import EXTERNALLY_MANAGED_SOURCES
         from core.billing.catalog import period_for_profile
+        from core.billing.manage import manage_url_for
 
         # `has_subscription` used to mean "has a Stripe subscription". Now
         # that a plan can also come from the App Store or Google Play it means
@@ -425,7 +426,15 @@ class UsageView(View):
                 # to the right place to manage it — and hide its own checkout
                 # when it isn't the one that sold it.
                 "billing_source": profile.billing_source or "",
-                "store_managed": profile.billing_source in STORE_SOURCES,
+                # True for every paid source, web included: since the web moved
+                # to RevenueCat's customer portal we no longer own a checkout
+                # or a cancel button for anyone. This replaced `store_managed`,
+                # which was only true for Apple and Google and would have left
+                # a web subscriber looking at a checkout that no longer exists.
+                "externally_managed": (
+                    profile.billing_source in EXTERNALLY_MANAGED_SOURCES
+                ),
+                "manage_url": manage_url_for(profile),
             }
         )
 

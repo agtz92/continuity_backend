@@ -14,7 +14,12 @@ from django.utils import timezone
 
 from core import auth as auth_module
 from core.assistant import anthropic_client
-from core.assistant.models import Conversation, Message, UsageDay
+from core.assistant.models import (
+    AccountProfile,
+    Conversation,
+    Message,
+    UsageDay,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -336,3 +341,65 @@ def test_chat_blocked_when_quota_exceeded(http, user_a, make_profile):
     assert response.status_code == 429
     body = response.json()
     assert body["kind"] == "daily_messages"
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "fields,expected_source,expected_managed,expected_url",
+    [
+        (
+            {"plan": "free"},
+            "",
+            False,
+            None,
+        ),
+        (
+            {"plan": "pro", "is_billing_exempt": True},
+            "",
+            False,
+            None,
+        ),
+        (
+            {"plan": "pro", "billing_source": "web", "billing_transaction_id": "t1"},
+            "web",
+            True,
+            "https://continuu.it/settings/billing",
+        ),
+        (
+            {"plan": "pro", "billing_source": "apple", "billing_transaction_id": "t2"},
+            "apple",
+            True,
+            "https://apps.apple.com/account/subscriptions",
+        ),
+        (
+            {"plan": "pro", "billing_source": "google", "billing_transaction_id": "t3"},
+            "google",
+            True,
+            "https://play.google.com/store/account/subscriptions",
+        ),
+    ],
+)
+def test_usage_reports_who_manages_the_plan(
+    http, user_a, settings, fields, expected_source, expected_managed, expected_url
+):
+    """The `/usage/` billing contract both clients read.
+
+    `externally_managed` is true for the web too, not just the stores — that
+    is the whole point of the rename from `store_managed`. Getting it wrong
+    for the web shows a subscriber a checkout that no longer exists.
+    """
+    settings.BILLING_FRONTEND_BASE_URL = "https://continuu.it"
+    AccountProfile.objects.create(user_id=user_a, **fields)
+
+    response = http.get(
+        "/api/assistant/usage/", HTTP_AUTHORIZATION=f"Bearer {_make_jwt(user_a)}"
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["billing_source"] == expected_source
+    assert data["externally_managed"] is expected_managed
+    assert data["manage_url"] == expected_url
+    # Renamed, not kept as an alias: a stale client reading it would get
+    # `undefined` and fall back to showing the dead checkout.
+    assert "store_managed" not in data
