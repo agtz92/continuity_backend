@@ -86,6 +86,22 @@ _IGNORED_EVENTS = {"TEST", "TRANSFER", "INVOICE_ISSUANCE", "TEMPORARY_ENTITLEMEN
 _REFUND_REASONS = {"CUSTOMER_SUPPORT", "REFUND", "DEVELOPER_INITIATED"}
 
 
+#: Outcomes that a redelivery is allowed to reprocess. The row marks
+#: *processed*, not merely *seen*.
+#:
+#: `unusable` is here because it never means "this event is bad" — it means
+#: "we couldn't use it with the configuration we had at the time": a store we
+#: don't map, or a product id missing from `STORE_PRODUCT_*`. Those are our
+#: bugs, and once fixed the purchase has to be recoverable by replaying the
+#: event. It was not, and a real purchase was stranded because of it: the
+#: product settings were unset, the event was dropped, and there was no way
+#: back short of charging the customer again.
+#:
+#: Note we answer 200 to unusable events, so the stores never retry them on
+#: their own — this only matters for a deliberate replay.
+_RETRIABLE_OUTCOMES = {"", "error", "unusable"}
+
+
 def _authorized(request) -> bool:
     """Constant-time check of the shared secret RevenueCat echoes back."""
     expected = getattr(settings, "REVENUECAT_WEBHOOK_AUTH", "") or ""
@@ -256,7 +272,7 @@ def store_webhook(request):
         logger.info("Concurrent duplicate for store event %s (%s)", event_id, event_type)
         return JsonResponse({"status": "duplicate"})
 
-    if not created and row.outcome not in {"", "error"}:
+    if not created and row.outcome not in _RETRIABLE_OUTCOMES:
         logger.info("Duplicate store event %s (%s) — already applied", event_id, event_type)
         return JsonResponse({"status": "duplicate"})
 

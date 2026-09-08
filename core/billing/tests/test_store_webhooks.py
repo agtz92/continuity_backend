@@ -361,3 +361,51 @@ class TestStoreMapping:
         assert res.status_code == 200
         free_profile.refresh_from_db()
         assert free_profile.plan == Plan.FREE.value
+
+
+@pytest.mark.django_db
+class TestReplayAfterConfigFix:
+    """A purchase dropped by our own misconfiguration has to be recoverable.
+
+    This is the situation that motivated it: `STORE_PRODUCT_*` was unset in
+    production, a real `INITIAL_PURCHASE` was dropped as `unusable`, and
+    because `unusable` was treated as a final decision there was no way to
+    apply it short of charging the customer again.
+    """
+
+    def test_unmapped_product_is_dropped_then_replayable(
+        self, client, settings, free_profile
+    ):
+        settings.REVENUECAT_WEBHOOK_AUTH = AUTH
+        # The deployment that dropped it: no product ids configured.
+        settings.STORE_PRODUCT_PRO_MONTHLY = ""
+        settings.STORE_PRODUCT_PRO_ANNUAL = ""
+        settings.STORE_PRODUCT_STUDIO_MONTHLY = ""
+        settings.STORE_PRODUCT_STUDIO_ANNUAL = ""
+
+        body = _payload(free_profile.user_id, store="RC_BILLING")
+        res = _post(client, body)
+
+        assert res.status_code == 200
+        free_profile.refresh_from_db()
+        assert free_profile.plan == Plan.FREE.value
+        assert StoreWebhookEvent.objects.get(event_id="evt_1").outcome == "unusable"
+
+        # Config fixed, same event replayed — no second charge.
+        settings.STORE_PRODUCT_PRO_MONTHLY = "pro_monthly"
+        res = _post(client, body)
+
+        assert res.status_code == 200
+        assert res.json()["status"] != "duplicate"
+        free_profile.refresh_from_db()
+        assert free_profile.plan == Plan.PRO.value
+        assert free_profile.billing_source == BillingSource.WEB.value
+
+    def test_an_applied_event_still_will_not_reprocess(
+        self, client, store_settings, free_profile
+    ):
+        """Idempotency is untouched: only *unapplied* rows may be retried."""
+        _post(client, _payload(free_profile.user_id))
+        res = _post(client, _payload(free_profile.user_id))
+
+        assert res.json()["status"] == "duplicate"
