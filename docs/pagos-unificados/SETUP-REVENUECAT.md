@@ -256,6 +256,31 @@ order by received_at desc limit 5;
 
 ---
 
+## 7b. Lo que RevenueCat controla y tú no
+
+Descubierto el 8 de septiembre de 2026, probando el primer cobro.
+
+**Los métodos de pago no son tuyos.** Stripe muestra la configuración que usa
+Web Billing en solo lectura: *"RevenueCat is managing payment methods for you.
+RevenueCat has not enabled you to manage payment methods from the dashboard."*
+Ni desde Stripe ni desde el panel de RevenueCat puedes tocar qué redes de
+tarjeta se aceptan.
+
+Consecuencia concreta: **American Express queda rechazada** ("This card type
+isn't accepted") y habilitarla es un ticket con su soporte, no un cambio tuyo.
+En México eso no es marginal.
+
+Vale la pena nombrarlo porque es la primera materialización del riesgo que el
+plan aceptó de forma explícita —RevenueCat como punto único de falla del 100%
+del ingreso—. No invalida la decisión; sí es un costo que no estaba anotado.
+
+**Cuidado al buscar dónde arreglarlo:** en Stripe → Settings → Payments →
+Payment methods aparecen cuatro configuraciones. La primera es tuya y **no es
+la que usa el checkout**; las tres creadas el día que conectaste Stripe son de
+la cuenta de RevenueCat. Editar la tuya no cambia nada.
+
+---
+
 ## 8. Lo que **no** hay que configurar
 
 - **Ninguna integración de Stripe.** Stripe sigue siendo la pasarela de tarjeta
