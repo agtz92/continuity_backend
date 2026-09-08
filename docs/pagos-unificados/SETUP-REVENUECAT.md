@@ -148,6 +148,26 @@ se ve cuando alguien ya pagó.
 
 ---
 
+## 5b. La llave pública web (frontend)
+
+La web vende con `@revenuecat/purchases-js`, así que necesita la **public API
+key** de la app de Billing: RevenueCat → **Web** → tu proveedor → *App info* →
+*Public API Key* (el ojito la revela).
+
+Va en el entorno del frontend (Vercel y `.env` local):
+
+```bash
+NEXT_PUBLIC_REVENUECAT_WEB_KEY=rcb_...
+```
+
+Es publishable — va al navegador a propósito, como la anon key de Supabase.
+
+**Sin ella la web no puede vender.** La página de billing sigue mostrando plan
+y consumo, pero no ofrece comprar: es preferible no enseñar un botón a
+enseñar uno que truena al hacer clic.
+
+---
+
 ## 6. Variables en Render
 
 Servicio `continuity-backend`. Sólo la primera es obligatoria de verdad; las
@@ -255,5 +275,6 @@ order by received_at desc limit 5;
   (verdadero para los tres canales) y un `manage_url` resuelto en el servidor.
   Es incompatible: hay que tocar web y móvil en la misma tanda. Hasta que esto
   no esté, un suscriptor web ve una página que le ofrece un checkout borrado.
-- **Fase B** — la web deja de vender y manda al portal.
+- **Fase B** — ✅ hecha. La web vende con el Web SDK y el portal sale del
+  `managementURL` del `CustomerInfo`. Sólo falta poner la llave de §5b.
 - **Fase C** — el paywall nativo, que además necesita las API keys públicas.
