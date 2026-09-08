@@ -114,6 +114,24 @@ class PublicPlatformStats:
     user_count: int
 
 
+@strawberry.type
+class PublicBetaProgram:
+    """Whether the marketing site should still be selling the beta.
+
+    The site is statically rendered, so it can't read `app_config` directly;
+    this is how the same switch that gates enrolment at signup also decides
+    what the landing says. Without it the two drift, and the landing keeps
+    offering spots that `_apply_enrollment_decision` will refuse to grant.
+    """
+
+    #: Mirrors the `beta_enrollment_open` key. When false the site should
+    #: present a normal paid product, with no beta copy anywhere.
+    enrollment_open: bool
+    #: Spots still available, so the hero can stop hardcoding a number.
+    #: Always 0 when enrolment is closed, whatever the cap says.
+    spots_left: int
+
+
 def _to_public_help_category(m: HelpCategory, count: int | None = None) -> PublicHelpCategory:
     return PublicHelpCategory(
         id=strawberry.ID(str(m.id)),
@@ -326,6 +344,26 @@ class CmsPublicQuery:
             qs = qs.filter(locale=locale)
         m = qs.first()
         return _to_public_help_resource(m) if m else None
+
+    @strawberry.field(name="publicBetaProgram")
+    def public_beta_program(self, info: Info) -> PublicBetaProgram:
+        from core.assistant.models import AccountProfile, BetaStatus
+        from core.services import app_config
+
+        if not app_config.get_bool("beta_enrollment_open"):
+            return PublicBetaProgram(enrollment_open=False, spots_left=0)
+
+        cap = app_config.get_int("beta_spot_cap")
+        taken = AccountProfile.objects.filter(
+            beta_cohort=True, beta_status=BetaStatus.ACTIVE
+        ).count()
+        # Same `open AND taken < cap` condition the signup path applies, so a
+        # full cohort closes the site's beta messaging without anyone having
+        # to remember to flip the switch too.
+        spots_left = max(0, cap - taken)
+        return PublicBetaProgram(
+            enrollment_open=spots_left > 0, spots_left=spots_left
+        )
 
     @strawberry.field(name="publicPlatformStats")
     def public_platform_stats(self, info: Info) -> PublicPlatformStats:
