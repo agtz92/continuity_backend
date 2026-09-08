@@ -568,7 +568,7 @@ class Mutation:
                 str(e.messages[0] if e.messages else "Invalid input"),
                 extensions={"code": "BAD_INPUT"},
             )
-        return Query().onboarding_state(info)
+        return build_onboarding_state(info)
 
     @strawberry.mutation
     def complete_onboarding(
@@ -584,13 +584,13 @@ class Mutation:
                 str(e.messages[0] if e.messages else "Invalid input"),
                 extensions={"code": "BAD_INPUT"},
             )
-        return Query().onboarding_state(info)
+        return build_onboarding_state(info)
 
     @strawberry.mutation
     def mark_tour(self, info: Info, seen: bool) -> OnboardingState:
         uid = _user_id(info)
         onboarding_svc.mark_tour(uid, seen=seen)
-        return Query().onboarding_state(info)
+        return build_onboarding_state(info)
 
     # ===== Mutations: Preferencias de layout de Today =====
     @strawberry.mutation

@@ -10,6 +10,7 @@ import uuid  # noqa: F401  (usado por algunos from_model)
 from typing import Optional, List
 
 import strawberry
+from strawberry.types import Info
 
 from . import analytics as analytics_mod
 from .analytics import AnalyticsRange as AnalyticsRangeEnum
@@ -881,8 +882,43 @@ def _to_analytics_gql(r: analytics_mod.AnalyticsResult) -> Analytics:
     )
 
 
+def build_onboarding_state(info: Info) -> "OnboardingState":
+    """The onboarding snapshot, shared by the query and every mutation that
+    advances the flow.
+
+    It lives here, next to the type it builds, because `Query` and `Mutation`
+    are in different modules now: the mutations used to call
+    `Query().onboarding_state(info)`, which raised `NameError: name 'Query' is
+    not defined` at runtime — `Query` is defined in `schema.py` and never
+    entered this module's namespace. Nothing caught it because no test
+    exercised those mutations; the flow just broke for every new account.
+    """
+    from .schema_helpers import _user_id
+    from .services import onboarding as onboarding_svc, profiles as profiles_svc
+    from .assistant.quotas import get_or_create_profile
+
+    uid = _user_id(info)
+    progress = onboarding_svc.get_progress(uid)
+    profile = profiles_svc.get_profile(uid)
+    # Provisioned through the canonical path so the exemption decision has
+    # already run by the time step 4 reads the flag.
+    account = get_or_create_profile(uid)
+    return OnboardingState(
+        status=progress.status,
+        current_step=progress.current_step,
+        tour_status=progress.tour_status,
+        completed_at=progress.completed_at,
+        completed_via=progress.completed_via or None,
+        first_name=profile.first_name or None,
+        avatar=profile.avatar or None,
+        plan=account.plan,
+        is_billing_exempt=bool(account.is_billing_exempt),
+    )
+
+
 __all__ = [
     "AnalyticsRange",
+    "build_onboarding_state",
     "Category",
     "Project",
     "ProjectNote",

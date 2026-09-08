@@ -187,33 +187,11 @@ class Query:
 
     @strawberry.field
     def onboarding_state(self, info: Info) -> OnboardingState:
-        uid = _user_id(info)
-        progress = onboarding_svc.get_progress(uid)
-        profile = profiles_svc.get_profile(uid)
-        # Provision the AccountProfile through the canonical path so the
-        # early-adopter exemption decision has already run by the time we read
-        # the flag. The resolver used to only *read* the profile (filter().first()),
-        # so a brand-new user whose first request was this onboarding query saw
-        # is_billing_exempt=False (the plan-picker screen) until some later
-        # request (e.g. the assistant) lazily created the profile — a race that
-        # randomly showed the wrong Step 4 screen. Reading it here makes the
-        # screen deterministic: it now reflects the flag's true value, including
-        # once the auto-exemption logic is eventually removed (flag = off →
-        # plan-picker shows).
-        account = get_or_create_profile(uid)
-        plan = account.plan
-        is_billing_exempt = bool(account.is_billing_exempt)
-        return OnboardingState(
-            status=progress.status,
-            current_step=progress.current_step,
-            tour_status=progress.tour_status,
-            completed_at=progress.completed_at,
-            completed_via=progress.completed_via or None,
-            first_name=profile.first_name or None,
-            avatar=profile.avatar or None,
-            plan=plan,
-            is_billing_exempt=is_billing_exempt,
-        )
+        # Shared with the mutations that advance the flow — see
+        # `build_onboarding_state` in schema_types.py. The AccountProfile is
+        # provisioned there through the canonical path, so the exemption
+        # decision has already run by the time step 4 reads the flag.
+        return build_onboarding_state(info)
 
     @strawberry.field
     def today_layout(self, info: Info) -> TodayLayout:
