@@ -40,6 +40,7 @@ from .announcements.schema import (
     AdminAnnouncementsQuery,
     NotificationsQuery as InAppNotificationsQuery,
 )
+from .services import cooling as cooling_svc
 from .services import (
     activities as activities_svc,
     calendar_feed as calendar_feed_svc,
@@ -89,8 +90,17 @@ class Query:
         """
         uid = _user_id(info)
         d = dashboard_svc.get_dashboard(uid)
+        # "Atorado" se deriva de las tareas (DP-03). Aquí es donde se puede
+        # calcular sin N+1: el servicio ya trajo tareas y blockers en bloque.
+        blocked_at = {
+            p.id: cooling_svc.project_blocked_since(p.id, d.tasks, d.blocker_map)
+            for p in d.projects
+        }
         return Dashboard(
-            projects=[Project.from_model(p) for p in d.projects],
+            projects=[
+                Project.from_model(p, blocked_since=blocked_at.get(p.id))
+                for p in d.projects
+            ],
             tasks=[
                 Task.from_model(
                     t,
@@ -197,7 +207,11 @@ class Query:
     def today_layout(self, info: Info) -> TodayLayout:
         uid = _user_id(info)
         layout = preferences_svc.get_today_layout(uid)
-        return TodayLayout(order=layout["order"], hidden=layout["hidden"])
+        return TodayLayout(
+            order=layout["order"],
+            hidden=layout["hidden"],
+            rail=layout["rail"],
+        )
 
     @strawberry.field
     def activity(

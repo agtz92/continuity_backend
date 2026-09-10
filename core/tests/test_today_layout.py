@@ -18,26 +18,35 @@ from django.core.exceptions import ValidationError
 from core.services import preferences as preferences_svc
 from core.services.preferences import (
     NON_HIDEABLE_TODAY_IDS,
+    DEFAULT_RAIL_IDS,
     TODAY_SECTION_IDS,
 )
 
 
 TODAY_LAYOUT_QUERY = """
-    query { todayLayout { order hidden } }
+    query { todayLayout { order hidden rail } }
 """
 
 UPDATE_MUTATION = """
-    mutation U($order: [String!], $hidden: [String!]) {
-        updateTodayLayout(order: $order, hidden: $hidden) {
+    mutation U($order: [String!], $hidden: [String!], $rail: [String!]) {
+        updateTodayLayout(order: $order, hidden: $hidden, rail: $rail) {
             order
             hidden
+            rail
         }
     }
 """
 
 RESET_MUTATION = """
-    mutation { resetTodayLayout { order hidden } }
+    mutation { resetTodayLayout { order hidden rail } }
 """
+
+
+# La columna principal por defecto ya no es la lista canónica entera: las
+# secciones que arrancan en el lateral salen de `order`. Este helper evita
+# repetir esa resta en cada test.
+def main_default() -> list[str]:
+    return [s for s in TODAY_SECTION_IDS if s not in DEFAULT_RAIL_IDS]
 
 
 # ---------------------------- service layer ---------------------------- #
@@ -46,8 +55,9 @@ RESET_MUTATION = """
 @pytest.mark.django_db
 def test_get_layout_lazy_creates_with_defaults(user_a):
     layout = preferences_svc.get_today_layout(user_a)
-    assert layout["order"] == list(TODAY_SECTION_IDS)
+    assert layout["order"] == main_default()
     assert layout["hidden"] == []
+    assert layout["rail"] == list(DEFAULT_RAIL_IDS)
 
 
 @pytest.mark.django_db
@@ -58,7 +68,9 @@ def test_update_persists_order_and_hidden(user_a):
     )
 
     layout = preferences_svc.get_today_layout(user_a)
-    assert layout["order"] == new_order
+    # El rail sigue en su valor por defecto, así que sus ids se descuentan del
+    # orden de la columna principal aunque se hayan mandado en `order`.
+    assert layout["order"] == [s for s in new_order if s not in DEFAULT_RAIL_IDS]
     assert layout["hidden"] == ["done-today", "sleeping"]
 
 
@@ -86,7 +98,9 @@ def test_partial_update_does_not_clobber_other_field(user_a):
 
     layout = preferences_svc.get_today_layout(user_a)
     assert layout["hidden"] == ["done-today"]
-    assert layout["order"] == list(reversed(TODAY_SECTION_IDS))
+    assert layout["order"] == [
+        s for s in reversed(TODAY_SECTION_IDS) if s not in DEFAULT_RAIL_IDS
+    ]
 
 
 @pytest.mark.django_db
@@ -98,8 +112,9 @@ def test_reset_wipes_layout(user_a):
     )
 
     layout = preferences_svc.reset_today_layout(user_a)
-    assert layout["order"] == list(TODAY_SECTION_IDS)
+    assert layout["order"] == main_default()
     assert layout["hidden"] == []
+    assert layout["rail"] == list(DEFAULT_RAIL_IDS)
 
 
 @pytest.mark.django_db
@@ -111,7 +126,8 @@ def test_missing_sections_appended_when_canonical_list_grows(user_a):
     layout = preferences_svc.get_today_layout(user_a)
     # The missing canonical id is appended at the end so it's visibly new.
     assert layout["order"][-1] == "launched-with-tasks"
-    assert set(layout["order"]) == set(TODAY_SECTION_IDS)
+    # Entre las dos columnas cubren la lista canónica entera.
+    assert set(layout["order"]) | set(layout["rail"]) == set(TODAY_SECTION_IDS)
 
 
 @pytest.mark.django_db
@@ -123,7 +139,7 @@ def test_dedups_order_input(user_a):
     # Stored order keeps the first occurrence; missing canonical ids
     # are then appended.
     assert layout["order"][:2] == ["today-focus", "done-today"]
-    assert len(layout["order"]) == len(TODAY_SECTION_IDS)
+    assert len(layout["order"]) == len(TODAY_SECTION_IDS) - len(DEFAULT_RAIL_IDS)
 
 
 @pytest.mark.django_db
@@ -144,8 +160,9 @@ def test_users_are_isolated(user_a, user_b):
 def test_query_returns_defaults_for_new_user(execute_query, user_a):
     result = execute_query(TODAY_LAYOUT_QUERY, user_id=user_a)
     assert result.errors is None
-    assert result.data["todayLayout"]["order"] == list(TODAY_SECTION_IDS)
+    assert result.data["todayLayout"]["order"] == main_default()
     assert result.data["todayLayout"]["hidden"] == []
+    assert result.data["todayLayout"]["rail"] == list(DEFAULT_RAIL_IDS)
 
 
 @pytest.mark.django_db
@@ -164,11 +181,12 @@ def test_mutation_updates_and_query_reflects_it(execute_query, user_a):
         variable_values={"order": new_order, "hidden": ["done-today"]},
     )
     assert res.errors is None
-    assert res.data["updateTodayLayout"]["order"] == new_order
+    expected = [s for s in new_order if s not in DEFAULT_RAIL_IDS]
+    assert res.data["updateTodayLayout"]["order"] == expected
     assert res.data["updateTodayLayout"]["hidden"] == ["done-today"]
 
     follow_up = execute_query(TODAY_LAYOUT_QUERY, user_id=user_a)
-    assert follow_up.data["todayLayout"]["order"] == new_order
+    assert follow_up.data["todayLayout"]["order"] == expected
     assert follow_up.data["todayLayout"]["hidden"] == ["done-today"]
 
 
@@ -206,7 +224,8 @@ def test_reset_mutation(execute_query, user_a):
     res = execute_query(RESET_MUTATION, user_id=user_a)
     assert res.errors is None
     assert res.data["resetTodayLayout"]["hidden"] == []
-    assert res.data["resetTodayLayout"]["order"] == list(TODAY_SECTION_IDS)
+    assert res.data["resetTodayLayout"]["order"] == main_default()
+    assert res.data["resetTodayLayout"]["rail"] == list(DEFAULT_RAIL_IDS)
 
 
 @pytest.mark.django_db
@@ -219,3 +238,58 @@ def test_mutation_isolates_users(execute_query, user_a, user_b):
 
     res = execute_query(TODAY_LAYOUT_QUERY, user_id=user_b)
     assert res.data["todayLayout"]["hidden"] == []
+
+
+# ------------------------- columna lateral (rail) ------------------------ #
+
+
+@pytest.mark.django_db
+def test_una_seccion_no_puede_estar_en_las_dos_columnas(user_a):
+    """El rail manda: si un id está en las dos listas, sale de `order`.
+
+    Un cliente puede mandar `order` con la lista entera sin saber del rail
+    (la app nativa lo hace). Sin esta regla la sección se pintaría dos veces.
+    """
+    preferences_svc.update_today_layout(
+        user_a, order=list(TODAY_SECTION_IDS), rail=["cooling"]
+    )
+    layout = preferences_svc.get_today_layout(user_a)
+    assert layout["rail"] == ["cooling"]
+    assert "cooling" not in layout["order"]
+
+
+@pytest.mark.django_db
+def test_vaciar_el_rail_a_proposito_se_respeta(user_a):
+    """Quien deja el rail vacío no quiere que se le repueble en la carga siguiente."""
+    preferences_svc.update_today_layout(user_a, rail=[])
+    layout = preferences_svc.get_today_layout(user_a)
+    assert layout["rail"] == []
+    # Y entonces TODO vive en la columna principal.
+    assert set(layout["order"]) == set(TODAY_SECTION_IDS)
+
+
+@pytest.mark.django_db
+def test_el_rail_conserva_su_propio_orden(user_a):
+    preferences_svc.update_today_layout(user_a, rail=["cooling", "stopped"])
+    assert preferences_svc.get_today_layout(user_a)["rail"] == ["cooling", "stopped"]
+
+
+@pytest.mark.django_db
+def test_cualquier_seccion_puede_ir_al_rail(user_a):
+    """No hay lista blanca: el editor deja mover lo que sea a donde sea."""
+    preferences_svc.update_today_layout(user_a, rail=["routines-today", "log-tail"])
+    layout = preferences_svc.get_today_layout(user_a)
+    assert layout["rail"] == ["routines-today", "log-tail"]
+    assert "routines-today" not in layout["order"]
+
+
+@pytest.mark.django_db
+def test_rail_rechaza_ids_desconocidos(user_a):
+    with pytest.raises(ValidationError):
+        preferences_svc.update_today_layout(user_a, rail=["no-existe"])
+
+
+@pytest.mark.django_db
+def test_rail_dedupe(user_a):
+    preferences_svc.update_today_layout(user_a, rail=["stopped", "stopped"])
+    assert preferences_svc.get_today_layout(user_a)["rail"] == ["stopped"]

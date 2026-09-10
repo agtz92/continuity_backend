@@ -24,6 +24,13 @@ from ..models import UserPreferences
 # IS the page's identity). It still participates in `order` so the
 # user can move it.
 TODAY_SECTION_IDS: tuple[str, ...] = (
+    # Los tres primeros y el último son del rediseño (ola 3, S01): el Home abre
+    # con "dónde te quedaste" y cierra con la cola del log. Se añaden aquí y
+    # basta: el layout vive en JSON, los ids desconocidos se descartan al leer
+    # y los que faltan reciben posición por defecto — sin migración.
+    "resume-thread",
+    "stopped",
+    "cooling",
     "counters",
     "stalled-alert",
     "today-focus",
@@ -34,9 +41,16 @@ TODAY_SECTION_IDS: tuple[str, ...] = (
     "stale-ideas",
     "active-projects",
     "launched-with-tasks",
+    "log-tail",
 )
 
 NON_HIDEABLE_TODAY_IDS: frozenset[str] = frozenset({"today-focus"})
+
+# Secciones que arrancan en la columna lateral para una cuenta nueva. El Home
+# del rediseño abre con el protagonista a la izquierda y lo detenido/enfriándose
+# al lado (artboard 01). No es una lista cerrada: el usuario puede mover
+# cualquier sección a cualquiera de las dos columnas desde el editor de layout.
+DEFAULT_RAIL_IDS: tuple[str, ...] = ("stopped", "cooling")
 
 
 def _get_or_create(user_id: uuid.UUID) -> UserPreferences:
@@ -74,7 +88,24 @@ def get_today_layout(user_id: uuid.UUID) -> dict:
         s for s in stored_hidden
         if s in TODAY_SECTION_IDS and s not in NON_HIDEABLE_TODAY_IDS
     ]
-    return {"order": order, "hidden": hidden}
+
+    # `rail` es la columna lateral, en su propio orden. Se guarda aparte de
+    # `order` en vez de como un campo por sección porque dentro del rail el
+    # orden también importa, y dos listas lo dicen sin ambigüedad.
+    #
+    # Una cuenta que nunca guardó nada estrena el rail por defecto; una que sí
+    # guardó respeta lo suyo, aunque esté vacío — quien vació el rail a
+    # propósito no quiere que se lo repueble en la siguiente carga.
+    if "rail" in raw:
+        rail = [s for s in (raw.get("rail") or []) if s in TODAY_SECTION_IDS]
+    else:
+        rail = [s for s in DEFAULT_RAIL_IDS if s in TODAY_SECTION_IDS]
+
+    # Nada puede estar en las dos columnas: el rail manda y `order` se limpia.
+    in_rail = set(rail)
+    order = [s for s in order if s not in in_rail]
+
+    return {"order": order, "hidden": hidden, "rail": rail}
 
 
 def update_today_layout(
@@ -82,6 +113,7 @@ def update_today_layout(
     *,
     order: Iterable[str] | None = None,
     hidden: Iterable[str] | None = None,
+    rail: Iterable[str] | None = None,
 ) -> dict:
     """Persist a partial update. Only fields explicitly passed are written.
 
@@ -117,6 +149,19 @@ def update_today_layout(
                 f"Cannot hide always-visible section(s): {', '.join(locked)}"
             )
         raw["hidden"] = sorted(set(hidden_list))
+
+    if rail is not None:
+        rail_list = list(rail)
+        unknown = [s for s in rail_list if s not in TODAY_SECTION_IDS]
+        if unknown:
+            raise ValidationError(f"Unknown section id(s): {', '.join(unknown)}")
+        seen_rail: set[str] = set()
+        deduped_rail = []
+        for s in rail_list:
+            if s not in seen_rail:
+                seen_rail.add(s)
+                deduped_rail.append(s)
+        raw["rail"] = deduped_rail
 
     prefs.today_layout = raw
     prefs.save(update_fields=["today_layout", "updated_at"])

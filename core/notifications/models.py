@@ -34,7 +34,9 @@ class NotificationSettings(models.Model):
     user_id = models.UUIDField(primary_key=True)
     locale = models.CharField(max_length=8, default="en")
     theme = models.CharField(max_length=10, default="system")
-    palette = models.CharField(max_length=20, default="default")
+    # "default" era el nombre de la paleta por defecto antes del rediseño;
+    # ahora la paleta por defecto se llama "ocre" (migración 0013).
+    palette = models.CharField(max_length=20, default="ocre")
     timezone = models.CharField(max_length=64, default="America/Mexico_City")
 
     digest_enabled = models.BooleanField(default=True)

@@ -87,7 +87,26 @@ def delete_idea(user_id: uuid.UUID, idea_id) -> None:
     bump_context_version(user_id)
 
 
-def promote_idea(user_id: uuid.UUID, idea_id) -> Project:
+def promote_idea(
+    user_id: uuid.UUID,
+    idea_id,
+    *,
+    first_action: str = "",
+    category_id=None,
+    priority: str = "",
+) -> Project:
+    """Convertir una idea en proyecto.
+
+    Los tres argumentos nuevos son **opcionales a propósito** (B3, rediseño S06).
+    El criterio del diseño es que no se pueda promover sin escribir la primera
+    acción, y la web ya lo exige; pero exigirlo aquí rompería la app nativa, que
+    todavía manda solo el id y que está fuera del alcance de este rediseño.
+
+    La secuencia es la del §7.2 del plan: primero el backend, retrocompatible;
+    los clientes después. **El candado del servidor se cierra cuando móvil
+    migre**, no antes — hasta entonces promover sin primera acción sigue siendo
+    posible desde allí, y eso es preferible a que la app falle en producción.
+    """
     check_entity_quota(user_id, "projects")
     with transaction.atomic():
         idea = get_idea(user_id, idea_id)
@@ -96,6 +115,11 @@ def promote_idea(user_id: uuid.UUID, idea_id) -> Project:
             name=idea.title,
             description=idea.description,
             why=idea.why,
+            # La primera acción ES el siguiente paso del proyecto: no hay campo
+            # nuevo que inventar, el modelo ya tenía dónde ponerla.
+            next_step=(first_action or "").strip(),
+            category_id=category_id,
+            priority=priority or "medium",
             status="idea",
             promoted_from_idea_at=timezone.now(),
         )

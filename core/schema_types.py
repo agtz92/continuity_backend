@@ -13,6 +13,7 @@ import strawberry
 from strawberry.types import Info
 
 from . import analytics as analytics_mod
+from .services import cooling as cooling_svc
 from .analytics import AnalyticsRange as AnalyticsRangeEnum
 
 from .models import (
@@ -78,9 +79,21 @@ class Project:
     killed_ai_reflection: Optional[str] = None
     stalled_at: Optional[dt.datetime] = None
     position: int = 0
+    # Derivados del rediseño (REDISENO_PLAN.md §8). Se calculan en el servidor
+    # para que web y móvil no discrepen en los tramos.
+    days_since_touch: int = 0
+    cooling: str = cooling_svc.WARM
+    # "Atorado" no es un estado del modelo: es tener alguna tarea abierta con
+    # blocker sin resolver. Solo el dashboard lo puede calcular sin N+1, así que
+    # el resto de resolvers lo dejan en None y la UI cae a "no bloqueado".
+    blocked_since: Optional[dt.datetime] = None
+    is_blocked: bool = False
 
     @classmethod
-    def from_model(cls, m: ProjectModel) -> "Project":
+    def from_model(
+        cls, m: ProjectModel, blocked_since: Optional[dt.datetime] = None
+    ) -> "Project":
+        days = cooling_svc.days_since_touch(m.last_activity)
         return cls(
             id=strawberry.ID(str(m.id)),
             name=m.name,
@@ -104,6 +117,10 @@ class Project:
             killed_ai_reflection=m.killed_ai_reflection,
             stalled_at=m.stalled_at,
             position=m.position,
+            days_since_touch=days,
+            cooling=cooling_svc.cooling(days),
+            blocked_since=blocked_since,
+            is_blocked=blocked_since is not None,
         )
 
 
@@ -165,6 +182,10 @@ class Task:
     parked_due_date: Optional[dt.datetime] = None
     parked_due_time: Optional[dt.time] = None
     blockers: List["TaskBlocker"] = strawberry.field(default_factory=list)
+    # Derivados de `blockers` (REDISENO_PLAN.md §8). El badge de bloqueo necesita
+    # los días y la razón, y no debería recalcularlos cada cliente.
+    blocked_since: Optional[dt.datetime] = None
+    blocked_reason: str = ""
 
     @classmethod
     def from_model(cls, m: TaskModel, blockers: Optional[List["TaskBlocker"]] = None) -> "Task":
@@ -174,6 +195,7 @@ class Task:
         dashboard pueda precargarlos en bloque y evitar un N+1; resolvers que no
         los necesitan pasan `None` -> lista vacía.
         """
+        bs = blockers or []
         return cls(
             id=strawberry.ID(str(m.id)),
             title=m.title,
@@ -187,7 +209,9 @@ class Task:
             duration_minutes=m.duration_minutes,
             parked_due_date=m.parked_due_date,
             parked_due_time=m.parked_due_time,
-            blockers=blockers or [],
+            blockers=bs,
+            blocked_since=cooling_svc.blocked_since(bs),
+            blocked_reason=cooling_svc.blocked_reason(bs),
         )
 
 
@@ -336,15 +360,22 @@ class OnboardingState:
 class TodayLayout:
     """User's customization of the Today screen.
 
-    `order` is always the full canonical section list with the user's
-    reorder applied. `hidden` lists ids the user has chosen not to
-    render. Sections not in `hidden` still respect their data-existence
-    condition (e.g. "sleeping" only renders if there are sleeping
-    projects).
+    `order` is the MAIN column, in the user's order. `rail` is the side
+    column, also ordered; a section is in one or the other, never both.
+    Between them they cover the full canonical list. `hidden` lists ids
+    the user has chosen not to render. Sections not in `hidden` still
+    respect their data-existence condition (e.g. "sleeping" only renders
+    if there are sleeping projects).
+
+    `rail` se añadió con el Home de dos columnas del rediseño. Un cliente
+    que no lo conozca (la app nativa) puede ignorarlo: `order` sigue
+    siendo una lista válida por sí sola, solo que sin las secciones que
+    el usuario mandó al lateral.
     """
 
     order: List[str]
     hidden: List[str]
+    rail: List[str]
 
 
 @strawberry.type

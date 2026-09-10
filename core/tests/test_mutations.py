@@ -8,6 +8,7 @@ effects too.
 
 import pytest
 
+from core.services import ideas as ideas_svc
 from core.models import (
     BackupMeta,
     Category,
@@ -384,3 +385,43 @@ def test_mark_backup_updates_existing_meta(execute_query, user_a):
     assert BackupMeta.objects.filter(user_id=user_a).count() == 1
     second = BackupMeta.objects.get(user_id=user_a).last_backup
     assert second >= first
+
+
+# ===== Promover ideas (rediseño S06 / B3) =====================================
+
+
+@pytest.mark.django_db
+def test_promote_idea_sin_argumentos_sigue_funcionando(user_a):
+    """Retrocompatibilidad: la app nativa manda solo el id y no puede romperse.
+
+    El candado de "primera acción obligatoria" vive HOY en la web. Cerrarlo en
+    el servidor antes de que móvil migre haría fallar la promoción en
+    producción para esos usuarios (ver `services/ideas.promote_idea`).
+    """
+    idea = ideas_svc.create_idea(user_a, title="Una idea", description="d", why="w")
+    project = ideas_svc.promote_idea(user_a, idea.id)
+    assert project.name == "Una idea"
+    assert project.next_step == ""
+    assert project.priority == "medium"
+
+
+@pytest.mark.django_db
+def test_promote_idea_guarda_la_primera_accion_como_siguiente_paso(user_a):
+    """La primera acción no es un campo nuevo: ES el siguiente paso del proyecto."""
+    idea = ideas_svc.create_idea(user_a, title="Otra idea", description="", why="")
+    project = ideas_svc.promote_idea(
+        user_a,
+        idea.id,
+        first_action="  Llamar al proveedor  ",
+        priority="high",
+    )
+    assert project.next_step == "Llamar al proveedor"
+    assert project.priority == "high"
+
+
+@pytest.mark.django_db
+def test_promote_idea_acepta_categoria(user_a):
+    cat = Category.objects.create(user_id=user_a, name="Clientes", color="emerald")
+    idea = ideas_svc.create_idea(user_a, title="Tercera", description="", why="")
+    project = ideas_svc.promote_idea(user_a, idea.id, category_id=cat.id)
+    assert project.category_id == cat.id

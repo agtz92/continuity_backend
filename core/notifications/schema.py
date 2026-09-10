@@ -109,8 +109,18 @@ class NotificationSettingsInput:
 
 
 SUPPORTED_LOCALES = {"en", "es"}
-SUPPORTED_THEMES = {"continuuit", "light", "dark", "system"}
-SUPPORTED_PALETTES = {
+
+# Rediseño 2026: los temas pasan a llamarse continuu / light / carbon y las
+# paletas se reducen a cinco curadas. Los nombres viejos siguen aceptándose
+# porque hay clientes que aún los mandan — sobre todo la app nativa, que queda
+# fuera del rediseño (REDISENO_PLAN.md §8, DP-01). Retirarlos aquí antes de
+# migrar móvil haría fallar su pantalla de Apariencia con INVALID_THEME.
+CURRENT_THEMES = {"continuu", "light", "carbon", "system"}
+LEGACY_THEMES = {"continuuit", "dark"}
+SUPPORTED_THEMES = CURRENT_THEMES | LEGACY_THEMES
+
+CURRENT_PALETTES = {"ocre", "salvia", "oxido", "hielo", "ciruela"}
+LEGACY_PALETTES = {
     "default",
     "continuuit",
     "pink",
@@ -125,6 +135,7 @@ SUPPORTED_PALETTES = {
     "sunset",
     "retro",
 }
+SUPPORTED_PALETTES = CURRENT_PALETTES | LEGACY_PALETTES
 SUPPORTED_TIMEZONES = zoneinfo.available_timezones()
 
 

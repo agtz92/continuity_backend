@@ -264,9 +264,27 @@ class Mutation:
 
     @strawberry.mutation
     @gql_error_handler
-    def promote_idea(self, info: Info, id: strawberry.ID) -> Project:
+    def promote_idea(
+        self,
+        info: Info,
+        id: strawberry.ID,
+        first_action: Optional[str] = None,
+        category_id: Optional[strawberry.ID] = None,
+        priority: Optional[str] = None,
+    ) -> Project:
+        """Promover una idea a proyecto.
+
+        Los tres argumentos nuevos son **opcionales** para no romper la app
+        nativa, que todavía manda solo el id (ver `services/ideas.promote_idea`).
+        """
         uid = _user_id(info)
-        p = ideas_svc.promote_idea(uid, id)
+        p = ideas_svc.promote_idea(
+            uid,
+            id,
+            first_action=first_action or "",
+            category_id=category_id,
+            priority=priority or "",
+        )
         return Project.from_model(p)
 
     # ===== Mutations: Quick Notes (notas con secciones) =====
@@ -599,26 +617,35 @@ class Mutation:
         info: Info,
         order: Optional[List[str]] = None,
         hidden: Optional[List[str]] = None,
+        rail: Optional[List[str]] = None,
     ) -> TodayLayout:
         from django.core.exceptions import ValidationError
 
         uid = _user_id(info)
         try:
             layout = preferences_svc.update_today_layout(
-                uid, order=order, hidden=hidden
+                uid, order=order, hidden=hidden, rail=rail
             )
         except ValidationError as e:
             raise GraphQLError(
                 str(e.messages[0] if e.messages else "Invalid input"),
                 extensions={"code": "BAD_INPUT"},
             )
-        return TodayLayout(order=layout["order"], hidden=layout["hidden"])
+        return TodayLayout(
+            order=layout["order"],
+            hidden=layout["hidden"],
+            rail=layout["rail"],
+        )
 
     @strawberry.mutation
     def reset_today_layout(self, info: Info) -> TodayLayout:
         uid = _user_id(info)
         layout = preferences_svc.reset_today_layout(uid)
-        return TodayLayout(order=layout["order"], hidden=layout["hidden"])
+        return TodayLayout(
+            order=layout["order"],
+            hidden=layout["hidden"],
+            rail=layout["rail"],
+        )
 
     # ===== Mutations: Plugin Google Tasks =====
     @strawberry.mutation
