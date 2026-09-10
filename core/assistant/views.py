@@ -3,6 +3,7 @@
 Routes (mounted under `/api/assistant/`):
 
 - POST `/chat/`           — JSON in, Server-Sent-Events out.
+- POST `/parse-capture/`  — una línea de ⌘K → borrador estructurado (no escribe).
 - POST `/cancel/`         — set a cache flag the streaming view checks.
 - GET  `/conversations/`  — list the user's conversations.
 - GET  `/conversations/<id>/messages/` — full history for one conversation.
@@ -27,7 +28,7 @@ from django.utils.decorators import method_decorator
 from core.auth import authenticate_request
 from core.services import interactions
 
-from . import anthropic_client, prompts, quotas
+from . import anthropic_client, capture, prompts, quotas
 from .anthropic_client import AssistantConfigError
 from .models import Conversation, Message, MessageRole
 
@@ -384,6 +385,93 @@ class ConversationMessagesView(View):
 
 
 @method_decorator(csrf_exempt, name="dispatch")
+# ---------- POST /parse-capture/ ----------
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class ParseCaptureView(View):
+    """Interpreta una línea de captura rápida y devuelve un borrador.
+
+    **No escribe nada.** El guardado sigue siendo `createTask` y compañía,
+    disparado por el usuario cuando ya vio lo que se va a guardar. Aquí solo se
+    traduce texto suelto a campos.
+
+    Es tier de pago: la captura rápida entera funciona sin esto (el parser de
+    `#`, `@`, `~` y `!` vive en el cliente y no llama a nadie), así que negar
+    este endpoint a un plan free no le quita ninguna función, solo el atajo.
+    """
+
+    http_method_names = ["post"]
+
+    def post(self, request: HttpRequest):
+        early = _auth(request)
+        if early is not None:
+            return early
+        if _burst_limited(request):
+            return _json_error("Rate limit exceeded", status=429)
+
+        try:
+            body = json.loads(request.body.decode("utf-8") or "{}")
+        except json.JSONDecodeError:
+            return _json_error("Invalid JSON body")
+
+        text = (body.get("text") or "").strip()
+        if not text:
+            return _json_error("Empty text")
+        # Una captura es una línea. El tope es generoso a propósito, pero existe:
+        # sin él, este endpoint sería una vía barata de mandar un libro al modelo.
+        if len(text) > 2000:
+            return _json_error("Text too long (max 2000 chars)", status=413)
+
+        user_id = request.user_id
+
+        try:
+            snapshot = quotas.check(user_id)
+        except quotas.QuotaExceeded as e:
+            return _json_error(
+                "Quota exceeded",
+                status=429,
+                kind=e.kind,
+                reset_at=e.reset_at.isoformat(),
+            )
+
+        if not prompts.is_write_tier(snapshot.plan):
+            return _json_error(
+                "Interpreting a capture with AI needs a paid plan",
+                status=403,
+                code="plan_required",
+                plan_required="pro",
+            )
+
+        kind_hint = body.get("kind")
+        projects = capture.capturable_projects(user_id)
+
+        try:
+            result = capture.interpret(
+                text,
+                projects,
+                now=timezone.localtime(),
+                kind_hint=kind_hint if isinstance(kind_hint, str) else None,
+            )
+        except AssistantConfigError as e:
+            return _json_error(str(e), status=503)
+        except Exception as e:  # noqa: BLE001
+            logger.exception("parse-capture failed")
+            return _json_error(f"Could not interpret the capture: {e}", status=502)
+
+        # Cuenta tokens pero NO mensaje: no es una conversación, y gastar del
+        # cupo diario de chat por pulsar ⌘↵ sería cobrar dos veces la misma cosa.
+        quotas.record(
+            user_id,
+            tokens_in=result.tokens_in,
+            tokens_out=result.tokens_out,
+            cache_read_in=0,
+            counts_message=False,
+        )
+
+        return JsonResponse({"draft": result.draft.to_json()})
+
+
 class UsageView(View):
     http_method_names = ["get"]
 

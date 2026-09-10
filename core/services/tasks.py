@@ -6,6 +6,7 @@ import datetime as dt
 import uuid
 from typing import Optional
 
+from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
@@ -69,21 +70,56 @@ def create_task(
     effort_hours: Optional[float] = None,
     due_time: Optional[dt.time] = None,
     duration_minutes: Optional[int] = None,
+    blocker: str = "",
+    client_token: str = "",
 ) -> Task:
+    """Crea una tarea y, si viene, su blocker externo **en la misma
+    transaccion**.
+
+    `blocker` y `client_token` existen por la captura rapida (⌘K), que escribia
+    en dos pasos: `createTask` y despues `addTaskBlocker`. Si el segundo fallaba
+    quedaba una tarea sin bloqueo y el usuario reintentaba, creando una tarea
+    duplicada. Aqui o entran las dos cosas o no entra ninguna.
+
+    `client_token` es la otra mitad del problema: la peticion pudo llegar y
+    perderse la respuesta. Al reintentar con el mismo token se devuelve la tarea
+    que ya se grabo, en lugar de una segunda. Vacio = sin idempotencia (el resto
+    de la app, que escribe desde formularios y no reintenta sola).
+    """
     assert_owned(user_id, project_id)
+
+    if client_token:
+        existing = Task.objects.filter(
+            user_id=user_id, client_token=client_token
+        ).first()
+        if existing is not None:
+            return existing
+
     check_entity_quota(user_id, "tasks_total")
     if project_id:
         check_entity_quota(user_id, "tasks_per_project", project_id=project_id)
-    task = Task.objects.create(
-        user_id=user_id,
-        title=title,
-        project_id=project_id or None,
-        due_date=due_date,
-        done=bool(done),
-        effort_hours=effort_hours,
-        due_time=due_time,
-        duration_minutes=duration_minutes,
-    )
+
+    reason = (blocker or "").strip()
+    with transaction.atomic():
+        task = Task.objects.create(
+            user_id=user_id,
+            title=title,
+            project_id=project_id or None,
+            due_date=due_date,
+            done=bool(done),
+            effort_hours=effort_hours,
+            due_time=due_time,
+            duration_minutes=duration_minutes,
+            client_token=client_token or "",
+        )
+        if reason:
+            TaskBlocker.objects.create(
+                user_id=user_id,
+                blocked_task=task,
+                blocking_task_id=None,
+                external_description=reason,
+            )
+
     log_event(
         user_id,
         kind=ActivityKind.TASK_CREATED,

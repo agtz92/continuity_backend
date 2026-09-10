@@ -7,6 +7,11 @@ app_name = "assistant"
 urlpatterns = [
     path("chat/", views.ChatView.as_view(), name="chat"),
     path("cancel/", views.CancelView.as_view(), name="cancel"),
+    path(
+        "parse-capture/",
+        views.ParseCaptureView.as_view(),
+        name="parse_capture",
+    ),
     path("conversations/", views.ConversationsView.as_view(), name="conversations"),
     path(
         "conversations/<uuid:conv_id>/messages/",

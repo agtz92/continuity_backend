@@ -181,8 +181,20 @@ class Mutation:
             effort_hours=data.effort_hours,
             due_time=data.due_time,
             duration_minutes=data.duration_minutes,
+            blocker=data.blocker or "",
+            client_token=data.client_token or "",
         )
-        return Task.from_model(m)
+        # `from_model` no consulta bloqueadores (los recibe, para que el
+        # dashboard evite el N+1). Aquí solo puede haberlos si la captura mandó
+        # uno o si el token devolvió una tarea que ya existía, así que la query
+        # extra se paga únicamente en esos dos casos.
+        may_have_blockers = bool((data.blocker or "").strip() or data.client_token)
+        blockers = (
+            [TaskBlocker.from_model(b) for b in m.blockers.all()]
+            if may_have_blockers
+            else []
+        )
+        return Task.from_model(m, blockers)
 
     @strawberry.mutation
     @gql_error_handler

@@ -143,6 +143,11 @@ class Task(TimestampedModel):
     # dismissed. See core/services/tasks.py park/restore helpers.
     parked_due_date = models.DateTimeField(null=True, blank=True)
     parked_due_time = models.TimeField(null=True, blank=True)
+    # Idempotencia de la captura rapida: el cliente manda un token por linea
+    # capturada y lo reusa al reintentar. Si la red se cayo despues de que el
+    # servidor grabara, el reintento devuelve la MISMA tarea en vez de crear una
+    # segunda. Vacio para todo lo que no viene de una captura reintentable.
+    client_token = models.CharField(max_length=64, blank=True, default="")
 
     class Meta:
         ordering = ["done", "due_date", "-created"]
@@ -151,6 +156,11 @@ class Task(TimestampedModel):
                 fields=["user_id", "google_task_id"],
                 condition=Q(google_task_id__isnull=False),
                 name="uniq_user_google_task",
+            ),
+            models.UniqueConstraint(
+                fields=["user_id", "client_token"],
+                condition=~Q(client_token=""),
+                name="uniq_user_client_token",
             ),
         ]
 

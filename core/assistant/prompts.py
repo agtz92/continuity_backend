@@ -336,9 +336,18 @@ def get_or_build_skinny_context(
     return text
 
 
-def _is_write_tier(plan: str) -> bool:
-    """Paid plans get the read-write assistant; free is read-only."""
+def is_write_tier(plan: str) -> bool:
+    """Paid plans get the read-write assistant; free is read-only.
+
+    Tambien gatea `/parse-capture/`: es la misma frontera (el modelo actuando
+    sobre los datos del usuario, no solo leyendolos), asi que vive en un solo
+    sitio.
+    """
     return plan in ("pro", "studio", "admin")
+
+
+#: Alias historico; `is_write_tier` es el nombre publico.
+_is_write_tier = is_write_tier
 
 
 def build_system_blocks(
@@ -355,7 +364,7 @@ def build_system_blocks(
     2. The user-scoped skinny context (busted via context_version).
     """
     skinny = get_or_build_skinny_context(user_id, plan=plan, now=now)
-    prompt_text = SYSTEM_PROMPT_WRITE if _is_write_tier(plan) else SYSTEM_PROMPT_TEXT
+    prompt_text = SYSTEM_PROMPT_WRITE if is_write_tier(plan) else SYSTEM_PROMPT_TEXT
     return [
         {
             "type": "text",

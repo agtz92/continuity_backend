@@ -504,6 +504,13 @@ class TaskInput:
     effort_hours: Optional[float] = None
     due_time: Optional[dt.time] = None
     duration_minutes: Optional[int] = None
+    # Los dos ultimos SOLO los lee `createTask`; `updateTask` los ignora.
+    # `blocker` es la razon de bloqueo externa, para que tarea y blocker entren
+    # en la misma transaccion (antes eran dos mutations y podian quedar a
+    # medias). `client_token` hace idempotente el reintento de la captura
+    # rapida: mismo token = misma tarea, no una copia.
+    blocker: Optional[str] = ""
+    client_token: Optional[str] = ""
 
 
 @strawberry.input
