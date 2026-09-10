@@ -61,18 +61,26 @@ alimenta el MRR neto del panel de admin.
 
 Dónde vive cada copia:
 
+> ⚠️ **La tabla de arriba no coincide con `settings.py`.** El código tiene Studio a
+> **$19.00 mensual / $190.00 anual** (`PRICE_STUDIO_MONTHLY_AMOUNT_CENTS=1900`,
+> `PRICE_STUDIO_ANNUAL_AMOUNT_CENTS=19000`); este doc dice $24.00 / $228.00. Uno de
+> los dos está mal y **no es una discrepancia que un agente deba resolver solo**: es
+> lo que le cobras a la gente. Decide cuál manda y alinea el otro.
+
 | Uso | Lugar |
 |---|---|
 | Texto que ve el usuario en la web | `frontend/messages/{es,en}.json` → `marketing.pricing.tiers.*` |
-| Identificadores de precio de Stripe | env `STRIPE_PRICE_{PRO,STUDIO}_{MONTHLY,ANNUAL}` |
-| Importes para calcular MRR | env `STRIPE_PRICE_*_AMOUNT_CENTS` |
 | Identificadores de producto de tienda | env `STORE_PRODUCT_{PRO,STUDIO}_{MONTHLY,ANNUAL}` |
-| Importes de tienda | env `STORE_PRICE_*_AMOUNT_CENTS` — **déjalos en 0** |
+| **Importes, los tres canales** | env `PRICE_{PRO,STUDIO}_{MONTHLY,ANNUAL}_AMOUNT_CENTS` |
 
-> **Cómo se sostiene la paridad.** `core/billing/store_plans.py` hace que los
-> importes de tienda **hereden** los de Stripe cuando están sin configurar. La
-> paridad es el comportamiento por defecto; divergir exige poner un valor a
-> mano. Si algún día quieres cobrar distinto en móvil, ese es el único lugar que
+Ya no hay identificadores de precio de Stripe ni importes de tienda aparte: Stripe
+dejó de ser emisor (sigue siendo el procesador de tarjeta bajo Web Billing) y hay
+**un solo juego de importes** para los tres canales.
+
+> **Cómo se sostiene la paridad.** `core/billing/catalog.py` (que reemplazó a
+> `store_plans.py`) tiene **un solo juego de importes**, compartido por los tres
+> canales, así que no pueden separarse por descuido. Cobrar distinto por canal
+> exigiría un cambio deliberado en ese archivo — es el único lugar que
 > hay que tocar — y hazlo a sabiendas.
 
 > **Advertencia sobre monedas.** La paridad que se puede garantizar es **en
@@ -252,7 +260,7 @@ Los netos son estimaciones para un tablero, no contabilidad.
 | Titularidad | `core/billing/entitlements.py` — punto único de escritura, con conflictos, orden y exención |
 | Stripe | `sync_subscription_to_profile` ya sólo traduce y delega; guard simétrico en la rama activa |
 | Stripe | `api_version` fijada + `period_end_from_subscription()` que lee las dos formas de `current_period_end` |
-| Tiendas | `store_plans.py` (catálogo, paridad, comisión) y `store_webhooks.py` (webhook, auth, idempotencia) |
+| Tiendas | `catalog.py` (catálogo, paridad, comisión) y `store_webhooks.py` (webhook, auth, idempotencia) |
 | Cross-canal | Guards en las seis operaciones de Stripe + código `SUBSCRIPTION_STORE_MANAGED` |
 | Web | `router.replace` contra el doble checkout; estado read-only si la compra es de tienda |
 | Móvil | Deep link al gestor nativo; `store_managed` en el snapshot de uso |
@@ -295,7 +303,7 @@ Los netos son estimaciones para un tablero, no contabilidad.
    Las dos conviven bien con la capa: `apply_entitlement` nunca degrada a una
    cuenta con `is_billing_exempt`.
 2. **No traslades la comisión al precio.** La paridad en USD es una decisión de
-   producto; `store_plans.py` la sostiene por defecto.
+   producto; `catalog.py` la sostiene por defecto.
 3. **No trates "cancelado" como "expirado"** en las tiendas.
 4. **No subas `STRIPE_API_VERSION`** sin leer el comentario de
    `core/billing/stripe_client.py`.
@@ -313,28 +321,41 @@ Los netos son estimaciones para un tablero, no contabilidad.
 
 ---
 
-## 8. Variables de entorno nuevas
+## 8. Variables de entorno
+
+> Esta sección estaba desactualizada: listaba `STRIPE_*` y `STORE_PRICE_*_AMOUNT_CENTS`,
+> que **ya no existen en `settings.py`**. Stripe dejó de ser emisor (sigue siendo el
+> procesador de tarjeta bajo Web Billing) y los importes nunca tuvieron el prefijo
+> `STORE_`. Ponerlas en Render no configuraba nada y daba la falsa impresión de que sí.
+> Lo de abajo sale de leer `continuity/settings.py`, no de memoria.
 
 ```bash
-# Stripe — fijar la versión de API (ver stripe_client.py antes de cambiarla)
-STRIPE_API_VERSION=2024-12-18.acacia
-# Sólo para estimar el neto en el panel de admin
-STRIPE_FEE_PERCENT=0.029
-STRIPE_FEE_FIXED_CENTS=30
-
 # Tiendas (App Store / Google Play vía RevenueCat)
 REVENUECAT_WEBHOOK_AUTH=            # secreto compartido; vacío ⇒ rechaza todo
 STORE_PRODUCT_PRO_MONTHLY=
 STORE_PRODUCT_PRO_ANNUAL=
 STORE_PRODUCT_STUDIO_MONTHLY=
 STORE_PRODUCT_STUDIO_ANNUAL=
-STORE_COMMISSION_RATE=0.15          # 0.30 al superar $1M/año
 
-# Importes de tienda: déjalos en 0 para heredar los de Stripe (paridad).
-STORE_PRICE_PRO_MONTHLY_AMOUNT_CENTS=0
-STORE_PRICE_PRO_ANNUAL_AMOUNT_CENTS=0
-STORE_PRICE_STUDIO_MONTHLY_AMOUNT_CENTS=0
-STORE_PRICE_STUDIO_ANNUAL_AMOUNT_CENTS=0
+# Precios — UN solo juego para los tres canales. Eso es lo que hace que la
+# paridad sea estructural y no una convención que alguien tiene que recordar.
+PRICE_PRO_MONTHLY_AMOUNT_CENTS=900
+PRICE_PRO_ANNUAL_AMOUNT_CENTS=8400
+PRICE_STUDIO_MONTHLY_AMOUNT_CENTS=1900
+PRICE_STUDIO_ANNUAL_AMOUNT_CENTS=19000
+BILLING_CURRENCY=usd
+
+# Comisiones — sólo para estimar el neto en el panel de admin.
+STORE_COMMISSION_RATE=0.15          # 0.30 mientras NO estés en el Small Business
+                                    # Program de Apple: inscribirse es obligatorio,
+                                    # no es automático como en Google Play.
+CARD_FEE_PERCENT=0.029
+CARD_FEE_FIXED_CENTS=30
+REVENUECAT_FEE_PERCENT=0.01
+
+# Sandbox y producción llegan al MISMO endpoint. Este flag es lo único que
+# impide que una compra de prueba mueva el plan de alguien de verdad.
+BILLING_TEST_MODE=False             # True sólo en local/staging
 ```
 
 ---
@@ -347,7 +368,7 @@ STORE_PRICE_STUDIO_ANNUAL_AMOUNT_CENTS=0
 | `core/billing/services.py` | Operaciones de Stripe + guards cross-canal |
 | `core/billing/webhooks.py` | Webhook de Stripe |
 | `core/billing/store_webhooks.py` | Webhook de tiendas (RevenueCat) |
-| `core/billing/store_plans.py` | Catálogo de tienda, paridad de precios, comisión |
+|  `core/billing/catalog.py` | Catálogo de tienda, paridad de precios, comisión |
 | `core/billing/plans.py` | Catálogo de Stripe + helpers por fuente |
 | `core/billing/stripe_client.py` | SDK, `api_version` fijada, lectura de periodo |
 | `core/billing/models.py` | `StoreWebhookEvent` |

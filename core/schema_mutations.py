@@ -65,6 +65,28 @@ from .schema_helpers import (
 # ---------- Mutations ----------
 
 
+def _task_with_blockers(m) -> Task:
+    """Proyecta una tarea **con sus bloqueadores de verdad**.
+
+    `Task.from_model` los recibe en vez de consultarlos, para que el dashboard
+    los precargue en bloque y evite el N+1. El default de ese parámetro es lista
+    vacía, y ahí estaba el fallo: `update_task` y `toggle_task` lo usaban tal
+    cual, así que devolvían `blockers: []` — junto con `blocked_since: null` y
+    `blocked_reason: ""`— a clientes que **sí piden ese campo** en la mutación.
+
+    Apollo hace lo único que puede con eso: reemplaza el array de la caché por
+    el vacío que le llegó. Resultado, una tarea bloqueada dejaba de parecerlo en
+    cuanto la tocabas, y el proyecto perdía su badge de atasco. El servidor no
+    puede contestar con una lista vacía a un campo que le preguntaron.
+
+    Aquí es una consulta extra por mutación de UNA tarea, no un N+1. La
+    corrección vale infinitamente más que esa query.
+    """
+    return Task.from_model(
+        m, [TaskBlocker.from_model(b) for b in m.blockers.all()]
+    )
+
+
 @strawberry.type
 class Mutation:
     # ===== Mutations: Conector MCP =====
@@ -211,14 +233,14 @@ class Mutation:
             due_time=data.due_time,
             duration_minutes=data.duration_minutes,
         )
-        return Task.from_model(m)
+        return _task_with_blockers(m)
 
     @strawberry.mutation
     @gql_error_handler
     def toggle_task(self, info: Info, id: strawberry.ID) -> Task:
         uid = _user_id(info)
         m = tasks_svc.toggle_task(uid, id)
-        return Task.from_model(m)
+        return _task_with_blockers(m)
 
     @strawberry.mutation
     def delete_task(self, info: Info, id: strawberry.ID) -> bool:
