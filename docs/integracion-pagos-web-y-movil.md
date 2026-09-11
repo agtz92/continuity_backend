@@ -56,20 +56,24 @@ alimenta el MRR neto del panel de admin.
 | Plan | Mensual | Anual (equivalente mensual) | Cargo anual único |
 |---|---:|---:|---:|
 | Free | $0 | $0 | — |
-| Pro | **$9.00** | **$7.00** | **$84.00** |
-| Studio | **$24.00** | **$19.00** | **$228.00** |
+| Pro | **$8.99** | **$7.50** | **$89.99** |
+| Studio | **$14.99** | **$12.50** | **$149.99** |
+
+> **Manda Apple.** Es el único canal que no deja elegir el número: vende en
+> puntos de precio de un catálogo fijo, así que $9.00 exacto no siempre existe.
+> Web Billing sí puede igualar a Apple; al revés no. Fijado en App Store Connect
+> el 10 de septiembre de 2026.
+>
+> La conversión a los otros 174 territorios la hace Apple con sus tasas, y
+> RevenueCat Web Billing hará la suya: la paridad es **exacta en USD** y
+> aproximada fuera. El backend solo modela una moneda (`BILLING_CURRENCY`).
 
 Dónde vive cada copia:
 
-> ⚠️ **La tabla de arriba no coincide con `settings.py`.** El código tiene Studio a
-> **$19.00 mensual / $190.00 anual** (`PRICE_STUDIO_MONTHLY_AMOUNT_CENTS=1900`,
-> `PRICE_STUDIO_ANNUAL_AMOUNT_CENTS=19000`); este doc dice $24.00 / $228.00. Uno de
-> los dos está mal y **no es una discrepancia que un agente deba resolver solo**: es
-> lo que le cobras a la gente. Decide cuál manda y alinea el otro.
-
 | Uso | Lugar |
 |---|---|
-| Texto que ve el usuario en la web | `frontend/messages/{es,en}.json` → `marketing.pricing.tiers.*` |
+| Texto que ve el usuario en la web | `frontend/messages/{es,en}.json` → `landing.pricing.tiers.*` |
+| Texto que ve el usuario en móvil | `continuity-mobile/src/messages/{es,en}.json` → `landing.pricing.tiers.*` |
 | Identificadores de producto de tienda | env `STORE_PRODUCT_{PRO,STUDIO}_{MONTHLY,ANNUAL}` |
 | **Importes, los tres canales** | env `PRICE_{PRO,STUDIO}_{MONTHLY,ANNUAL}_AMOUNT_CENTS` |
 
@@ -339,10 +343,10 @@ STORE_PRODUCT_STUDIO_ANNUAL=
 
 # Precios — UN solo juego para los tres canales. Eso es lo que hace que la
 # paridad sea estructural y no una convención que alguien tiene que recordar.
-PRICE_PRO_MONTHLY_AMOUNT_CENTS=900
-PRICE_PRO_ANNUAL_AMOUNT_CENTS=8400
-PRICE_STUDIO_MONTHLY_AMOUNT_CENTS=1900
-PRICE_STUDIO_ANNUAL_AMOUNT_CENTS=19000
+PRICE_PRO_MONTHLY_AMOUNT_CENTS=899
+PRICE_PRO_ANNUAL_AMOUNT_CENTS=8999
+PRICE_STUDIO_MONTHLY_AMOUNT_CENTS=1499
+PRICE_STUDIO_ANNUAL_AMOUNT_CENTS=14999
 BILLING_CURRENCY=usd
 
 # Comisiones — sólo para estimar el neto en el panel de admin.

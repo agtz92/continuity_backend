@@ -271,17 +271,21 @@ STORE_PRODUCT_STUDIO_ANNUAL = config("STORE_PRODUCT_STUDIO_ANNUAL", default="")
 # Gross price in cents — ONE value per product, shared by every channel. That
 # is what makes price parity structural: charging differently per channel is
 # not something you can do by forgetting to set a variable.
+#
+# Los defaults son los precios REALES fijados en App Store Connect. Apple manda
+# porque es el único canal que no deja elegir el número: vende en puntos de
+# precio de un catálogo fijo. Web Billing sí puede igualar a Apple; al revés no.
 PRICE_PRO_MONTHLY_AMOUNT_CENTS = config(
-    "PRICE_PRO_MONTHLY_AMOUNT_CENTS", default=900, cast=int
+    "PRICE_PRO_MONTHLY_AMOUNT_CENTS", default=899, cast=int
 )
 PRICE_PRO_ANNUAL_AMOUNT_CENTS = config(
-    "PRICE_PRO_ANNUAL_AMOUNT_CENTS", default=8400, cast=int
+    "PRICE_PRO_ANNUAL_AMOUNT_CENTS", default=8999, cast=int
 )
 PRICE_STUDIO_MONTHLY_AMOUNT_CENTS = config(
-    "PRICE_STUDIO_MONTHLY_AMOUNT_CENTS", default=1900, cast=int
+    "PRICE_STUDIO_MONTHLY_AMOUNT_CENTS", default=1499, cast=int
 )
 PRICE_STUDIO_ANNUAL_AMOUNT_CENTS = config(
-    "PRICE_STUDIO_ANNUAL_AMOUNT_CENTS", default=19000, cast=int
+    "PRICE_STUDIO_ANNUAL_AMOUNT_CENTS", default=14999, cast=int
 )
 BILLING_CURRENCY = config("BILLING_CURRENCY", default="usd")
 # Commission the stores keep. 0.15 while under $1M/year (Apple Small Business
