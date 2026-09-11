@@ -336,7 +336,17 @@ Los netos son estimaciones para un tablero, no contabilidad.
 ```bash
 # Tiendas (App Store / Google Play vía RevenueCat)
 REVENUECAT_WEBHOOK_AUTH=            # secreto compartido; vacío ⇒ rechaza todo
-STORE_PRODUCT_PRO_MONTHLY=
+
+# Cada uno acepta una LISTA separada por comas. El primero es el que se vende
+# hoy; los demás son ids retirados que hay que seguir honrando.
+#
+# No es opcional: los productos de RevenueCat Web Billing son inmutables — no
+# se puede editar ni precio ni ciclo de facturación. Cambiar un precio obliga a
+# crear un producto NUEVO con otro id. Los suscriptores que ya pagaban conservan
+# el viejo y sus renovaciones llegan con él durante meses. Si el id retirado no
+# está en la lista, el webhook las descarta y esa gente pierde su plan al
+# renovar — en silencio, y solo los que ya te pagaban.
+STORE_PRODUCT_PRO_MONTHLY=          # p.ej. it.continuu.pro_monthly_v2,it.continuu.pro_monthly
 STORE_PRODUCT_PRO_ANNUAL=
 STORE_PRODUCT_STUDIO_MONTHLY=
 STORE_PRODUCT_STUDIO_ANNUAL=

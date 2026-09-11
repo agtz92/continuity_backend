@@ -71,20 +71,44 @@ _STORE_TO_SOURCE = {
 }
 
 
+def _product_ids(key: str) -> list[str]:
+    """Todos los ids configurados en un ajuste, en orden.
+
+    Cada `STORE_PRODUCT_*` acepta **una lista separada por comas**, y esto no es
+    una comodidad: es obligatorio por cómo funciona RevenueCat Web Billing.
+
+    Sus productos son **inmutables**. Su propia documentación lo dice: "once
+    you've saved the product, it's only possible to add prices for new
+    currencies, and not edit existing ones… if you need to change pricing, we
+    recommend you create a new product and replace the existing product in your
+    offering". O sea que **cada cambio de precio crea un id nuevo**.
+
+    Los suscriptores que ya pagaban conservan el id viejo, y sus renovaciones
+    siguen llegando con él. Con un solo id por plan+periodo, el webhook las
+    descartaría como inservibles y esa gente perdería su plan al renovar —
+    silenciosamente, y solo los que ya te pagaban.
+
+    Por eso la lista. El **primero es el canónico**: el que se ofrece a quien
+    compra hoy. Los demás son historia que hay que seguir honrando.
+    """
+    raw = getattr(settings, key, "") or ""
+    return [pid.strip() for pid in raw.split(",") if pid.strip()]
+
+
 def product_id_for(plan: str, period: str) -> str | None:
-    """Return the configured store product id, or None if unconfigured."""
+    """El id que se vende HOY, o None si no está configurado."""
     key = _PRODUCT_SETTINGS.get((plan, period))
     if not key:
         return None
-    return getattr(settings, key, "") or None
+    ids = _product_ids(key)
+    return ids[0] if ids else None
 
 
 def _reverse_map() -> dict[str, tuple[str, str]]:
     """Build product id -> (plan, period), skipping unconfigured entries."""
     out: dict[str, tuple[str, str]] = {}
     for (plan, period), key in _PRODUCT_SETTINGS.items():
-        pid = getattr(settings, key, "")
-        if pid:
+        for pid in _product_ids(key):
             out[pid] = (plan, period)
     return out
 
