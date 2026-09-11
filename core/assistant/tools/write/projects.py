@@ -9,7 +9,7 @@ from django.core.exceptions import ValidationError
 from core.services import projects as projects_svc
 from core.services.projects import NotFoundError
 
-from .. import tool
+from .. import WRITE_TIER, tool
 from ..datetime_utils import _parse_due_dt
 
 _STATUS = ["idea", "active", "stalled", "paused", "launched", "killed", "archived"]
@@ -23,7 +23,7 @@ _PRIORITY = ["critical", "high", "medium", "low"]
         "'YYYY-MM-DD' string. Returns the new project's id. Briefly restate "
         "what you will create before calling."
     ),
-    plan_required="pro",
+    plan_required=WRITE_TIER,
     mutates=True,
     input_schema={
         "type": "object",
@@ -66,7 +66,7 @@ def _create_project(user_id: uuid.UUID, args: dict) -> dict:
         "REQUIRES killed_reason + killed_learnings. Ask the user for these "
         "before calling if missing."
     ),
-    plan_required="pro",
+    plan_required=WRITE_TIER,
     mutates=True,
     input_schema={
         "type": "object",
@@ -150,7 +150,7 @@ def _update_project(user_id: uuid.UUID, args: dict) -> dict:
         "cannot rename, change status, dates, category or any other field — "
         "use `update_project` for those. `id` and `priority` are required."
     ),
-    plan_required="pro",
+    plan_required=WRITE_TIER,
     mutates=True,
     input_schema={
         "type": "object",
@@ -202,7 +202,7 @@ def _set_project_priority(user_id: uuid.UUID, args: dict) -> dict:
         "Do NOT call this until the user has explicitly confirmed this exact "
         "deletion in conversation; set `confirm` to true only then."
     ),
-    plan_required="pro",
+    plan_required=WRITE_TIER,
     mutates=True,
     input_schema={
         "type": "object",

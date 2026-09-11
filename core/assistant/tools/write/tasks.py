@@ -7,7 +7,7 @@ import uuid
 from core.services import tasks as tasks_svc
 from core.services.projects import NotFoundError
 
-from .. import tool
+from .. import WRITE_TIER, tool
 from ..datetime_utils import _parse_due_dt, _parse_time
 
 
@@ -21,7 +21,7 @@ from ..datetime_utils import _parse_due_dt, _parse_time
         "calendar's hourly day view; omit it for an all-day task. When "
         "structuring a project, call this once per task."
     ),
-    plan_required="pro",
+    plan_required=WRITE_TIER,
     mutates=True,
     input_schema={
         "type": "object",
@@ -71,7 +71,7 @@ def _create_task(user_id: uuid.UUID, args: dict) -> dict:
         "`clear_project` / `clear_due_time` to unset those. `due_date` is "
         "'YYYY-MM-DD'; `due_time` is 'HH:MM' (24h)."
     ),
-    plan_required="pro",
+    plan_required=WRITE_TIER,
     mutates=True,
     input_schema={
         "type": "object",
@@ -155,7 +155,7 @@ def _update_task(user_id: uuid.UUID, args: dict) -> dict:
         "Permanently delete a task. Irreversible. Do NOT call this until the "
         "user has explicitly confirmed; set `confirm` to true only then."
     ),
-    plan_required="pro",
+    plan_required=WRITE_TIER,
     mutates=True,
     input_schema={
         "type": "object",
@@ -199,7 +199,7 @@ def _delete_task(user_id: uuid.UUID, args: dict) -> dict:
         "but not both. Returns the new blocker's id. Circular dependencies "
         "are rejected automatically."
     ),
-    plan_required="pro",
+    plan_required=WRITE_TIER,
     mutates=True,
     input_schema={
         "type": "object",
@@ -252,7 +252,7 @@ def _add_task_blocker(user_id: uuid.UUID, args: dict) -> dict:
         "(returned by add_task_blocker or visible in list_tasks output). "
         "Use when the user resolves a blocker manually."
     ),
-    plan_required="pro",
+    plan_required=WRITE_TIER,
     mutates=True,
     input_schema={
         "type": "object",

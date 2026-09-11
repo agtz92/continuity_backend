@@ -28,6 +28,7 @@ from core.services.projects import list_projects
 from core.services.categories import list_categories
 from core.services.routines import list_routines
 
+from . import tiers
 from .models import AccountProfile, Conversation, Message, MessageRole, Plan
 
 
@@ -134,7 +135,7 @@ You have tools to create, update, and delete projects, tasks, routines, project 
 - For DELETE: deletions are destructive and irreversible. NEVER call a `delete_*` tool until the user has explicitly confirmed THAT specific deletion. First name exactly what will be deleted (and, for a project, that its tasks go with it) and ask the user to confirm. Only on a later message, once they clearly say yes, call the delete tool with `confirm: true`. If you're unsure whether they confirmed, ask again — never guess.
 - The update tools are partial: pass only the fields you want to change.
 - Times are OPTIONAL: only set a task's `due_time` or a routine's `time_of_day` when the user names a specific time; otherwise leave them all-day so the user can still keep editing. Use 'HH:MM' (24-hour); `duration_minutes` is optional.
-- One logical change per tool call — but you can and should emit MANY tool calls in a single turn. When creating several tasks for a project, issue all the `create_task` calls together in one turn instead of one task per turn. This keeps you well under the tool-iteration limit.
+- One logical change per tool call. Group SMALL calls — several `create_task` calls, each a title and a date, belong in one turn. But when the calls carry long content (note bodies, detailed prompts, anything more than a couple of lines), emit **a few at a time** across turns. You have a generous tool budget; you do not have an unlimited response length, and a turn that runs out mid-call cannot execute ANY of the calls it was writing. Splitting costs you a round trip. Not splitting costs the user the work.
 - After writing, confirm what changed in plain language.
 - If a request is ambiguous (which project? what due date?), ask before writing.
 
@@ -336,18 +337,14 @@ def get_or_build_skinny_context(
     return text
 
 
-def is_write_tier(plan: str) -> bool:
-    """Paid plans get the read-write assistant; free is read-only.
+#: Re-exported for callers that already import it from here. The rule itself
+#: lives in `tiers.py` — one place for "what does this plan get".
+is_llm_tier = tiers.is_llm_tier
 
-    Tambien gatea `/parse-capture/`: es la misma frontera (el modelo actuando
-    sobre los datos del usuario, no solo leyendolos), asi que vive en un solo
-    sitio.
-    """
-    return plan in ("pro", "studio", "admin")
-
-
-#: Alias historico; `is_write_tier` es el nombre publico.
-_is_write_tier = is_write_tier
+#: Aliases historicos. `is_llm_tier` es el nombre publico: la frontera ya no
+#: es "escribe o no", es "llama al modelo o no".
+is_write_tier = tiers.is_llm_tier
+_is_write_tier = tiers.is_llm_tier
 
 
 def build_system_blocks(
@@ -452,6 +449,55 @@ def _trim_to_pair_clean(recent: list) -> list:
     return cleaned
 
 
+def _last_turns(rows: list, turns: int) -> list:
+    """Keep the last `turns` conversational turns.
+
+    A turn starts at a genuine user message. Tool rows carry
+    `MessageRole.TOOL`, so they never look like the start of one — which
+    is the whole point: a turn that chained six tools counts as ONE, not
+    as seven. Slicing at a user boundary can't split a
+    tool_use / tool_result pair, so no re-trim is needed afterwards.
+    """
+    starts = [i for i, r in enumerate(rows) if r.role == MessageRole.USER]
+    if len(starts) <= turns:
+        return rows
+    return rows[starts[-turns] :]
+
+
+def _compact_old_tool_results(rows: list, *, keep_full: int) -> dict[int, list]:
+    """Shrink tool_result payloads outside the most recent `keep_full` turns.
+
+    Old results are what make a long window expensive, and the model
+    almost never needs their full body again — it needs to remember that
+    the call happened and roughly what came back. The blocks themselves
+    stay (dropping one would orphan its tool_use and 400 the request);
+    only their `content` string is replaced.
+
+    Returns `{row_index: replacement_content}` so the caller can build the
+    payload without touching the DB objects.
+    """
+    starts = [i for i, r in enumerate(rows) if r.role == MessageRole.USER]
+    cutoff = starts[-keep_full] if len(starts) > keep_full else 0
+
+    out: dict[int, list] = {}
+    for i, row in enumerate(rows):
+        if i >= cutoff or row.role != MessageRole.TOOL:
+            continue
+        if not isinstance(row.content, list):
+            continue
+        out[i] = [
+            {
+                "type": "tool_result",
+                "tool_use_id": b.get("tool_use_id"),
+                "content": _truncate(str(b.get("content") or ""), 160),
+            }
+            if isinstance(b, dict) and b.get("type") == "tool_result"
+            else b
+            for b in row.content
+        ]
+    return out
+
+
 def build_messages(
     conversation: Conversation,
     new_user_text: str,
@@ -460,41 +506,63 @@ def build_messages(
 ) -> list[dict]:
     """Pull recent history, append the new user turn, return Anthropic-shaped list.
 
-    Older messages are dropped (rolling summary lands in Phase 3). Each
-    `Message.content` already holds the Anthropic content-block array
-    verbatim, so reconstruction is a straight pass-through — except we
-    trim leading/trailing rows so tool_use ↔ tool_result pairs are
-    always intact (Anthropic 400s otherwise).
+    The window is measured in **conversational turns**, not DB rows. Rows
+    were the old unit and they lied: one turn that chained four tools
+    writes eight rows, so a 12-row window held barely two exchanges and
+    the user's original instruction fell out of context while they were
+    still talking about it.
+
+    Each `Message.content` already holds the Anthropic content-block array
+    verbatim, so reconstruction is a straight pass-through — except that
+    we trim rows so tool_use ↔ tool_result pairs are always intact
+    (Anthropic 400s otherwise), and compact the bodies of older tool
+    results so a longer window stays affordable.
     """
-    limit = history_limit or settings.ASSISTANT_MAX_HISTORY_MESSAGES
+    turns = history_limit or settings.ASSISTANT_MAX_HISTORY_TURNS
     recent = list(
         Message.objects.filter(conversation=conversation)
-        .order_by("-created")[:limit]
+        .order_by("-created")[: settings.ASSISTANT_MAX_HISTORY_ROWS]
     )
     recent.reverse()
     recent = _trim_to_pair_clean(recent)
+    recent = _last_turns(recent, turns)
+    compacted = _compact_old_tool_results(recent, keep_full=2)
 
     messages = []
-    for msg in recent:
+    for i, msg in enumerate(recent):
+        content = compacted.get(i, msg.content)
         if msg.role == MessageRole.TOOL:
             # Tool-result messages are stored as user-role content blocks
             # in the Anthropic protocol.
-            messages.append({"role": "user", "content": msg.content})
+            messages.append({"role": "user", "content": content})
         else:
-            messages.append({"role": msg.role, "content": msg.content})
+            messages.append({"role": msg.role, "content": content})
 
     messages.append({"role": "user", "content": new_user_text})
     return messages
 
 
-def select_model(plan: str, *, deep_mode: bool = False) -> str:
-    """Pick the model.
+def deep_mode_enabled() -> bool:
+    """Whether the admin switch for the deep (Sonnet) model is on.
 
-    Sonnet (the deeper, costlier model) is reserved for studio and admin
-    plans AND only when `deep_mode` is explicitly requested for that
-    message. Daily caps in DEEP_DAILY_CAP_BY_PLAN bound usage. Every other
-    case uses the fast Haiku model to keep cost down.
+    A server-side decision on purpose: there is no user-facing toggle, so
+    turning Sonnet on or off for the whole `llm` tier is one switch in
+    /admin/beta and nobody's UI changes. The per-user daily cap in
+    `quotas.deep_allowed` still bounds the spend underneath it.
     """
-    if plan in ("studio", "admin") and deep_mode:
+    from core.services import app_config
+
+    return app_config.get_bool("assistant_deep_enabled")
+
+
+def select_model(plan: str, *, deep: bool = False) -> str:
+    """Pick the model. Haiku unless the caller resolved deep mode to True.
+
+    Resolving deep mode needs three things to agree — the admin switch,
+    the plan, and the user's remaining daily cap — so the view does it
+    (see `_resolve_deep`) and passes the answer in. This function stays a
+    pure mapping.
+    """
+    if deep and tiers.is_llm_tier(plan):
         return settings.ASSISTANT_MODEL_DEEP
     return settings.ASSISTANT_MODEL_FAST

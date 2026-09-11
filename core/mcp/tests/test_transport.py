@@ -179,8 +179,17 @@ def test_tools_list_free_is_read_plus_priority(http, user_a, make_profile):
 
 
 @pytest.mark.django_db
-def test_tools_list_pro_includes_writes(http, user_a, make_profile):
+def test_tools_list_pro_excludes_writes(http, user_a, make_profile):
     make_profile(user_a, plan="pro")
+    resp = _rpc(http, _make_jwt(user_a), "tools/list")
+    names = {t["name"] for t in resp.json()["result"]["tools"]}
+    assert "list_projects" in names
+    assert not {"create_task", "delete_project", "update_project"} & names
+
+
+@pytest.mark.django_db
+def test_tools_list_studio_includes_writes(http, user_a, make_profile):
+    make_profile(user_a, plan="studio")
     resp = _rpc(http, _make_jwt(user_a), "tools/list")
     names = {t["name"] for t in resp.json()["result"]["tools"]}
     assert {"create_task", "delete_project", "update_project"} <= names

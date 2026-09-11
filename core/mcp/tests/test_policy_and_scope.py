@@ -50,16 +50,48 @@ def test_free_can_set_priority(user_a, make_project):
 
 
 @pytest.mark.django_db
-def test_pro_can_create(user_a):
+def test_pro_cannot_create(user_a):
+    """Pro reads over the connector, same as its in-app catalogue."""
     out = policy.mcp_call("pro", "create_task", user_a, {"title": "ship it"})
+    assert "error" in out
+    assert not Task.objects.filter(user_id=user_a, title="ship it").exists()
+
+
+@pytest.mark.django_db
+def test_pro_cannot_delete(user_a, make_project):
+    p = make_project(user_a)
+    out = policy.mcp_call("pro", "delete_project", user_a, {"id": str(p.id), "confirm": True})
+    assert "error" in out
+    assert Project.objects.filter(pk=p.id).exists()
+
+
+@pytest.mark.django_db
+def test_pro_keeps_the_priority_tool_free_already_has(user_a, make_project):
+    """A paid plan must never be able to do less than a cheaper one.
+
+    `set_project_priority` mutates, so the blanket read-only rule would
+    have taken it from Pro while leaving it to Free.
+    """
+    p = make_project(user_a)
+    out = policy.mcp_call(
+        "pro", "set_project_priority", user_a, {"id": str(p.id), "priority": "high"}
+    )
+    assert "error" not in out
+
+
+@pytest.mark.django_db
+def test_studio_can_create(user_a):
+    out = policy.mcp_call("studio", "create_task", user_a, {"title": "ship it"})
     assert "error" not in out
     assert Task.objects.filter(user_id=user_a, title="ship it").exists()
 
 
 @pytest.mark.django_db
-def test_pro_can_delete(user_a, make_project):
+def test_studio_can_delete(user_a, make_project):
     p = make_project(user_a)
-    out = policy.mcp_call("pro", "delete_project", user_a, {"id": str(p.id), "confirm": True})
+    out = policy.mcp_call(
+        "studio", "delete_project", user_a, {"id": str(p.id), "confirm": True}
+    )
     assert "error" not in out
     assert not Project.objects.filter(pk=p.id).exists()
 
@@ -77,8 +109,15 @@ def test_tools_list_free_is_read_plus_priority_only():
     assert "create_idea" not in names
 
 
-def test_tools_list_pro_includes_writes():
+def test_tools_list_pro_is_read_plus_priority_only():
     names = {t.name for t in policy.mcp_tools_for("pro")}
+    assert {"list_projects", "get_dashboard_summary", "search"} <= names
+    assert "set_project_priority" in names
+    assert not {"create_task", "update_project", "delete_project", "create_idea"} & names
+
+
+def test_tools_list_studio_includes_writes():
+    names = {t.name for t in policy.mcp_tools_for("studio")}
     assert {"create_task", "update_project", "delete_project", "create_idea"} <= names
 
 
@@ -231,14 +270,16 @@ def test_unknown_plan_defaults_to_most_restrictive():
 
 
 def test_mcp_allows_is_consistent_with_tools_for():
-    for plan in ("free", "basic", "pro", "admin"):
+    for plan in ("free", "basic", "pro", "studio", "admin"):
         advertised = {t.name for t in policy.mcp_tools_for(plan)}
         for name in advertised:
             assert policy.mcp_allows(plan, name), f"{name} advertised but not allowed on {plan}"
     # spot-check the gate directly
     assert not policy.mcp_allows("free", "delete_project")
     assert policy.mcp_allows("free", "set_project_priority")
-    assert policy.mcp_allows("pro", "delete_project")
+    assert not policy.mcp_allows("pro", "delete_project")
+    assert policy.mcp_allows("pro", "set_project_priority")
+    assert policy.mcp_allows("studio", "delete_project")
 
 
 # --------------------------------------------------------------------------
@@ -286,9 +327,18 @@ def test_inapp_call_cross_user_idor(user_a, user_b, make_project):
 
 
 @pytest.mark.django_db
-def test_every_mutating_tool_is_pro_gated_in_app():
-    """Sanity: every connector-mutating tool is `plan_required="pro"` in the
-    shared layer, so the in-app free tier never gets writes by accident."""
+def test_every_mutating_tool_is_write_tier_gated_in_app():
+    """Sanity: every mutating tool carries `plan_required=WRITE_TIER` in the
+    shared layer, so no in-app tier below it gets writes by accident.
+
+    The connector is deliberately NOT bound by this — it filters on
+    `mutates` — which is why `set_project_priority` can reach free over
+    MCP while staying studio-only inside the app.
+    """
+    from core.assistant.tiers import WRITE_TIER
+
     for t in tools.all_tools():
         if t.mutates:
-            assert t.plan_required == "pro", f"{t.name} mutates but is not pro-gated in-app"
+            assert (
+                t.plan_required == WRITE_TIER
+            ), f"{t.name} mutates but is not {WRITE_TIER}-gated in-app"

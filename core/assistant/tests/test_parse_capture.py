@@ -105,7 +105,7 @@ def test_free_no_alcanza_y_lo_dice_con_codigo(http, user_a, make_profile):
 def test_pro_recibe_un_borrador_y_no_se_guarda_nada(
     http, user_a, make_profile, make_project
 ):
-    make_profile(user_a, plan="pro")
+    make_profile(user_a, plan="studio")
     project = make_project(user_a, name="Impuestos")
 
     fake = _FakeClient(
@@ -150,7 +150,7 @@ def test_pro_recibe_un_borrador_y_no_se_guarda_nada(
 def test_cuenta_tokens_pero_no_gasta_mensaje_del_chat(
     http, user_a, make_profile
 ):
-    make_profile(user_a, plan="pro")
+    make_profile(user_a, plan="studio")
     fake = _FakeClient({"kind": "idea", "title": "Vender por WhatsApp"})
 
     with mock.patch(
@@ -167,7 +167,7 @@ def test_cuenta_tokens_pero_no_gasta_mensaje_del_chat(
 
 @pytest.mark.django_db
 def test_texto_vacio_no_llama_al_modelo(http, user_a, make_profile):
-    make_profile(user_a, plan="pro")
+    make_profile(user_a, plan="studio")
     assert _post(http, user_a, {"text": "   "}).status_code == 400
 
 
@@ -175,7 +175,7 @@ def test_texto_vacio_no_llama_al_modelo(http, user_a, make_profile):
 def test_el_prompt_lleva_los_proyectos_y_trata_el_texto_como_datos(
     http, user_a, make_profile, make_project
 ):
-    make_profile(user_a, plan="pro")
+    make_profile(user_a, plan="studio")
     make_project(user_a, name="Impuestos")
     fake = _FakeClient({"kind": "task", "title": "X"})
 

@@ -7,7 +7,7 @@ import uuid
 from core.services import quick_notes as quick_notes_svc
 from core.services.projects import NotFoundError
 
-from .. import tool
+from .. import WRITE_TIER, tool
 
 
 @tool(
@@ -17,7 +17,7 @@ from .. import tool
         "`category_id`, `project_id` (to link it), `pinned`. Add content with "
         "`add_note_section`."
     ),
-    plan_required="pro",
+    plan_required=WRITE_TIER,
     mutates=True,
     input_schema={
         "type": "object",
@@ -47,7 +47,7 @@ def _create_quick_note(user_id: uuid.UUID, args: dict) -> dict:
         "Update a Quick Note's metadata: `title`, `category_id`, `project_id`, "
         "`pinned`. Does not touch sections — use the section tools for content."
     ),
-    plan_required="pro",
+    plan_required=WRITE_TIER,
     mutates=True,
     input_schema={
         "type": "object",
@@ -80,7 +80,7 @@ def _update_quick_note(user_id: uuid.UUID, args: dict) -> dict:
 @tool(
     name="set_quick_note_pinned",
     description="Pin or unpin a Quick Note (floats it to the top of the list).",
-    plan_required="pro",
+    plan_required=WRITE_TIER,
     mutates=True,
     input_schema={
         "type": "object",
@@ -106,7 +106,7 @@ def _set_quick_note_pinned(user_id: uuid.UUID, args: dict) -> dict:
         "Permanently delete a Quick Note AND all its sections. Irreversible — "
         "confirm with the user first."
     ),
-    plan_required="pro",
+    plan_required=WRITE_TIER,
     mutates=True,
     input_schema={
         "type": "object",
@@ -131,7 +131,7 @@ def _delete_quick_note(user_id: uuid.UUID, args: dict) -> dict:
         "Add a collapsible section (heading + markdown body) to a Quick Note. "
         "Appended at the end unless `position` is given."
     ),
-    plan_required="pro",
+    plan_required=WRITE_TIER,
     mutates=True,
     input_schema={
         "type": "object",
@@ -164,7 +164,7 @@ def _add_note_section(user_id: uuid.UUID, args: dict) -> dict:
 @tool(
     name="update_note_section",
     description="Update a Quick Note section's `heading`, `body`, or `collapsed` state.",
-    plan_required="pro",
+    plan_required=WRITE_TIER,
     mutates=True,
     input_schema={
         "type": "object",
@@ -195,7 +195,7 @@ def _update_note_section(user_id: uuid.UUID, args: dict) -> dict:
 @tool(
     name="delete_note_section",
     description="Delete a section from a Quick Note. Irreversible.",
-    plan_required="pro",
+    plan_required=WRITE_TIER,
     mutates=True,
     input_schema={
         "type": "object",

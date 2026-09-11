@@ -1,7 +1,15 @@
-"""Read-write tools — the Pro tier.
+"""Read-write tools — the `llm` tier.
 
-Every tool here is `plan_required="pro"`, so it is invisible to free-plan
-users (see `schemas_for_anthropic` / `call` in this package's __init__).
+Every tool here is `plan_required=WRITE_TIER` (studio/admin), so it is
+invisible to any plan below it (see `schemas_for_anthropic` / `call` in
+this package's __init__). Free has no assistant at all and Pro's chat is
+the deterministic catalogue in `core/assistant/canned.py`, which only ever
+reaches read tools.
+
+Note that the MCP connector does NOT follow `plan_required` — it filters
+on `Tool.mutates` through `core/mcp/policy.py`, so re-tiering here never
+silently moves the connector. Change both, deliberately, or neither.
+
 Handlers delegate to `core.services.*` so validation and activity logging
 stay shared with the GraphQL resolvers.
 

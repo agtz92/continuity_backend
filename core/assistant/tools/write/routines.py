@@ -7,7 +7,7 @@ import uuid
 from core.services import routines as routines_svc
 from core.services.projects import NotFoundError
 
-from .. import tool
+from .. import WRITE_TIER, tool
 from ..datetime_utils import _parse_date, _parse_time
 
 _RECURRENCE = ["once", "weekly_days", "every_n", "monthly_day"]
@@ -61,7 +61,7 @@ _ROUTINE_RULE_PROPS = {
         "needs `interval_n` + `interval_unit`; monthly_day needs `monthly_day`; "
         "once needs nothing more."
     ),
-    plan_required="pro",
+    plan_required=WRITE_TIER,
     mutates=True,
     input_schema={
         "type": "object",
@@ -117,7 +117,7 @@ def _create_routine(user_id: uuid.UUID, args: dict) -> dict:
         "date. Use `project_id` to link/change the project, or "
         "`clear_project` to unlink it."
     ),
-    plan_required="pro",
+    plan_required=WRITE_TIER,
     mutates=True,
     input_schema={
         "type": "object",
@@ -222,7 +222,7 @@ def _update_routine(user_id: uuid.UUID, args: dict) -> dict:
         "Irreversible. Do NOT call this until the user has explicitly "
         "confirmed; set `confirm` to true only then."
     ),
-    plan_required="pro",
+    plan_required=WRITE_TIER,
     mutates=True,
     input_schema={
         "type": "object",

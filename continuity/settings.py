@@ -211,34 +211,31 @@ ASSISTANT_MODEL_FAST = config(
 ASSISTANT_MODEL_DEEP = config(
     "ASSISTANT_MODEL_DEEP", default="claude-sonnet-4-6"
 )
-# Max messages per user per day that may use the deep model (Sonnet).
-# Once hit, deep-mode requests silently fall back to Haiku. 0 disables
-# deep mode entirely.
-ASSISTANT_DEEP_DAILY_CAP = config(
-    "ASSISTANT_DEEP_DAILY_CAP", default=10, cast=int
-)
-ASSISTANT_MAX_TOKENS_OUT = config("ASSISTANT_MAX_TOKENS_OUT", default=1024, cast=int)
-# The write tier emits long brainstorming plans plus many tool calls in a
-# single turn; 4096 still occasionally truncates mid-tool-use on big
-# project brainstorms. 8192 gives comfortable headroom so paid tiers
-# (pro/studio/admin) virtually never hit `max_tokens`.
-ASSISTANT_MAX_TOKENS_OUT_WRITE = config(
-    "ASSISTANT_MAX_TOKENS_OUT_WRITE", default=8192, cast=int
-)
+# Only the `llm` tier (studio/admin — see core/assistant/tiers.py) ever
+# reaches the model, so there is one ceiling, not one per tier.
+#
+# 16384, not 8192: a turn that writes project notes carries the note BODIES
+# in its tool_use blocks, and a handful of detailed notes is thousands of
+# output tokens before the model has said anything. Truncation there is the
+# expensive kind — the calls can't run, so the work silently doesn't happen.
+ASSISTANT_MAX_TOKENS_OUT = config("ASSISTANT_MAX_TOKENS_OUT", default=16384, cast=int)
+# Model round-trips allowed per user turn. Generous on purpose: running out
+# is no longer an error — `run_turn_iter` spends one more call without tools
+# so the model can close the turn and say what it managed to do.
 ASSISTANT_MAX_TOOL_ITERATIONS = config(
-    "ASSISTANT_MAX_TOOL_ITERATIONS", default=6, cast=int
+    "ASSISTANT_MAX_TOOL_ITERATIONS", default=32, cast=int
 )
-# The write tier (pro/admin) chains more tools — brainstorming a project
-# means create_project followed by many create_task calls — so it needs a
-# higher ceiling than the read-only tier.
-ASSISTANT_MAX_TOOL_ITERATIONS_WRITE = config(
-    "ASSISTANT_MAX_TOOL_ITERATIONS_WRITE", default=16, cast=int
+# Conversational TURNS of history replayed to the model (a turn is one user
+# message plus everything the assistant did in response, tool rows included).
+# Counting DB rows instead — the old behaviour — meant two tool-heavy turns
+# pushed the user's original instruction out of the window.
+ASSISTANT_MAX_HISTORY_TURNS = config(
+    "ASSISTANT_MAX_HISTORY_TURNS", default=8, cast=int
 )
-ASSISTANT_MAX_INPUT_TOKENS = config(
-    "ASSISTANT_MAX_INPUT_TOKENS", default=8000, cast=int
-)
-ASSISTANT_MAX_HISTORY_MESSAGES = config(
-    "ASSISTANT_MAX_HISTORY_MESSAGES", default=12, cast=int
+# Hard ceiling on rows pulled from the DB before turn-grouping, so a
+# pathological conversation can't load unboundedly.
+ASSISTANT_MAX_HISTORY_ROWS = config(
+    "ASSISTANT_MAX_HISTORY_ROWS", default=120, cast=int
 )
 ASSISTANT_MAX_INPUT_CHARS = config(
     "ASSISTANT_MAX_INPUT_CHARS", default=4000, cast=int

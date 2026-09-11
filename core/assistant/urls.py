@@ -6,6 +6,13 @@ app_name = "assistant"
 
 urlpatterns = [
     path("chat/", views.ChatView.as_view(), name="chat"),
+    # The `canned` tier's chat: a catalogue and a runner, no streaming.
+    path("actions/", views.ActionsView.as_view(), name="actions"),
+    path(
+        "actions/<str:action_id>/",
+        views.RunActionView.as_view(),
+        name="run_action",
+    ),
     path("cancel/", views.CancelView.as_view(), name="cancel"),
     path(
         "parse-capture/",

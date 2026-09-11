@@ -2,12 +2,17 @@
 
 Routes (mounted under `/api/assistant/`):
 
-- POST `/chat/`           — JSON in, Server-Sent-Events out.
+- POST `/chat/`           — JSON in, Server-Sent-Events out. `llm` tier only.
+- GET  `/actions/`        — the deterministic catalogue. `canned` tier only.
+- POST `/actions/<id>/`   — run one catalogue action. `canned` tier only.
 - POST `/parse-capture/`  — una línea de ⌘K → borrador estructurado (no escribe).
 - POST `/cancel/`         — set a cache flag the streaming view checks.
 - GET  `/conversations/`  — list the user's conversations.
 - GET  `/conversations/<id>/messages/` — full history for one conversation.
-- GET  `/usage/`          — current daily / monthly usage snapshot.
+- GET  `/usage/`          — usage snapshot **plus `assistant_mode`**, which is
+  what web and mobile read to decide which of the three assistants to paint.
+
+Which plan gets which assistant lives in `tiers.py`, never inline here.
 """
 
 from __future__ import annotations
@@ -26,9 +31,10 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
 from core.auth import authenticate_request
+from core.notifications.models import NotificationSettings
 from core.services import interactions
 
-from . import anthropic_client, capture, prompts, quotas
+from . import anthropic_client, canned, capture, prompts, quotas, tiers
 from .anthropic_client import AssistantConfigError
 from .models import Conversation, Message, MessageRole
 
@@ -75,6 +81,38 @@ def _json_error(message: str, status: int = 400, **extra) -> JsonResponse:
     return JsonResponse({"error": message, **extra}, status=status)
 
 
+def _plan_required(message: str, needs: str) -> JsonResponse:
+    """403 that tells the client which plan unlocks what it just asked for.
+
+    Same contract every assistant endpoint uses, so the clients have one
+    branch for "you can't do this yet" instead of one per route.
+    """
+    return _json_error(message, status=403, code="plan_required", plan_required=needs)
+
+
+def _user_locale(user_id: uuid.UUID) -> str:
+    """The language the user reads in. Canned answers are rendered server-side,
+    so unlike the LLM tier we cannot let the model match the user's language —
+    we have to know it."""
+    row = NotificationSettings.objects.filter(user_id=user_id).first()
+    return (row.locale if row else "en") or "en"
+
+
+def _resolve_deep(user_id: uuid.UUID, plan: str) -> bool:
+    """Whether this message gets the deep (Sonnet) model.
+
+    Three things must agree, and the user is party to none of them: the
+    global admin switch, the plan, and the user's remaining daily cap.
+    There is deliberately no request field — a user cannot ask for Sonnet,
+    so they can never be told "no" either.
+    """
+    if not tiers.is_llm_tier(plan):
+        return False
+    if not prompts.deep_mode_enabled():
+        return False
+    return quotas.deep_allowed(user_id)
+
+
 # ---------- POST /chat/ (SSE) ----------
 
 
@@ -115,6 +153,13 @@ class ChatView(View):
                 reset_at=e.reset_at.isoformat(),
             )
 
+        # Only the `llm` tier reaches the model. Free has no assistant at
+        # all; Pro has the deterministic catalogue at /actions/.
+        if not tiers.is_llm_tier(quota_snapshot.plan):
+            return _plan_required(
+                "The conversational assistant needs a Studio plan.", "studio"
+            )
+
         conv_id_raw = body.get("conversation_id")
         if conv_id_raw:
             try:
@@ -147,26 +192,20 @@ class ChatView(View):
             return _json_error(f"Failed to prepare context: {e}", status=500)
 
         history_messages = prompts.build_messages(conv, content)
-        # `deep_mode` is an explicit, per-message opt-in to the costlier
-        # Sonnet model. It only has an effect for studio and admin plans
-        # (see select_model); for free/pro this flag is a no-op. Even for
-        # the eligible plans it's bounded by a daily cap — once that's hit
-        # we silently fall back to Haiku so a user can't route every chat
-        # through Sonnet.
-        deep_mode = bool(body.get("deep_mode"))
-        if deep_mode and plan in ("studio", "admin") and not quotas.deep_allowed(user_id):
-            deep_mode = False
-        model = prompts.select_model(plan, deep_mode=deep_mode)
-        used_deep = plan in ("studio", "admin") and deep_mode
-        max_tokens = (
-            settings.ASSISTANT_MAX_TOKENS_OUT_WRITE
-            if plan in ("pro", "studio", "admin")
-            else settings.ASSISTANT_MAX_TOKENS_OUT
-        )
+        # The deep model is a server-side decision (admin switch + plan +
+        # daily cap). No request field, no button: the user gets the better
+        # model or doesn't, and is never shown a lever they can't pull.
+        used_deep = _resolve_deep(user_id, plan)
+        model = prompts.select_model(plan, deep=used_deep)
+        max_tokens = settings.ASSISTANT_MAX_TOKENS_OUT
 
         cancel_key = _cancel_key(conv.id)
+        # A new POST means "run THIS one". Clearing the flag up front is
+        # what stops a previous Stop — whose flag outlives its turn by up
+        # to 60s — from killing the message the user just sent.
+        cache.delete(cancel_key)
 
-        def event_stream() -> Iterable[bytes]:
+        def _run_stream() -> Iterable[bytes]:
             yield _format_sse(
                 "meta",
                 {
@@ -187,7 +226,37 @@ class ChatView(View):
                 },
             )
 
+            from .anthropic_client import AppendedMessage as _Appended
             from .anthropic_client import TurnResult as _TurnResult
+
+            # Written as the turn happens, not at the end.
+            #
+            # The old code collected every message and persisted the lot
+            # after the generator finished. Anything that killed the stream
+            # first — a worker timeout on a long turn, a dropped phone
+            # connection — threw all of it away. The tools had ALREADY run,
+            # so the user was left with a real project and eight real tasks
+            # and a conversation that never mentioned creating them. Writing
+            # each row as it is produced means a cut stream loses at most
+            # the tail.
+            last_assistant_pk: dict[str, Any] = {"pk": None}
+
+            def _persist(msg: _Appended) -> None:
+                row = Message.objects.create(
+                    conversation=conv,
+                    role=(
+                        MessageRole.ASSISTANT
+                        if msg.kind == "assistant"
+                        else MessageRole.TOOL
+                    ),
+                    content=msg.content,
+                    model=model if msg.kind == "assistant" else "",
+                )
+                if msg.kind == "assistant":
+                    last_assistant_pk["pk"] = row.pk
+                # Touch the thread now too, so a cut stream still leaves the
+                # conversation at the top of the user's list.
+                conv.save(update_fields=["updated_at"])
 
             result: _TurnResult | None = None
             try:
@@ -199,6 +268,7 @@ class ChatView(View):
                     max_tokens=max_tokens,
                     plan=plan,
                     is_cancelled=lambda: bool(cache.get(cancel_key)),
+                    on_append=_persist,
                 ):
                     if isinstance(item, _TurnResult):
                         result = item
@@ -228,42 +298,17 @@ class ChatView(View):
                 yield _format_sse("done", {"ok": False})
                 return
 
-            # Persist all turns in chronological order so the next
-            # request can replay the conversation without orphaning
-            # tool_use / tool_result blocks. Usage totals are attached
-            # only to the final assistant turn (the one with end_turn).
-            assistant_indices = [
-                i for i, m in enumerate(result.appended) if m.kind == "assistant"
-            ]
-            final_assistant_idx = assistant_indices[-1] if assistant_indices else None
-            for i, msg in enumerate(result.appended):
-                if msg.kind == "assistant":
-                    is_final = i == final_assistant_idx
-                    Message.objects.create(
-                        conversation=conv,
-                        role=MessageRole.ASSISTANT,
-                        content=msg.content,
-                        model=model,
-                        stop_reason=result.final_stop_reason if is_final else "",
-                        tokens_in=(
-                            result.total_usage.tokens_in if is_final else 0
-                        ),
-                        tokens_out=(
-                            result.total_usage.tokens_out if is_final else 0
-                        ),
-                        cache_read_in=(
-                            result.total_usage.cache_read_in if is_final else 0
-                        ),
-                        cache_creation_in=(
-                            result.total_usage.cache_creation_in if is_final else 0
-                        ),
-                    )
-                else:  # "tool"
-                    Message.objects.create(
-                        conversation=conv,
-                        role=MessageRole.TOOL,
-                        content=msg.content,
-                    )
+            # Every row is already written (see `_persist`). All that's left
+            # is to stamp the totals onto the turn's last assistant row —
+            # they're only knowable now.
+            if last_assistant_pk["pk"] is not None:
+                Message.objects.filter(pk=last_assistant_pk["pk"]).update(
+                    stop_reason=result.final_stop_reason,
+                    tokens_in=result.total_usage.tokens_in,
+                    tokens_out=result.total_usage.tokens_out,
+                    cache_read_in=result.total_usage.cache_read_in,
+                    cache_creation_in=result.total_usage.cache_creation_in,
+                )
 
             quotas.record(
                 user_id,
@@ -276,7 +321,6 @@ class ChatView(View):
             # channel (web/mobile). Best-effort — never breaks the stream.
             interactions.record_from_request(request)
 
-            cache.delete(cancel_key)
             conv.save(update_fields=["updated_at"])
 
             yield _format_sse(
@@ -288,12 +332,134 @@ class ChatView(View):
                 },
             )
 
+        def event_stream() -> Iterable[bytes]:
+            try:
+                yield from _run_stream()
+            finally:
+                # The client can vanish mid-stream — Stop, navigation, a
+                # dropped connection — which raises GeneratorExit right
+                # here. Clearing the cancel flag in `finally` is what
+                # guarantees an abandoned turn never poisons the next one:
+                # the flag dies with the turn that owned it, not 60s later.
+                cache.delete(cancel_key)
+
         response = StreamingHttpResponse(
             event_stream(), content_type="text/event-stream"
         )
         response["Cache-Control"] = "no-cache"
         response["X-Accel-Buffering"] = "no"
         return response
+
+
+# ---------- GET /actions/ · POST /actions/<id>/ ----------
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class ActionsView(View):
+    """The `canned` tier's catalogue — Pro's chat.
+
+    Deliberately not SSE: there is nothing to stream. A catalogue action
+    is one database query and a template, so it answers in one JSON
+    response and cannot half-finish.
+
+    It spends no quota either. `quotas.record` exists to meter what we pay
+    Anthropic, and this path never leaves our servers — charging a message
+    for it would be inventing a cost. The rate limiter still applies.
+    """
+
+    http_method_names = ["get"]
+
+    def get(self, request: HttpRequest):
+        early = _auth(request, method="GET")
+        if early is not None:
+            return early
+
+        plan = quotas.get_or_create_profile(request.user_id).plan
+        if not tiers.is_canned_tier(plan):
+            return _plan_required("No action catalogue on this plan.", "pro")
+
+        return JsonResponse(
+            {"groups": canned.catalogue(_user_locale(request.user_id))}
+        )
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class RunActionView(View):
+    http_method_names = ["post"]
+
+    def post(self, request: HttpRequest, action_id: str):
+        early = _auth(request)
+        if early is not None:
+            return early
+        if _burst_limited(request):
+            return _json_error("Rate limit exceeded", status=429)
+
+        try:
+            body = json.loads(request.body.decode("utf-8") or "{}")
+        except json.JSONDecodeError:
+            return _json_error("Invalid JSON body")
+
+        user_id = request.user_id
+        plan = quotas.get_or_create_profile(user_id).plan
+        if not tiers.is_canned_tier(plan):
+            return _plan_required("No action catalogue on this plan.", "pro")
+
+        query = (body.get("query") or "").strip()
+        if len(query) > settings.ASSISTANT_MAX_INPUT_CHARS:
+            return _json_error("Query too long", status=413)
+
+        conv_id_raw = body.get("conversation_id")
+        if conv_id_raw:
+            try:
+                conv = Conversation.objects.get(
+                    id=conv_id_raw, user_id=user_id, archived=False
+                )
+            except Conversation.DoesNotExist:
+                return _json_error("Conversation not found", status=404)
+        else:
+            conv = None
+
+        locale = _user_locale(user_id)
+        try:
+            answer = canned.run(action_id, user_id, locale=locale, query=query)
+        except canned.UnknownAction:
+            return _json_error(f"Unknown action: {action_id}", status=404)
+        except Exception as e:  # noqa: BLE001 — one bad query must not 500 the chat
+            logger.exception("Canned action %s failed", action_id)
+            return _json_error(f"Could not run that action: {e}", status=502)
+
+        # Persist as a normal turn. The user's side is the action's own
+        # label, so the thread reads like a conversation and — if they
+        # upgrade to Studio mid-thread — the model sees coherent history
+        # instead of an assistant talking to itself.
+        if conv is None:
+            conv = Conversation.objects.create(
+                user_id=user_id, title=_derive_title(answer["label"])
+            )
+        Message.objects.create(
+            conversation=conv,
+            role=MessageRole.USER,
+            content=[{"type": "text", "text": answer["label"]}],
+        )
+        assistant_msg = Message.objects.create(
+            conversation=conv,
+            role=MessageRole.ASSISTANT,
+            content=answer["content"],
+            model="",  # nothing answered this but our own templates
+            stop_reason="canned",
+        )
+        conv.save(update_fields=["updated_at"])
+        interactions.record_from_request(request)
+
+        return JsonResponse(
+            {
+                "conversation_id": str(conv.id),
+                "message_id": str(assistant_msg.id),
+                "action_id": action_id,
+                "label": answer["label"],
+                "content": answer["content"],
+            }
+        )
 
 
 # ---------- POST /cancel/ ----------
@@ -435,12 +601,13 @@ class ParseCaptureView(View):
                 reset_at=e.reset_at.isoformat(),
             )
 
-        if not prompts.is_write_tier(snapshot.plan):
-            return _json_error(
-                "Interpreting a capture with AI needs a paid plan",
-                status=403,
-                code="plan_required",
-                plan_required="pro",
+        if not tiers.is_llm_tier(snapshot.plan):
+            # Same frontier as the chat: this is our money reaching the
+            # model. The rest of quick capture (the `#`, `@`, `~`, `!`
+            # parser) is local and every plan keeps it — only the
+            # interpret-with-AI shortcut is gated.
+            return _plan_required(
+                "Interpreting a capture with AI needs a Studio plan.", "studio"
             )
 
         kind_hint = body.get("kind")
@@ -495,6 +662,10 @@ class UsageView(View):
         return JsonResponse(
             {
                 "plan": snap.plan,
+                # Which of the three assistants this account gets:
+                # "none" | "canned" | "llm". Web and mobile branch on this
+                # instead of re-deriving the rule from `plan`.
+                "assistant_mode": tiers.assistant_mode(snap.plan),
                 "messages_sent_today": snap.messages_sent_today,
                 "daily_message_cap": snap.daily_message_cap,
                 "tokens_used_month": snap.tokens_used_month,

@@ -4,17 +4,30 @@
 > Lo que este documento diga sobre Stripe, cobros, planes de pago o tiendas es
 > contexto; ante cualquier diferencia, manda ese.
 
-Chat-with-Claude inside Continuity. Read-only today (Phase 1), mutation
-support coming next (Phase 2).
+Loop, the assistant inside Continuity.
+
+**There are three of them, one per tier.** `tiers.assistant_mode(plan)` is the
+single source of truth, and `GET /usage/` returns it as `assistant_mode` so the
+clients read the rule instead of re-deriving it from `plan`:
+
+| mode | plans | what it is |
+|---|---|---|
+| `none` | free | No assistant. `/chat/` and `/actions/` answer 403 `plan_required`; the clients show a placeholder. |
+| `canned` | pro | A fixed catalogue of read-only queries (`canned.py`). **Never calls Anthropic** — it queries `core.services.*` and renders templates server-side in the user's locale. Costs nothing, spends no quota. |
+| `llm` | studio, admin | The real chat: Anthropic, tool use, writes. Also gates `/parse-capture/`. |
 
 - Backend: Django app at `core.assistant`, mounted at `/api/assistant/`.
 - Frontend: slide-out drawer triggered from a sparkle icon in the TopNav,
   rendered from `frontend/src/components/assistant/`.
-- Model: Claude Haiku 4.5 (`claude-haiku-4-5-20251001`) only, for now.
-  Sonnet 4.6 "deep mode" lands in Phase 3.
+- Model: Claude Haiku 4.5 (`claude-haiku-4-5-20251001`). Sonnet answers
+  instead when an admin flips `assistant_deep_enabled` — a server-side
+  switch with no user-facing toggle, bounded per user by
+  `DEEP_DAILY_CAP_BY_PLAN`.
 - Auth: same Supabase JWT pipeline as `/graphql/` (extracted into
   `core.auth.authenticate_request`). Every tool runs server-side and
   filters by `user_id` — the model can never see another user's data.
+- The MCP connector has its **own** policy (`core/mcp/policy.py`, filtered on
+  `Tool.mutates`). Re-tiering the assistant does not move it.
 
 ---
 
@@ -39,15 +52,25 @@ That's the only required env var. Optional knobs (defaults shown):
 
 ```
 ASSISTANT_MODEL_FAST=claude-haiku-4-5-20251001
-ASSISTANT_MAX_TOKENS_OUT=1024
-ASSISTANT_MAX_TOOL_ITERATIONS=6
-ASSISTANT_MAX_INPUT_TOKENS=8000
-ASSISTANT_MAX_HISTORY_MESSAGES=12
+ASSISTANT_MODEL_DEEP=claude-sonnet-4-6
+ASSISTANT_MAX_TOKENS_OUT=8192
+ASSISTANT_MAX_TOOL_ITERATIONS=32
+ASSISTANT_MAX_HISTORY_TURNS=8
+ASSISTANT_MAX_HISTORY_ROWS=120
 ASSISTANT_MAX_INPUT_CHARS=4000
 ASSISTANT_RATE_LIMIT_USER=30/m
 ASSISTANT_RATE_LIMIT_BURST=5/10s
 ASSISTANT_RATE_LIMIT_IP=60/m
 ```
+
+The deep model is **not** an env var: it is the `assistant_deep_enabled` row in
+`AppConfig`, flipped from `/admin/beta`, and bounded per user by
+`DEEP_DAILY_CAP_BY_PLAN` in `quotas.py`.
+
+`ASSISTANT_MAX_HISTORY_TURNS` counts conversational turns, not rows — a turn
+that chained six tools is one turn. `ASSISTANT_MAX_TOOL_ITERATIONS` is a budget,
+not a cliff: running out ends the turn with a tool-less closing call rather than
+an error (see `anthropic_client.run_turn_iter`).
 
 ### 3. Install + migrate
 
@@ -64,8 +87,9 @@ Tables created: `assistant_accountprofile`, `assistant_conversation`,
 
 ### 4. Promote yourself to admin (optional, for dev)
 
-The default plan is `free` (20 messages/day, 200K tokens/month). For
-development, flip yourself to `admin` (no limits):
+The default plan is `free`, which has **no assistant at all** — so a fresh
+dev account sees the placeholder, not a chat. To get the real thing, flip
+yourself to `admin` (no limits):
 
 1. Find your Supabase user UUID:
    - Supabase dashboard → **Authentication** → **Users** → click your row
@@ -75,8 +99,8 @@ development, flip yourself to `admin` (no limits):
    python manage.py set_plan <your-uuid> admin
    ```
 
-Use `pro` instead of `admin` to test the paid-tier quotas (300 msg/day +
-5M tokens/month).
+To exercise the other two assistants, set the plan to `pro` (the
+deterministic catalogue) or `studio` (the chat with a 600/day cap).
 
 ### 5. Frontend
 

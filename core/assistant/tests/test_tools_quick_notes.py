@@ -45,30 +45,30 @@ def test_create_quick_note_requires_pro(user_a):
     assert "error" in out
     assert QuickNote.objects.filter(user_id=user_a).count() == 0
 
-    out2 = tools.call("create_quick_note", user_a, {"title": "X"}, plan="pro")
+    out2 = tools.call("create_quick_note", user_a, {"title": "X"}, plan="studio")
     assert out2.get("ok") is True
     assert QuickNote.objects.filter(user_id=user_a).count() == 1
 
 
 @pytest.mark.django_db
 def test_quick_note_full_crud_pro(user_a):
-    nid = tools.call("create_quick_note", user_a, {"title": "Plan"}, plan="pro")["id"]
+    nid = tools.call("create_quick_note", user_a, {"title": "Plan"}, plan="studio")["id"]
     s = tools.call(
         "add_note_section",
         user_a,
         {"note_id": nid, "heading": "H", "body": "hello"},
-        plan="pro",
+        plan="studio",
     )
     assert s.get("ok") is True
     upd = tools.call(
-        "update_quick_note", user_a, {"id": nid, "title": "Plan v2"}, plan="pro"
+        "update_quick_note", user_a, {"id": nid, "title": "Plan v2"}, plan="studio"
     )
     assert upd["title"] == "Plan v2"
     pin = tools.call(
-        "set_quick_note_pinned", user_a, {"id": nid, "pinned": True}, plan="pro"
+        "set_quick_note_pinned", user_a, {"id": nid, "pinned": True}, plan="studio"
     )
     assert pin["pinned"] is True
-    d = tools.call("delete_quick_note", user_a, {"id": nid}, plan="pro")
+    d = tools.call("delete_quick_note", user_a, {"id": nid}, plan="studio")
     assert d.get("deleted") == "quick_note"
     assert QuickNote.objects.filter(user_id=user_a).count() == 0
 

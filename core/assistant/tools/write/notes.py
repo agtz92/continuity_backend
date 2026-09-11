@@ -8,7 +8,7 @@ from core.services import activities as activities_svc
 from core.services import notes as notes_svc
 from core.services.projects import NotFoundError
 
-from .. import tool
+from .. import WRITE_TIER, tool
 
 
 @tool(
@@ -18,7 +18,7 @@ from .. import tool
         "This is distinct from a project 'update' (an activity-log entry). "
         "Requires `project_id` and `body`; `title` is optional."
     ),
-    plan_required="pro",
+    plan_required=WRITE_TIER,
     mutates=True,
     input_schema={
         "type": "object",
@@ -55,7 +55,7 @@ def _create_note(user_id: uuid.UUID, args: dict) -> dict:
         "Update a project note. `id` is required; omitted fields keep their "
         "current value."
     ),
-    plan_required="pro",
+    plan_required=WRITE_TIER,
     mutates=True,
     input_schema={
         "type": "object",
@@ -89,7 +89,7 @@ def _update_note(user_id: uuid.UUID, args: dict) -> dict:
         "until the user has explicitly confirmed; set `confirm` to true only "
         "then."
     ),
-    plan_required="pro",
+    plan_required=WRITE_TIER,
     mutates=True,
     input_schema={
         "type": "object",
@@ -129,7 +129,7 @@ def _delete_note(user_id: uuid.UUID, args: dict) -> dict:
         "project's activity log. Distinct from a project note. Requires "
         "`project_id` and `note` text."
     ),
-    plan_required="pro",
+    plan_required=WRITE_TIER,
     mutates=True,
     input_schema={
         "type": "object",
@@ -157,7 +157,7 @@ def _add_project_update(user_id: uuid.UUID, args: dict) -> dict:
         "Edit the text of an existing project update (activity-log entry). "
         "`id` is the update's id; `note` is the new text."
     ),
-    plan_required="pro",
+    plan_required=WRITE_TIER,
     mutates=True,
     input_schema={
         "type": "object",
@@ -184,7 +184,7 @@ def _edit_project_update(user_id: uuid.UUID, args: dict) -> dict:
         "Irreversible. Do NOT call this until the user has explicitly "
         "confirmed; set `confirm` to true only then."
     ),
-    plan_required="pro",
+    plan_required=WRITE_TIER,
     mutates=True,
     input_schema={
         "type": "object",

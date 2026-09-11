@@ -26,6 +26,11 @@ import logging
 import uuid
 from typing import Any, Callable
 
+#: Re-exported so every write module can write `plan_required=WRITE_TIER`
+#: instead of hard-coding a plan name 32 times. The value lives in
+#: `core.assistant.tiers`; moving writes between tiers is that one line.
+from ..tiers import WRITE_TIER  # noqa: F401 — re-export
+
 logger = logging.getLogger(__name__)
 
 

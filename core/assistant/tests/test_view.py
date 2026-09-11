@@ -91,14 +91,17 @@ def test_usage_endpoint_returns_snapshot(http, user_a, make_profile):
     assert response.status_code == 200
     data = response.json()
     assert data["plan"] == "free"
-    assert data["daily_message_cap"] == 15
+    # Free has no assistant, so nothing of its spend is capped — there is
+    # nothing it can spend. The clients branch on `assistant_mode`.
+    assert data["daily_message_cap"] is None
+    assert data["assistant_mode"] == "none"
 
 
 @pytest.mark.django_db
 def test_chat_streams_text_and_persists_message(
     http, user_a, make_profile, fake_anthropic
 ):
-    make_profile(user_a, plan="free")
+    make_profile(user_a, plan="studio")
     token = _make_jwt(user_a)
 
     fake_client = fake_anthropic(
@@ -152,7 +155,7 @@ def test_chat_streams_text_and_persists_message(
 
 @pytest.mark.django_db
 def test_chat_executes_tool_use(http, user_a, make_profile, make_project, fake_anthropic):
-    make_profile(user_a, plan="free")
+    make_profile(user_a, plan="studio")
     make_project(user_a, name="Telegram bot")
     token = _make_jwt(user_a)
 
@@ -224,7 +227,7 @@ def test_second_turn_after_tool_use_does_not_orphan_tool_results(
     missing the assistant tool_use blocks, leaving tool_results
     orphaned on the second turn.
     """
-    make_profile(user_a, plan="free")
+    make_profile(user_a, plan="studio")
     make_project(user_a, name="Telegram bot")
     token = _make_jwt(user_a)
 
@@ -327,9 +330,9 @@ def test_chat_rejects_oversized_input(http, user_a, make_profile):
 
 @pytest.mark.django_db
 def test_chat_blocked_when_quota_exceeded(http, user_a, make_profile):
-    make_profile(user_a, plan="free")
+    make_profile(user_a, plan="studio")
     UsageDay.objects.create(
-        user_id=user_a, date=timezone.now().date(), messages_sent=15
+        user_id=user_a, date=timezone.now().date(), messages_sent=600
     )
     token = _make_jwt(user_a)
     response = http.post(

@@ -12,13 +12,20 @@ from core.assistant.models import AccountProfile, UsageDay
 
 
 @pytest.mark.django_db
-def test_free_plan_default(user_a, make_profile):
-    make_profile(user_a, "free")
-    snap = quotas.check(user_a)
-    assert snap.plan == "free"
-    assert snap.daily_message_cap == 15
-    assert snap.monthly_token_cap == 100_000
-    assert snap.messages_sent_today == 0
+def test_free_and_pro_are_uncapped_because_they_cannot_spend(user_a, make_profile):
+    """Neither tier can reach the Anthropic API, so neither carries a cap.
+
+    Free has no assistant; Pro's chat is the deterministic catalogue,
+    which never leaves our servers. A cap on an unspendable budget would
+    only mislead whoever reads it next.
+    """
+    for plan in ("free", "pro"):
+        make_profile(user_a, plan)
+        snap = quotas.check(user_a)
+        assert snap.plan == plan
+        assert snap.daily_message_cap is None
+        assert snap.monthly_token_cap is None
+        assert snap.messages_sent_today == 0
 
 
 @pytest.mark.django_db
@@ -31,9 +38,9 @@ def test_admin_plan_uncapped(user_a, make_profile):
 
 @pytest.mark.django_db
 def test_check_raises_when_daily_cap_hit(user_a, make_profile):
-    make_profile(user_a, "free")
+    make_profile(user_a, "studio")
     UsageDay.objects.create(
-        user_id=user_a, date=timezone.now().date(), messages_sent=15
+        user_id=user_a, date=timezone.now().date(), messages_sent=600
     )
     with pytest.raises(quotas.QuotaExceeded) as exc:
         quotas.check(user_a)
@@ -41,19 +48,23 @@ def test_check_raises_when_daily_cap_hit(user_a, make_profile):
 
 
 @pytest.mark.django_db
-def test_check_raises_when_monthly_cap_hit(user_a, make_profile):
-    make_profile(user_a, "free")
-    today = timezone.now().date()
+def test_no_plan_is_cut_off_mid_month_by_tokens(user_a, make_profile):
+    """The monthly token ceiling is gone on purpose.
+
+    It used to stop Studio mid-month with no warning and no way to see it
+    coming. The daily message count is the legible limit; the deep-model
+    cap bounds the expensive half.
+    """
+    make_profile(user_a, "studio")
     UsageDay.objects.create(
         user_id=user_a,
-        date=today,
+        date=timezone.now().date(),
         messages_sent=1,
-        tokens_in=80_000,
-        tokens_out=30_000,
+        tokens_in=50_000_000,
+        tokens_out=50_000_000,
     )
-    with pytest.raises(quotas.QuotaExceeded) as exc:
-        quotas.check(user_a)
-    assert exc.value.kind == "monthly_tokens"
+    snap = quotas.check(user_a)  # does not raise
+    assert snap.monthly_token_cap is None
 
 
 @pytest.mark.django_db
@@ -91,7 +102,7 @@ def test_signup_enrollment_open_enrolls_beta(user_a):
     assert profile.beta_enrolled_at is not None
     assert profile.is_billing_exempt is True
     assert profile.billing_exempt_reason == "beta"
-    assert profile.plan == "pro"
+    assert profile.plan == "studio"
 
 
 @pytest.mark.django_db

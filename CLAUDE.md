@@ -29,10 +29,56 @@ Los demás trozos viven en módulos dedicados (re-importados con `import *`):
   delete por entidad). Los resolvers de `cms/schema_admin.py` son finos:
   autorizan → `services.*` → `AdminX.from_model`. **Aquí (services.py) va lógica nueva del CMS.**
 - Tools del asistente: parsers de fecha en `core/assistant/tools/datetime_utils.py`.
-  Las **write tools** (tier Pro) viven en el paquete `core/assistant/tools/write/`
-  (un módulo por dominio: `projects`/`tasks`/`routines`/`notes`/`ideas`/`categories`/
-  `quick_notes`); su `__init__.py` importa cada submódulo para disparar el registro
-  `@tool`. **Una write tool nueva** va en el módulo de su dominio (no en un único archivo).
+  Las **write tools** (tier `llm` — studio/admin) viven en el paquete
+  `core/assistant/tools/write/` (un módulo por dominio: `projects`/`tasks`/`routines`/
+  `notes`/`ideas`/`categories`/`quick_notes`); su `__init__.py` importa cada submódulo
+  para disparar el registro `@tool`. **Una write tool nueva** va en el módulo de su
+  dominio (no en un único archivo) y se declara `plan_required=WRITE_TIER`, nunca con
+  un nombre de plan literal.
+
+## Los tres asistentes (`core/assistant/tiers.py`)
+
+**`assistant_mode(plan)` es la única fuente de verdad** de qué puede hacer Loop en cada
+plan. Antes la regla estaba repetida en seis sitios que no se hablaban; ahora todo cuelga
+de aquí y `/usage/` la devuelve como `assistant_mode` para que web y móvil la **lean** en
+vez de deducirla del `plan`.
+
+| modo | planes | qué es |
+|---|---|---|
+| `none` | free | sin asistente. `/chat/` y `/actions/` responden 403 `plan_required`. El cliente pinta un cartel. |
+| `canned` | pro | catálogo determinista (`core/assistant/canned.py`). **Nunca llama a Anthropic**: consulta `core.services.*` y renderiza plantillas en el servidor, en el locale del usuario. No gasta cupo. |
+| `llm` | studio, admin | el chat real: Anthropic, tools, escritura. También gatea `/parse-capture/`. |
+
+- **`WRITE_TIER`** (misma constante) es el `plan_required` de las 32 mutating tools.
+- **El conector MCP NO sigue esta regla.** `core/mcp/policy.py` filtra por `Tool.mutates`,
+  así que re-tierar el asistente **no** mueve el conector: son dos políticas, cámbialas
+  por separado y a propósito. Hoy: free/basic/pro leen (+ `set_project_priority`),
+  studio/admin escriben.
+- **Modelo profundo (Sonnet):** no hay botón ni campo en el request. Lo decide el servidor
+  con tres condiciones — el switch `assistant_deep_enabled` de `app_config` (visible solo
+  en `/admin/beta`), el tier `llm`, y el cupo diario de `DEEP_DAILY_CAP_BY_PLAN`. Añadir
+  una key a `app_config.DEFAULTS` es todo lo que hace falta para que aparezca en el admin.
+- **Quedarse sin presupuesto de tools no es un error.** `run_turn_iter` gasta una llamada
+  más *sin tools* para que el modelo cierre el turno diciendo qué alcanzó a hacer
+  (`stop_reason="tool_budget_closed"`, evento SSE `budget_exhausted`). No vuelvas a
+  meter un `yield ("error", ...)` ahí: deja escrituras a medias sin nombrar.
+- **La bandera de cancelación muere con su turno.** `ChatView` la borra al empezar y en un
+  `finally`. Si se toca ese flujo, los tests de `core/assistant/tests/test_stalls.py`
+  son los que impiden que vuelva el bug de "Stop y el siguiente mensaje no arranca".
+- **Los mensajes se persisten MIENTRAS pasa el turno, no al final** (`on_append` →
+  `_persist` en `ChatView`). No lo "ordenes" juntando todo en un bucle al cierre: las
+  tools ya escribieron en la BD cuando el stream se corta, así que persistir al final
+  dejaba al usuario con un proyecto y ocho tareas reales y una conversación que nunca
+  mencionó haberlos creado. Un stream cortado ahora pierde como mucho la cola, y los
+  `tool_use` huérfanos que queden los limpia `_trim_to_pair_clean` al leer.
+- **Truncar en `max_tokens` a mitad de un `tool_use` conserva el texto** y tira solo las
+  llamadas inejecutables. El turno entero ya no se descarta.
+- **El historial se cuenta en turnos, no en filas** (`ASSISTANT_MAX_HISTORY_TURNS`), y los
+  `tool_result` viejos se compactan sin borrarlos (borrar uno huerfaniza su `tool_use` y
+  devuelve 400).
+
+**Cohorte beta:** se enrola en `studio` (no `pro`), porque el chat conversacional vive
+ahí. Los ya inscritos se mueven con `python manage.py migrate_beta_to_studio --dry-run`.
 Detalle del refactor: `AUDITORIA_CODIGO.md`.
 
 ## CMS público (`core/cms`) — schema sin auth para el sitio de marketing
@@ -62,8 +108,8 @@ paso 5: `../frontend/docs/onboarding-paso5-personalizar-today.md`.
 
 **`onboardingState` provisiona el `AccountProfile`.** El resolver (`core/schema.py`)
 llama `get_or_create_profile(uid)` (de `core/assistant/quotas.py`) en vez de solo
-leer el perfil. Esto asegura que la decisión de exención early-adopter
-(`is_billing_exempt`/`plan="pro"`, gateada por `EARLY_ADOPTER_CAP`) ya corrió
+leer el perfil. Esto asegura que la decisión de enrolamiento beta
+(`is_billing_exempt`/`plan="studio"`, gateada por el cupo de `app_config`) ya corrió
 cuando el paso 4 del onboarding decide qué pantalla mostrar (elegir plan vs.
 "indultado"). Antes el resolver solo hacía `filter().first()`, así que un usuario
 nuevo cuyo primer request era el onboarding veía `is_billing_exempt=False` hasta

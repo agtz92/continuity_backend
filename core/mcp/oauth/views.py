@@ -159,6 +159,22 @@ def authorize(request: HttpRequest):
     return HttpResponseRedirect(consent_url)
 
 
+def _cap_scope_to_plan(user_id, scope: str) -> str:
+    """Drop `continuity:write` for plans the connector won't let write.
+
+    Mirrors `core/mcp/policy.MCP_TOOL_POLICY`, which is the enforcement
+    point — this only keeps the issued token honest about it.
+    """
+    from core.assistant.quotas import get_or_create_profile
+    from core.mcp.policy import MCP_TOOL_POLICY
+
+    plan = get_or_create_profile(user_id).plan
+    if MCP_TOOL_POLICY.get(plan, MCP_TOOL_POLICY["free"]).get("writes"):
+        return scope
+    kept = [s for s in scope.split() if s != "continuity:write"]
+    return " ".join(kept) or "continuity:read"
+
+
 def approve(request: HttpRequest):
     """Called by the frontend consent page with a Supabase Bearer token.
 
@@ -189,6 +205,13 @@ def approve(request: HttpRequest):
         return _err(400, "invalid_request", "Unknown client or redirect_uri")
     if not code_challenge or method != "S256":
         return _err(400, "invalid_request", "PKCE S256 required")
+
+    # This is the first point in the flow where we know WHO is consenting,
+    # so it is where the requested scope meets the plan. `policy.mcp_call`
+    # would refuse the writes anyway, but a token that claims a permission
+    # it does not have is a lie told to the client app — and it would show
+    # up in Claude's connector settings as a capability that silently fails.
+    scope = _cap_scope_to_plan(user_id, scope)
 
     raw_code = tokens.new_opaque_token()
     OAuthAuthorizationCode.objects.create(

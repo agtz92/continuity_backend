@@ -7,7 +7,7 @@ import uuid
 from core.services import categories as categories_svc
 from core.services.projects import NotFoundError
 
-from .. import tool
+from .. import WRITE_TIER, tool
 
 
 @tool(
@@ -17,7 +17,7 @@ from .. import tool
         "(defaults to 'emerald'). If a category with that name already "
         "exists it is returned unchanged."
     ),
-    plan_required="pro",
+    plan_required=WRITE_TIER,
     mutates=True,
     input_schema={
         "type": "object",
@@ -45,7 +45,7 @@ def _create_category(user_id: uuid.UUID, args: dict) -> dict:
         "Update a project category. `id` is required; omitted fields keep "
         "their current value."
     ),
-    plan_required="pro",
+    plan_required=WRITE_TIER,
     mutates=True,
     input_schema={
         "type": "object",
@@ -84,7 +84,7 @@ def _update_category(user_id: uuid.UUID, args: dict) -> dict:
         "uncategorized. Irreversible. Do NOT call this until the user has "
         "explicitly confirmed; set `confirm` to true only then."
     ),
-    plan_required="pro",
+    plan_required=WRITE_TIER,
     mutates=True,
     input_schema={
         "type": "object",

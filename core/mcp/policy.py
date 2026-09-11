@@ -6,10 +6,21 @@ assistant gating (`plan_required` + `tools.call()` in
 `core/assistant/tools/__init__.py`) so the two channels can have different
 policies without coupling.
 
-Desired scope (see `docs/mcp-connector/PLAN.md` §8):
+Scope:
 
-- ``free`` / ``basic`` : read-only **+** adjust priority (`set_project_priority`).
-- ``pro`` / ``studio`` / ``admin`` : full create / modify / delete.
+- ``free`` / ``basic`` / ``pro`` : read-only **+** adjust priority
+  (`set_project_priority`).
+- ``studio`` / ``admin`` : full create / modify / delete.
+
+Pro reads but does not write here, matching its in-app assistant: its chat
+is the deterministic read-only catalogue (`core/assistant/canned.py`).
+Note Pro keeps `set_project_priority` even though it is a mutating tool —
+free already has it, and a paid plan must never be able to do *less* than
+a cheaper one.
+
+Free keeps the connector even though it has no in-app assistant at all.
+Not a contradiction: the connector spends the user's own Claude
+subscription reading their own data, while the assistant spends ours.
 
 Enforcement is server-side and never trusts the model:
 
@@ -33,7 +44,7 @@ from core.assistant.tools import Tool, all_tools, get_tool
 MCP_TOOL_POLICY: dict[str, dict[str, Any]] = {
     "free":   {"reads": True, "writes": False, "allow_extra": {"set_project_priority"}},
     "basic":  {"reads": True, "writes": False, "allow_extra": {"set_project_priority"}},
-    "pro":    {"reads": True, "writes": True, "allow_extra": set()},
+    "pro":    {"reads": True, "writes": False, "allow_extra": {"set_project_priority"}},
     "studio": {"reads": True, "writes": True, "allow_extra": set()},
     "admin":  {"reads": True, "writes": True, "allow_extra": set()},
 }

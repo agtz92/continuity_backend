@@ -21,18 +21,30 @@ from .models import (
 )
 
 
+# Caps on what a plan may spend against the Anthropic API.
+#
+# Free and Pro are uncapped here because neither can reach the API at all
+# (see core/assistant/tiers.py): Free has no assistant, and Pro's chat is
+# the deterministic catalogue, which never leaves our servers. A cap on
+# something that cannot be spent is a trap for whoever reads it next.
+#
+# Studio has NO monthly token ceiling on purpose. The old one cut people
+# off mid-month with no warning and no way to see it coming — the daily
+# message count is the honest, legible limit, and the deep-model cap below
+# bounds the expensive half.
 PLAN_QUOTAS = {
-    Plan.FREE.value: {"daily_messages": 15, "monthly_tokens": 100_000},
-    Plan.PRO.value: {"daily_messages": 200, "monthly_tokens": 3_000_000},
-    Plan.STUDIO.value: {"daily_messages": 600, "monthly_tokens": 15_000_000},
+    Plan.FREE.value: {"daily_messages": None, "monthly_tokens": None},
+    Plan.PRO.value: {"daily_messages": None, "monthly_tokens": None},
+    Plan.STUDIO.value: {"daily_messages": 600, "monthly_tokens": None},
     Plan.ADMIN.value: {"daily_messages": None, "monthly_tokens": None},
 }
 
-# Daily cap for the deep (Sonnet) model, per plan. A cap of 0 disables
-# deep mode entirely for that plan.
+# Daily cap for the deep (Sonnet) model, per plan. A cap of 0 disables deep
+# mode for that plan regardless of the `assistant_deep_enabled` switch.
+# Free and Pro sit at 0 because they never reach the model at all.
 DEEP_DAILY_CAP_BY_PLAN = {
     Plan.FREE.value: 0,
-    Plan.PRO.value: 5,
+    Plan.PRO.value: 0,
     Plan.STUDIO.value: 25,
     Plan.ADMIN.value: 100,
 }
@@ -89,7 +101,13 @@ def _apply_enrollment_decision(profile: AccountProfile) -> None:
             profile.beta_cohort = True
             profile.beta_status = BetaStatus.ACTIVE
             profile.beta_enrolled_at = now
-            profile.plan = Plan.PRO.value  # beta gets Pro features
+            # Beta gets the top tier, not the middle one. The cohort was
+            # enrolled on the promise of the full assistant; once Loop's
+            # chat moved to `studio` (see core/assistant/tiers.py), leaving
+            # them on `pro` would have silently taken it away from exactly
+            # the people who owe us feedback. Existing members are moved by
+            # `manage.py migrate_beta_to_studio`.
+            profile.plan = Plan.STUDIO.value
             profile.is_billing_exempt = True
             profile.billing_exempt_reason = BillingExemptReason.BETA
             profile.billing_exempt_until = None
