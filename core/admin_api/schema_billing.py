@@ -222,7 +222,7 @@ class AdminBillingQuery:
             net_monthly_cents_for_profile,
             period_for_profile,
         )
-        from core.billing.catalog import product_id_for
+        from core.billing.catalog import product_ids_for
 
         # NOTE: paginación duplicada — extraer paginate() + constantes
         per_page = max(1, min(per_page, 200))
@@ -239,16 +239,17 @@ class AdminBillingQuery:
                 qs = qs.filter(plan=normalized_plan)
         if period:
             # El periodo no es una columna: vive codificado en el identificador
-            # de producto. Con un solo catálogo compartido por los tres canales,
-            # dos ids bastan para cubrir web, App Store y Google Play.
+            # de producto.
+            #
+            # Se piden TODOS los ids, no solo el vigente. Los productos de
+            # RevenueCat Web Billing son inmutables, así que cada cambio de
+            # precio deja un id retirado en circulación — y filtrar solo por el
+            # actual escondería del panel justo a los suscriptores más antiguos.
             normalized_period = period.lower()
             candidates = [
                 pid
-                for pid in (
-                    product_id_for(Plan.PRO.value, normalized_period),
-                    product_id_for(Plan.STUDIO.value, normalized_period),
-                )
-                if pid
+                for plan_value in (Plan.PRO.value, Plan.STUDIO.value)
+                for pid in product_ids_for(plan_value, normalized_period)
             ]
             if candidates:
                 qs = qs.filter(billing_product_id__in=candidates)

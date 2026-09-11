@@ -104,6 +104,18 @@ def product_id_for(plan: str, period: str) -> str | None:
     return ids[0] if ids else None
 
 
+def product_ids_for(plan: str, period: str) -> list[str]:
+    """**Todos** los ids de un plan+periodo: el vigente y los retirados.
+
+    `product_id_for` devuelve solo el canónico, que es lo que quieres para
+    *ofrecer* algo. Para **buscar** —"dame los suscriptores anuales"— hace falta
+    la lista entera, o dejas fuera a quien compró con un id anterior, que es
+    precisamente la gente que lleva más tiempo pagándote.
+    """
+    key = _PRODUCT_SETTINGS.get((plan, period))
+    return _product_ids(key) if key else []
+
+
 def _reverse_map() -> dict[str, tuple[str, str]]:
     """Build product id -> (plan, period), skipping unconfigured entries."""
     out: dict[str, tuple[str, str]] = {}

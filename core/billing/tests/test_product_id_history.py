@@ -65,6 +65,19 @@ def test_sin_configurar_sigue_devolviendo_none():
     assert catalog.plan_for_product("") is None
 
 
+@override_settings(
+    STORE_PRODUCT_PRO_ANNUAL="it.continuu.pro_annual,it.continuu.pro_annual_old"
+)
+def test_buscar_por_periodo_incluye_los_ids_retirados():
+    """El panel de admin filtra suscriptores por periodo usando estos ids.
+
+    Con solo el vigente, los suscriptores que compraron con un id anterior
+    desaparecerían del filtro — y son justo los que llevan más tiempo pagando.
+    """
+    ids = catalog.product_ids_for("pro", "annual")
+    assert ids == ["it.continuu.pro_annual", "it.continuu.pro_annual_old"]
+
+
 @override_settings(STORE_PRODUCT_PRO_MONTHLY="it.continuu.pro_monthly")
 def test_un_id_desconocido_no_otorga_nada():
     """El caso que protege el dinero: lo que no reconocemos no da plan."""
