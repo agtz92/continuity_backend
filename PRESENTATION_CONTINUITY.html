@@ -4,378 +4,771 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Continuity — Product Presentation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --bg:#0f1115; --surface:#171a21; --surface-2:#1d212a; --border:#2a2f3a;
-    --text:#e8eaf0; --muted:#9aa3b2; --faint:#6b7382;
-    --accent:#7c8cff; --accent-2:#9d7bff; --good:#3fb27f; --warn:#e0a23c;
-    --maxw:880px;
+:root{
+  --bg:#FAF8F4;
+  --surface:#FFFFFF;
+  --surface-2:#F3F0E9;
+  --surface-3:#EBE7DD;
+  --line:#E0DACD;
+  --line-strong:#CFC7B5;
+  --text:#1F1D18;
+  --text-2:#403C33;
+  --text-3:#6B6556;
+  --text-4:#8F8878;
+  --accent:#9A6B12;
+  --accent-soft:#F1E6CE;
+  --signal:#B3402A;
+  --signal-soft:#F7E4DF;
+  --good:#3F6B4A;
+  --good-soft:#E2EDE4;
+  --warn:#9A6B12;
+  --warn-soft:#F6EBD5;
+  --measure:74ch;
+  --sans:"Instrument Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --serif:"Source Serif 4",Georgia,"Times New Roman",serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1017;
+    --surface:#161922;
+    --surface-2:#1C202B;
+    --surface-3:#232734;
+    --line:#2C313E;
+    --line-strong:#3D4353;
+    --text:#ECEAE4;
+    --text-2:#C9C5BB;
+    --text-3:#9A958A;
+    --text-4:#7A7568;
+    --accent:#D4A847;
+    --accent-soft:#2A2416;
+    --signal:#E08A5A;
+    --signal-soft:#2E1E17;
+    --good:#7FB894;
+    --good-soft:#18251C;
+    --warn:#D4A847;
+    --warn-soft:#2A2416;
+    color-scheme:dark;
   }
-  *{box-sizing:border-box}
-  html{scroll-behavior:smooth}
-  body{
-    margin:0; background:var(--bg); color:var(--text);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
-    line-height:1.65; font-size:16px;
-  }
-  /* layout */
-  .wrap{display:grid; grid-template-columns:260px minmax(0,1fr); gap:0; max-width:1240px; margin:0 auto;}
-  nav.toc{
-    position:sticky; top:0; align-self:start; height:100vh; overflow-y:auto;
-    padding:32px 22px; border-right:1px solid var(--border); background:var(--surface);
-  }
-  nav.toc .brand{font-weight:700; font-size:18px; letter-spacing:-.01em; margin-bottom:4px;}
-  nav.toc .brand span{background:linear-gradient(90deg,var(--accent),var(--accent-2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
-  nav.toc .tag{color:var(--faint); font-size:12.5px; margin-bottom:24px;}
-  nav.toc a{display:block; color:var(--muted); text-decoration:none; font-size:14px; padding:5px 10px; border-radius:7px; margin:1px 0;}
-  nav.toc a:hover{color:var(--text); background:var(--surface-2);}
-  nav.toc a.sub{padding-left:22px; font-size:13px; color:var(--faint);}
-  nav.toc .annex-label{margin:18px 0 6px; font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--faint);}
-  main{padding:56px 56px 120px; min-width:0;}
-  /* hero */
-  .hero{margin-bottom:46px;}
-  .hero h1{font-size:40px; line-height:1.12; letter-spacing:-.025em; margin:0 0 14px; font-weight:800;}
-  .hero h1 .grad{background:linear-gradient(90deg,var(--accent),var(--accent-2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
-  .hero .lede{font-size:19px; color:var(--muted); max-width:60ch; margin:0;}
-  .readnote{margin-top:26px; padding:16px 20px; border-left:3px solid var(--accent); background:var(--surface); border-radius:0 10px 10px 0; color:var(--muted); font-size:14.5px;}
-  /* sections */
-  section{margin:0 0 52px; scroll-margin-top:24px;}
-  h2{font-size:27px; letter-spacing:-.02em; margin:0 0 8px; padding-top:14px; border-top:1px solid var(--border); font-weight:750;}
-  h2 .num{color:var(--accent); font-weight:700; margin-right:10px;}
-  h3{font-size:18.5px; margin:30px 0 8px; letter-spacing:-.01em;}
-  h4{font-size:15px; margin:20px 0 6px; color:var(--text); text-transform:uppercase; letter-spacing:.05em;}
-  p{margin:10px 0;}
-  .annex-banner{margin:70px 0 36px; padding:22px 26px; border-radius:14px; background:linear-gradient(120deg,var(--surface-2),var(--surface)); border:1px solid var(--border);}
-  .annex-banner h2{border:0; padding:0; margin:0 0 4px; font-size:24px;}
-  .annex-banner p{margin:0; color:var(--muted); font-size:14.5px;}
-  /* tables */
-  table{width:100%; border-collapse:collapse; margin:18px 0; font-size:14.5px; background:var(--surface); border-radius:10px; overflow:hidden;}
-  th,td{text-align:left; padding:11px 14px; border-bottom:1px solid var(--border); vertical-align:top;}
-  th{background:var(--surface-2); font-weight:650; color:var(--text); font-size:13px; text-transform:uppercase; letter-spacing:.03em;}
-  tr:last-child td{border-bottom:0;}
-  td:first-child{font-weight:600;}
-  .num-col td:nth-child(n+2){text-align:center; font-variant-numeric:tabular-nums;}
-  /* callouts */
-  blockquote, .callout{margin:18px 0; padding:14px 18px; border-left:3px solid var(--accent-2); background:var(--surface); border-radius:0 10px 10px 0; color:var(--muted); font-size:14.5px;}
-  blockquote p:first-child{margin-top:0} blockquote p:last-child{margin-bottom:0}
-  .pitch{margin:18px 0; padding:18px 22px; border-radius:12px; background:linear-gradient(120deg,rgba(124,140,255,.14),rgba(157,123,255,.10)); border:1px solid var(--border); font-size:17px;}
-  /* pills */
-  .pill{display:inline-block; padding:1px 9px; border-radius:999px; font-size:12px; font-weight:600; white-space:nowrap;}
-  .ship{background:rgba(63,178,127,.16); color:#6fdcab;}
-  .plan{background:rgba(124,140,255,.16); color:#aeb7ff;}
-  .partial{background:rgba(224,162,60,.16); color:#f0c374;}
-  .dash{color:var(--faint);}
-  /* feature cards */
-  .cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px; margin:20px 0;}
-  .card{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 18px;}
-  .card h4{margin:0 0 6px; color:var(--accent); text-transform:none; letter-spacing:-.01em; font-size:15.5px;}
-  .card p{margin:0; font-size:14px; color:var(--muted);}
-  ul{margin:10px 0; padding-left:20px;} li{margin:5px 0;}
-  code,.mono{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace; font-size:12.5px; background:var(--surface-2); padding:1px 6px; border-radius:5px; color:#c9d2ff;}
-  pre{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:18px; overflow-x:auto; font-size:13px; line-height:1.5; color:var(--muted);}
-  .lifecycle{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:20px 0; font-size:13.5px;}
-  .lifecycle .st{padding:6px 12px; border-radius:8px; background:var(--surface-2); border:1px solid var(--border); font-weight:600;}
-  .lifecycle .arr{color:var(--faint);}
-  footer{margin-top:60px; padding-top:24px; border-top:1px solid var(--border); color:var(--faint); font-size:13px;}
-  @media(max-width:860px){
-    .wrap{grid-template-columns:1fr;}
-    nav.toc{position:static; height:auto; border-right:0; border-bottom:1px solid var(--border);}
-    main{padding:32px 22px 80px;}
-    .hero h1{font-size:31px;}
-  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  font-family:var(--sans);font-size:16px;line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---------- layout ---------- */
+.shell{display:grid;grid-template-columns:288px minmax(0,1fr);max-width:1400px;margin:0 auto;}
+nav.toc{
+  position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;
+  padding:40px 26px 60px;border-right:1px solid var(--line);background:var(--surface);
+}
+main{padding:56px 60px 120px;min-width:0;}
+.doc{max-width:var(--measure);}
+
+/* ---------- toc ---------- */
+.brand{font-weight:700;font-size:19px;letter-spacing:-.02em;line-height:1.2;}
+.brand em{font-style:normal;color:var(--accent);}
+.brand-sub{color:var(--text-4);font-size:12.5px;margin:6px 0 28px;letter-spacing:.01em;}
+nav.toc a{
+  display:block;color:var(--text-3);text-decoration:none;font-size:13.5px;
+  padding:5px 10px;border-radius:6px;margin:1px 0;line-height:1.45;
+  border-left:2px solid transparent;
+}
+nav.toc a:hover{color:var(--text);background:var(--surface-2);}
+nav.toc a.active{color:var(--text);background:var(--surface-2);border-left-color:var(--accent);font-weight:500;}
+nav.toc a.sub{padding-left:22px;font-size:12.5px;color:var(--text-4);}
+nav.toc a.sub:hover,nav.toc a.sub.active{color:var(--text-2);}
+.toc-group{
+  font-size:10.5px;text-transform:uppercase;letter-spacing:.12em;color:var(--text-4);
+  margin:26px 0 8px;padding-left:10px;font-weight:600;
+}
+.toc-group:first-of-type{margin-top:0;}
+
+/* ---------- type ---------- */
+h1{
+  font-size:40px;line-height:1.1;letter-spacing:-.03em;font-weight:700;
+  margin:0 0 10px;
+}
+.tagline{
+  font-family:var(--serif);font-size:21px;line-height:1.4;color:var(--text-2);
+  margin:0 0 32px;max-width:60ch;
+}
+h2{
+  font-size:27px;line-height:1.2;letter-spacing:-.022em;font-weight:700;
+  margin:72px 0 18px;padding-top:26px;border-top:1px solid var(--line);
+  scroll-margin-top:24px;
+}
+h2:first-of-type{border-top:none;padding-top:0;}
+h3{font-size:19px;letter-spacing:-.014em;font-weight:600;margin:40px 0 12px;scroll-margin-top:24px;}
+h4{font-size:15.5px;font-weight:600;margin:26px 0 8px;color:var(--text-2);}
+p{margin:0 0 15px;}
+strong{font-weight:600;color:var(--text);}
+em{font-style:italic;}
+a{color:var(--accent);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--accent) 35%,transparent);}
+a:hover{border-bottom-color:var(--accent);}
+ul,ol{margin:0 0 16px;padding-left:22px;}
+li{margin:0 0 7px;}
+li::marker{color:var(--text-4);}
+code{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.86em;
+  background:var(--surface-2);border:1px solid var(--line);border-radius:4px;padding:.1em .35em;
+}
+hr{border:none;border-top:1px solid var(--line);margin:56px 0;}
+
+/* ---------- eyebrow / kicker ---------- */
+.kicker{
+  font-size:11px;text-transform:uppercase;letter-spacing:.14em;font-weight:600;
+  color:var(--accent);margin:0 0 10px;
+}
+
+/* ---------- callouts ---------- */
+.note{
+  background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--line-strong);
+  border-radius:0 8px 8px 0;padding:16px 20px;margin:24px 0;font-size:14.5px;color:var(--text-2);
+}
+.note p:last-child{margin-bottom:0;}
+.note.how{border-left-color:var(--accent);background:var(--accent-soft);}
+.note.how p:last-child{margin-bottom:0;}
+.note.flag{border-left-color:var(--signal);}
+.note strong{color:var(--text);}
+.pitch{
+  font-family:var(--serif);font-size:20px;line-height:1.45;color:var(--text);
+  border-left:3px solid var(--accent);padding:4px 0 4px 22px;margin:28px 0;
+}
+
+/* ---------- tables ---------- */
+.tw{overflow-x:auto;margin:22px 0;border:1px solid var(--line);border-radius:10px;background:var(--surface);}
+table{border-collapse:collapse;width:100%;font-size:14px;}
+th,td{padding:11px 15px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line);}
+thead th{
+  background:var(--surface-2);font-weight:600;font-size:11.5px;text-transform:uppercase;
+  letter-spacing:.07em;color:var(--text-3);white-space:nowrap;
+}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:var(--surface-2);}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;}
+td.ctr,th.ctr{text-align:center;}
+table.kv td:first-child{font-weight:600;color:var(--text);width:26%;}
+table.plans td:first-child{font-weight:500;color:var(--text-2);}
+
+/* ---------- status pills ---------- */
+.pill{
+  display:inline-block;font-size:11px;font-weight:600;letter-spacing:.03em;
+  padding:2px 8px;border-radius:99px;white-space:nowrap;line-height:1.5;
+}
+.pill.ok{background:var(--good-soft);color:var(--good);}
+.pill.part{background:var(--warn-soft);color:var(--warn);}
+.pill.no{background:var(--surface-3);color:var(--text-4);}
+.pill.na{color:var(--text-4);background:transparent;}
+
+/* ---------- cards ---------- */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:14px;margin:24px 0;}
+.card{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;
+}
+.card .fig{font-size:26px;font-weight:700;letter-spacing:-.03em;line-height:1.1;color:var(--accent);}
+.card .lbl{font-size:12px;color:var(--text-4);margin-top:5px;line-height:1.4;}
+
+/* ---------- diagram ---------- */
+pre.diagram{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.55;
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:20px;overflow-x:auto;color:var(--text-2);margin:22px 0;
+}
+
+/* ---------- lifecycle strip ---------- */
+.flow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:20px 0 26px;}
+.flow span{
+  font-size:12.5px;font-weight:600;padding:5px 11px;border-radius:6px;
+  background:var(--surface-2);border:1px solid var(--line);color:var(--text-2);
+}
+.flow span.hot{background:var(--signal-soft);border-color:color-mix(in srgb,var(--signal) 30%,transparent);color:var(--signal);}
+.flow span.done{background:var(--good-soft);border-color:color-mix(in srgb,var(--good) 30%,transparent);color:var(--good);}
+.flow i{color:var(--text-4);font-style:normal;font-size:13px;}
+
+/* ---------- annex divider ---------- */
+.annex-break{
+  margin:96px 0 0;padding:34px 0 0;border-top:3px double var(--line-strong);
+}
+.annex-break h2{border-top:none;padding-top:0;margin-top:0;}
+.annex-break .kicker{color:var(--text-4);}
+
+.footnote{font-size:13px;color:var(--text-4);font-style:italic;margin-top:56px;padding-top:22px;border-top:1px solid var(--line);}
+
+/* ---------- responsive ---------- */
+@media (max-width:1040px){
+  .shell{grid-template-columns:1fr;}
+  nav.toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--line);padding:26px 24px;}
+  nav.toc .toc-links{columns:2;column-gap:20px;}
+  main{padding:34px 24px 80px;}
+  h1{font-size:31px;}
+  h2{font-size:23px;margin-top:52px;}
+  .tagline{font-size:18px;}
+}
+@media (max-width:620px){
+  nav.toc .toc-links{columns:1;}
+  main{padding:26px 18px 60px;}
+  body{font-size:15.5px;}
+}
+
+/* ---------- print ---------- */
+@media print{
+  :root{--bg:#fff;--surface:#fff;--surface-2:#f6f5f2;--surface-3:#eee;--line:#ccc;--text:#000;--text-2:#222;--text-3:#444;--text-4:#666;}
+  nav.toc{display:none;}
+  .shell{display:block;max-width:none;}
+  main{padding:0;}
+  .doc{max-width:none;}
+  h2{page-break-after:avoid;border-top:1px solid #ccc;}
+  h3,h4{page-break-after:avoid;}
+  .tw,table,.note,.card{page-break-inside:avoid;}
+  a{color:#000;border:none;}
+}
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="shell">
 
 <nav class="toc">
-  <div class="brand"><span>continuu.it</span></div>
-  <div class="tag">Product presentation</div>
-  <a href="#summary">1 · Executive summary</a>
-  <a href="#capabilities">2 · What you can do</a>
-  <a href="#actors">3 · Who uses it</a>
-  <a href="#distinctive">4 · What makes it distinctive</a>
-  <a href="#distinctive" class="sub">4.1 Forced closure</a>
-  <a href="#distinctive" class="sub">4.2 Graveyard + AI autopsy</a>
-  <a href="#distinctive" class="sub">4.3 One AI, three front doors</a>
-  <a href="#distinctive" class="sub">4.4 Privacy by design</a>
-  <a href="#status">5 · Where each feature stands</a>
-  <div class="annex-label">Technical annex</div>
-  <a href="#stack">A · Technology stack</a>
-  <a href="#architecture">B · Architecture</a>
-  <a href="#datamodel">C · Data model</a>
-  <a href="#plans">D · Plans &amp; limits</a>
-  <a href="#security">E · Security &amp; privacy</a>
-  <a href="#decisions">F · Engineering decisions</a>
-  <a href="#i18n">G · Internationalization</a>
-  <a href="#testing">H · Testing &amp; deployment</a>
-  <a href="#open">I · Open items</a>
+  <div class="brand">Continu<em>ity</em></div>
+  <div class="brand-sub">Product presentation · 14 Sep 2026</div>
+  <div class="toc-links">
+    <div class="toc-group">For the business reader</div>
+    <a href="#summary">1 · Executive summary</a>
+    <a href="#capabilities">2 · What you can do with it</a>
+    <a href="#actors">3 · Who uses it</a>
+    <a href="#distinctive">4 · What makes it distinctive</a>
+    <a href="#d1" class="sub">4.1 Forced closure</a>
+    <a href="#d2" class="sub">4.2 Time as material</a>
+    <a href="#d3" class="sub">4.3 Graveyard &amp; autopsy</a>
+    <a href="#d4" class="sub">4.4 Three front doors</a>
+    <a href="#d5" class="sub">4.5 Three assistants</a>
+    <a href="#d6" class="sub">4.6 Payments</a>
+    <a href="#d7" class="sub">4.7 Privacy by design</a>
+    <a href="#d8" class="sub">4.8 A fast public site</a>
+    <a href="#d9" class="sub">4.9 Three visual voices</a>
+    <a href="#d10" class="sub">4.10 Fair limits</a>
+    <a href="#status">5 · Status today</a>
+
+    <div class="toc-group">Technical annex</div>
+    <a href="#stack">A · Technology stack</a>
+    <a href="#repo">B · Repository layout</a>
+    <a href="#architecture">C · Architecture</a>
+    <a href="#datamodel">D · Data model</a>
+    <a href="#limits">E · Plans &amp; limits</a>
+    <a href="#security">F · Security &amp; privacy</a>
+    <a href="#decisions">G · Engineering decisions</a>
+    <a href="#i18n">H · Internationalization</a>
+    <a href="#testing">I · Testing &amp; deployment</a>
+    <a href="#open">J · Open items</a>
+  </div>
 </nav>
 
 <main>
-  <div class="hero">
-    <h1>Continuity — the project manager that makes you&nbsp;<span class="grad">finish</span></h1>
-    <p class="lede">Built for people who start more than they finish. Every project you begin must reach a decision — finished, launched, paused on purpose, or deliberately killed. Never abandoned.</p>
-    <div class="readnote">
-      <strong>How to read this.</strong> It's organized in layers. The first two sections give a business reader the full value in about two minutes. Each section after adds depth, ending with a clearly separated <em>Technical Annex</em>. Stop at any layer and you'll still have a complete, accurate picture.
-    </div>
+<article class="doc">
+
+  <p class="kicker">Product presentation</p>
+  <h1>Continuity <span style="color:var(--text-4);font-weight:400;font-size:.55em;letter-spacing:0;">continuu.it</span></h1>
+  <p class="tagline">The project manager that makes you <em>finish</em> — built for people who start more than they finish.</p>
+
+  <div class="note">
+    <p><strong>How to read this document.</strong> It is written in layers. Sections&nbsp;1 and&nbsp;2 give a business reader the whole value of the product in about two minutes. Each section after that adds depth, ending in a clearly separated <strong>Technical Annex</strong> for anyone who wants the engineering detail. You can stop at any layer and still have a complete, accurate picture for your level.</p>
+    <p style="margin-top:12px;color:var(--text-3);font-size:13.5px;">Prepared from a direct reading of the source code on 14&nbsp;September&nbsp;2026. Every figure below was taken from the code or from project documentation. Anything not verifiable in the source is explicitly flagged as <strong>to confirm</strong> rather than asserted. Payments and pricing have their own source of truth in <code>docs/integracion-pagos-web-y-movil.md</code>; where they differ, that document wins.</p>
   </div>
 
-  <!-- 1 -->
-  <section id="summary">
-    <h2><span class="num">1</span>Executive summary</h2>
-    <p><strong>Continuity is a personal productivity workspace with one strong opinion: every project you start must reach a decision.</strong></p>
-    <p>Most tools are great at helping you <em>add</em> things — more tasks, more notes, more lists. They stay silent about the real problem of ambitious people: a growing <strong>graveyard of half-finished projects</strong> that quietly drains time, momentum, and confidence. Continuity is the first tool built to close that loop. A project here is never allowed to simply drift. It must end up <strong>Finished, Launched, Paused on purpose, or deliberately Killed</strong> — never abandoned.</p>
-    <table>
-      <tr><td>What it is</td><td>A workspace for projects, tasks, ideas, routines and notes — on web and mobile — with a built-in AI assistant.</td></tr>
-      <tr><td>The problem</td><td>The hidden cost of unfinished work: stalled side-projects, forgotten commitments, and eroding trust in your own ideas.</td></tr>
-      <tr><td>Who it's for</td><td>Founders, freelancers and side-project builders — people who "start more than they finish."</td></tr>
-      <tr><td>Why it's different</td><td>It introduces <em>forced closure</em>: a project that goes quiet is surfaced and you're asked to decide its fate. It even keeps a "graveyard" and uses AI to show you <em>why</em> you keep abandoning things.</td></tr>
-      <tr><td>How you reach it</td><td>A web app, a mobile app (iOS, in TestFlight), and — uniquely — from inside Claude (Anthropic's AI) through a secure connector.</td></tr>
-      <tr><td>Business model</td><td>Freemium: a free tier plus two paid tiers (<strong>Pro</strong>, <strong>Studio</strong>). Currently in private beta (50 spots).</td></tr>
-    </table>
-    <div class="pitch"><strong>The one-line pitch:</strong> Continuity turns "I'll get to it later" into a decision.</div>
-  </section>
+  <!-- ================= 1 ================= -->
+  <h2 id="summary">1 · Executive summary</h2>
 
-  <!-- 2 -->
-  <section id="capabilities">
-    <h2><span class="num">2</span>What you can do with Continuity</h2>
-    <p>Everything below is a capability the product has <strong>today</strong> — described as a benefit, not a mechanism.</p>
+  <p><strong>Continuity is a personal productivity workspace with one strong opinion: every project you start must reach a decision.</strong></p>
 
-    <h3>Manage projects that can't quietly die</h3>
-    <ul>
-      <li>Capture a project with its purpose, the <em>why</em>, and the next concrete step.</li>
-      <li>Move it through a clear lifecycle and never lose track of where it stands.</li>
-      <li>When a project goes quiet it's flagged <strong>Stalled</strong>, and you're asked: ship it, kill it, or get help.</li>
-      <li><strong>Close with intention</strong> — pausing captures context and the next action; killing captures the reason and lessons learned.</li>
-      <li><strong>Revive</strong> a paused or killed project later — the AI reads your old closure notes to brief you on where you left off.</li>
-    </ul>
-    <div class="lifecycle">
-      <span class="st">Idea</span><span class="arr">→</span>
-      <span class="st">Active</span><span class="arr">→</span>
-      <span class="st">Stalled</span><span class="arr">→</span>
-      <span class="st">Paused</span><span class="arr">→</span>
-      <span class="st">Launched</span><span class="arr">→</span>
-      <span class="st">Killed</span><span class="arr">→</span>
-      <span class="st">Archived</span>
-    </div>
+  <p>Most productivity tools are excellent at helping you <em>add</em> things — more tasks, more notes, more lists. They are silent about the real problem of ambitious people: a growing <strong>graveyard of half-finished projects</strong> that quietly drains time, momentum and confidence. Continuity is built around closing that loop. A project here is never allowed to simply drift. It must end up <strong>Finished, Launched, Paused on purpose, or deliberately Killed</strong> — never abandoned.</p>
 
-    <div class="cards">
-      <div class="card"><h4>Break work down &amp; do it</h4><p>Tasks with due dates, times, effort estimates and blockers — plus a focused "Today" view of what's due, overdue, and already done.</p></div>
-      <div class="card"><h4>Capture ideas freely</h4><p>Jot ideas with no project required, then promote the promising ones into full projects in one step.</p></div>
-      <div class="card"><h4>Build consistency</h4><p>Recurring routines (daily/weekly/monthly/custom) with cadence tracking over time.</p></div>
-      <div class="card"><h4>Keep your thinking in one place</h4><p>Notion-style Quick Notes with collapsible, reorderable sections — plus notes attached to specific projects.</p></div>
-      <div class="card"><h4>See your real productivity</h4><p>An analytics dashboard: cadence, status breakdown, backlog trend, top projects, the idea→project→task funnel, and more.</p></div>
-      <div class="card"><h4>Plan visually</h4><p>A Day / Week / Month calendar laying out your projects and routines so you can see your real load.</p></div>
-      <div class="card"><h4>Get AI help that knows your work</h4><p>"Loop" answers questions about your projects and, on paid plans, creates and updates tasks through conversation.</p></div>
-      <div class="card"><h4>Stay reminded</h4><p>Connect notification channels (Telegram today; more planned) to get nudges about what's pending.</p></div>
-    </div>
+  <div class="tw"><table class="kv">
+    <tbody>
+      <tr><td>What it is</td><td>A workspace for projects, tasks, ideas, routines and notes — on the web and on mobile — with a built-in AI assistant called <strong>Loop</strong>.</td></tr>
+      <tr><td>The problem it solves</td><td>The hidden cost of unfinished work: stalled side-projects, forgotten commitments, and the slow erosion of trust in your own ideas.</td></tr>
+      <tr><td>Who it's for</td><td>Founders, freelancers and side-project builders — in the product's own words, <em>“people who start more than they finish.”</em></td></tr>
+      <tr><td>Why it's different</td><td><strong>Forced closure.</strong> A project that goes quiet is automatically flagged and the user is asked to decide its fate. Killed projects go to a <strong>Graveyard</strong> that keeps the reason, and the AI eventually tells you <em>why you keep abandoning things</em>.</td></tr>
+      <tr><td>How you reach it</td><td>A web app, a mobile app (iOS, in TestFlight) and — unusually — <strong>from inside Claude itself</strong>, through a secure standards-based connector.</td></tr>
+      <tr><td>Business model</td><td>Freemium: a free tier plus <strong>Pro ($8.99/mo)</strong> and <strong>Studio ($14.99/mo)</strong>, both with a 14-day trial. Sold through three channels (web, App&nbsp;Store, Google&nbsp;Play) at identical USD prices.</td></tr>
+      <tr><td>Stage</td><td>A live, running product in <strong>private beta</strong> — 50 spots, lifetime free access for testers.</td></tr>
+    </tbody>
+  </table></div>
 
-    <blockquote><strong>The central objects you work with:</strong> Projects (the heart of it), Tasks, Ideas, Routines, and Notes — tied together by an Activity log that records what you accomplish, and a Graveyard that remembers what you let go.</blockquote>
-  </section>
+  <p class="pitch">Continuity turns “I'll get to it later” into a decision.</p>
 
-  <!-- 3 -->
-  <section id="actors">
-    <h2><span class="num">3</span>Who uses it, and what they can do</h2>
-    <p>Continuity is primarily a <strong>single-user product</strong> — it's <em>your</em> workspace, not a team collaboration tool. A few distinct actors interact with the system:</p>
-    <table>
-      <tr><th>Actor</th><th>Who they are</th><th>What they can do</th></tr>
-      <tr><td>The individual user</td><td>A founder, freelancer or builder managing their own work.</td><td>Everything in Section 2: create &amp; close projects, manage tasks/ideas/routines/notes, view analytics and calendar, chat with the AI, configure account, theme and notifications.</td></tr>
-      <tr><td>The AI assistant (Loop)</td><td>Continuity's built-in assistant, acting on the user's behalf.</td><td>Reads the user's data to answer questions; on paid plans, creates and updates tasks and projects. Always scoped to that one user's data.</td></tr>
-      <tr><td>An external AI client (Claude)</td><td>The user's own Claude app, connected through a secure link.</td><td>The same read/write capabilities as Loop, but from inside Claude. Access is granted explicitly and can be revoked at any time.</td></tr>
-      <tr><td>The administrator / operator</td><td>The Continuity team running the service.</td><td>A separate admin area for the beta waitlist, users, billing, announcements, content, support inbox and system health. <em>(Internal-facing.)</em></td></tr>
-    </table>
-    <blockquote>There is <strong>no multi-user collaboration</strong> today — no shared projects or team workspaces. This is a deliberate focus, not a gap: the product is about <em>your</em> relationship with <em>your</em> unfinished work.</blockquote>
-  </section>
+  <h3>Why an executive should care</h3>
 
-  <!-- 4 -->
-  <section id="distinctive">
-    <h2><span class="num">4</span>What makes Continuity distinctive</h2>
-    <p>The handful of things that genuinely set Continuity apart. For each: <strong>why it matters to the business first</strong>, then the technical "why" for those who want it.</p>
-
-    <h3>4.1 · Forced closure — the core idea</h3>
-    <p><strong>Why it matters.</strong> Every other tool lets work pile up silently. Continuity's reason to exist is that it <em>refuses to let a project quietly rot</em>. After a stretch of inactivity, a project is automatically marked <strong>Stalled</strong> and the user faces a simple, humane choice: finish it, kill it, or ask for help. This is the feature the whole brand is built on, and the reason to choose it over a generic to-do app.</p>
-    <p class="callout"><strong>The detail.</strong> A project's life is an explicit state machine (<code>idea→active→stalled→paused→launched→killed→archived</code>). A scheduled background job sweeps active projects and stalls the quiet ones — and treats that automatic transition as a <em>non-event</em>, so the system never fools itself into thinking the user was active.</p>
-
-    <h3>4.2 · The Graveyard and AI "autopsy"</h3>
-    <p><strong>Why it matters.</strong> Killing a project is reframed from failure into a <em>learning moment</em>. Killed projects don't vanish — they go to a <strong>Graveyard</strong>, each carrying why it died and what was learned. After a few kills, the AI looks across all of them and surfaces the <strong>pattern</strong>: why this person keeps abandoning work. No checklist app can offer that.</p>
-    <p class="callout"><strong>The detail.</strong> Killing captures structured closure notes (reason, learnings, would-restart). A best-effort AI reflection runs per kill; once there are three or more, a second AI pass computes a cross-project insight, cached as a single record and refreshable on demand.</p>
-
-    <h3>4.3 · One AI, three front doors — including <em>inside Claude</em></h3>
-    <p><strong>Why it matters.</strong> "Loop" doesn't only live in the app. The same intelligence is available on the website, in the mobile app, <strong>and directly inside Claude</strong> via an industry-standard connector — so a power user can manage projects just by talking to the AI they already use daily. The commercial angle: through that connector, <strong>AI usage is billed to the user's own Claude account, not to Continuity</strong> — making this distribution channel nearly free to run.</p>
-    <p class="callout"><strong>The detail.</strong> Web assistant, mobile assistant and external connector all call the <em>same</em> underlying tool layer. The connector is an MCP (Model Context Protocol) server — Anthropic's open standard for tool integrations — secured by a full OAuth 2.1 flow, with each connection auditable and revocable. The server is built, deployed and tested today; its public settings toggle is held behind a "Coming soon" label pending launch (see Section 5).</p>
-
-    <h3>4.4 · Privacy by design in analytics</h3>
-    <p><strong>Why it matters.</strong> Continuity measures engagement to run the business, but <strong>without storing the content of what you do</strong>. For a product holding your most personal ambitions, "we count that you were active, we don't read what you wrote" is a real trust signal.</p>
-    <p class="callout"><strong>The detail.</strong> Interaction metrics are daily counts per user and per channel (web / mobile / connector). No message content is persisted in those metrics, and a recording failure never breaks the user's request.</p>
-
-    <h3>4.5 · A marketing site engineered to be fast</h3>
-    <p><strong>Why it matters.</strong> First impressions convert; a slow landing page costs sign-ups. The public site was rebuilt to load fast even on a phone on a weak connection.</p>
-    <p class="callout"><strong>The detail.</strong> Marketing pages are pre-built static pages cached at the edge, with the heavy app code, AI client and animation libraries kept out of the public bundle — roughly a 44% cut in initial page weight, and images shrunk from megabytes to tens of kilobytes.</p>
-
-    <h3>4.6 · Fair, transparent limits per plan</h3>
-    <p><strong>Why it matters.</strong> The free-to-paid model is enforced cleanly and predictably, so users always know what they get and upgrades feel fair.</p>
-    <p class="callout"><strong>The detail.</strong> Every limit (projects, tasks, ideas, routines, notes, plus AI message/token allowances) is defined once per plan and enforced consistently — whether the user creates by hand or asks the AI. Exact numbers in the Annex.</p>
-  </section>
-
-  <!-- 5 -->
-  <section id="status">
-    <h2><span class="num">5</span>Where each capability stands today</h2>
-    <p>Continuity is a real, running product — but like any active product, some pieces are fully shipped and others are in flight. An honest snapshot:</p>
-    <table>
-      <tr><th>Capability</th><th>Web</th><th>Mobile</th><th>Notes</th></tr>
-      <tr><td>Projects, tasks, ideas, routines</td><td><span class="pill ship">Shipped</span></td><td><span class="pill ship">Shipped</span></td><td>Full lifecycle incl. stalled/paused/killed.</td></tr>
-      <tr><td>Today view &amp; Activity log</td><td><span class="pill ship">Shipped</span></td><td><span class="pill ship">Shipped</span></td><td></td></tr>
-      <tr><td>Quick Notes (Notion-style)</td><td><span class="pill ship">Shipped</span></td><td><span class="pill ship">Shipped</span></td><td></td></tr>
-      <tr><td>Calendar (Day/Week/Month)</td><td><span class="pill ship">Shipped</span></td><td><span class="pill ship">Shipped</span></td><td>Drag-to-reschedule planned.</td></tr>
-      <tr><td>Analytics dashboard</td><td><span class="pill ship">Shipped</span></td><td><span class="pill ship">Shipped</span></td><td></td></tr>
-      <tr><td>Loop AI assistant</td><td><span class="pill ship">Shipped</span></td><td><span class="pill ship">Shipped</span></td><td>Read on free; write on paid tiers.</td></tr>
-      <tr><td>Graveyard + AI autopsy</td><td><span class="pill ship">In product</span></td><td><span class="pill ship">In product</span></td><td>Core models &amp; logic in the codebase.</td></tr>
-      <tr><td>Beta program + lifecycle</td><td><span class="pill ship">In product</span></td><td><span class="dash">—</span></td><td>50-spot cohort, lifetime deal.</td></tr>
-      <tr><td>Claude connector (MCP)</td><td><span class="pill partial">Built, not switched on</span></td><td><span class="dash">—</span></td><td>Backend complete and live (the <code>/mcp/</code> endpoint and full OAuth 2.1 login are deployed and tested). The settings screen still shows "Coming soon" — awaiting the launch toggle, not more engineering.</td></tr>
-      <tr><td>Account self-deletion</td><td><span class="pill ship">Shipped</span></td><td><span class="pill ship">Shipped</span></td><td>Full backend + two-step confirm in the app. Satisfies the App Store requirement.</td></tr>
-      <tr><td>Push notifications (mobile)</td><td><span class="dash">—</span></td><td><span class="pill partial">Planned</span></td><td>Client ready; server not yet enabled.</td></tr>
-      <tr><td>WhatsApp notifications</td><td><span class="pill partial">Planned</span></td><td><span class="pill partial">Planned</span></td><td>Telegram is live today.</td></tr>
-    </table>
-    <blockquote><strong>Documentation vs. reality.</strong> Some internal design docs still describe certain features (project closure, beta lifecycle) as "designed, not yet built." The source code is <em>ahead</em> of those docs — the models and logic already exist. Where they disagree, this presentation follows the <strong>code</strong>, the source of truth.</blockquote>
-  </section>
-
-  <!-- ANNEX -->
-  <div class="annex-banner">
-    <h2>Technical Annex</h2>
-    <p>Clearly separated from the business sections above. Everything below is for a technically inclined reader.</p>
+  <div class="cards">
+    <div class="card"><div class="fig">~122,000</div><div class="lbl">lines of application code across three codebases — this is a built product, not a prototype</div></div>
+    <div class="card"><div class="fig">545</div><div class="lbl">automated backend tests, isolated from any live database or network</div></div>
+    <div class="card"><div class="fig">3</div><div class="lbl">payment channels selling one subscription at one price, by construction</div></div>
+    <div class="card"><div class="fig">44</div><div class="lbl">AI capabilities shared identically by the in-app assistant and the Claude connector</div></div>
   </div>
 
-  <section id="stack">
-    <h2><span class="num">A</span>Technology stack</h2>
-    <table>
-      <tr><th>Layer</th><th>Technology</th></tr>
-      <tr><td>Backend</td><td>Python, <strong>Django 5.1</strong>, <strong>Strawberry GraphQL</strong>. Runs on Render.</td></tr>
-      <tr><td>Database</td><td><strong>PostgreSQL</strong>, hosted on Supabase.</td></tr>
-      <tr><td>Authentication</td><td>Supabase Auth (JWT bearer tokens); the backend verifies the token and derives the user identity.</td></tr>
-      <tr><td>Web frontend</td><td><strong>Next.js 15</strong> (App Router), <strong>React 19</strong>, <strong>Apollo Client</strong>, <strong>Tailwind CSS</strong>, <strong>next-intl</strong> (EN/ES). On Vercel.</td></tr>
-      <tr><td>Mobile</td><td><strong>Expo SDK 54 / React Native</strong>, <strong>NativeWind</strong>, Apollo, via <strong>EAS</strong>; first build in TestFlight (<code>it.continuu.app</code>).</td></tr>
-      <tr><td>AI</td><td>Anthropic Claude — a fast model for normal chat and a stronger "deep" model (Sonnet) for harder requests, gated by plan.</td></tr>
-      <tr><td>Payments</td><td><strong>Stripe</strong> (Pro/Studio subscriptions).</td></tr>
-      <tr><td>Email</td><td><strong>Resend</strong> (bilingual welcome + lifecycle emails).</td></tr>
-      <tr><td>Notifications</td><td>Telegram today; WhatsApp planned.</td></tr>
-    </table>
-    <blockquote><strong>Definitions for non-specialists.</strong> <em>GraphQL</em> — a query language that lets apps ask the server for exactly the data they need in one request. <em>JWT</em> — a signed digital token that proves who you are without re-entering a password. <em>MCP</em> — an open standard, created by Anthropic, that lets AI assistants safely use external tools.</blockquote>
-  </section>
+  <ul>
+    <li><strong>It is not a prototype.</strong> Deployed infrastructure, a payment system wired to three stores, a working AI assistant, and an admin back-office.</li>
+    <li><strong>The differentiation is structural, not cosmetic.</strong> “Forced closure” is encoded in the data model and in scheduled background jobs, not in marketing copy — a competitor cannot add it as a feature flag.</li>
+    <li><strong>There is a distribution channel most products don't have.</strong> Users can operate Continuity from inside Claude, and in that mode the AI cost is billed to the user's own Claude subscription rather than to Continuity.</li>
+  </ul>
 
-  <section id="architecture">
-    <h2><span class="num">B</span>Architecture overview</h2>
-<pre>                     ┌──────────────────────────┐
-    Web (Next.js) ───┤                          │
-                     │                          │
- Mobile (Expo/RN) ───┤   GraphQL API (Django +  │──── PostgreSQL (Supabase)
-                     │      Strawberry)         │
- Claude ─ MCP/OAuth ─┤                          │──── Stripe / Resend / Telegram
- (external AI)       │   shared assistant tools │
-                     └──────────────────────────┘</pre>
+  <!-- ================= 2 ================= -->
+  <h2 id="capabilities">2 · What you can do with Continuity</h2>
+
+  <p>Everything below is a <strong>capability that exists in the product today</strong>, described as a benefit rather than as mechanics.</p>
+
+  <h3>Manage projects that can't quietly die</h3>
+  <div class="flow">
+    <span>Idea</span><i>→</i><span>Active</span><i>→</i><span class="hot">Stalled</span><i>→</i><span>Paused</span><i>→</i><span class="done">Launched</span><i>·</i><span class="hot">Killed</span><i>→</i><span>Archived</span>
+  </div>
+  <ul>
+    <li>Capture a project with its purpose, <strong>the <em>why</em>, and the next concrete step</strong> — three fields that force you to be honest about whether it should exist.</li>
+    <li>After <strong>14 days</strong> of silence the system marks a project <strong>Stalled</strong> and confronts you with a humane choice: keep it, pause it, or kill it.</li>
+    <li><strong>See time as a material.</strong> Every project carries a “cooling” reading — <em>warm</em> (touched in the last 7 days), <em>cooling</em> (8–21), <em>cold</em> (22+) — so a neglected project literally looks neglected. At 45 days the product asks whether it is still alive.</li>
+    <li><strong>Close with intention.</strong> Pausing captures the context, next action and blocker. Killing captures the reason, the learnings and whether you'd restart. A closed project becomes a record, not a regret.</li>
+    <li><strong>Revive</strong> a paused or killed project later, with its closure notes waiting for you.</li>
+    <li><strong>See what's actually stuck.</strong> “Blocked” isn't a status you set — it's derived from whether any open task is waiting on something unresolved.</li>
+  </ul>
+
+  <h3>Break work down and actually do it</h3>
+  <ul>
+    <li><strong>Tasks</strong> with due dates, due times, estimated effort in hours, and an optional project link.</li>
+    <li><strong>Blockers</strong> (“this is waiting on X”) so nothing stalls silently.</li>
+    <li>A focused <strong>Today</strong> view — due, overdue, pending routines, and what you already finished — and you can <strong>customize which sections appear and in what order</strong>.</li>
+    <li><strong>Today's Focus</strong> mixes tasks, stalled projects and next steps into one short list of what actually deserves attention.</li>
+  </ul>
+
+  <h3>Capture without friction</h3>
+  <ul>
+    <li><strong>Quick capture (⌘K).</strong> Type one line — <em>“Call the supplier tomorrow #Website !high”</em> — and it becomes a real task with a project, a date and a priority. Tokens that don't resolve stay visible in the title rather than being silently dropped, and nothing is lost offline: drafts and failed writes are queued and retried.</li>
+    <li>On paid plans, <strong>⌘↵ interprets the line with AI</strong> — and deliberately does <em>not</em> write anything: it rewrites your line showing what it understood, so you can confirm.</li>
+  </ul>
+
+  <h3>Capture ideas without cluttering your projects</h3>
+  <ul>
+    <li>Jot down <strong>ideas</strong> instantly, with no project required.</li>
+    <li><strong>Promote</strong> a promising idea into a full project in one step.</li>
+    <li>Ideas left untouched for weeks are surfaced so you can promote them or let them go.</li>
+  </ul>
+
+  <h3>Build consistency with routines</h3>
+  <ul>
+    <li>Recurring <strong>routines</strong> — daily, weekly, monthly or custom intervals — with optional times and effort estimates, and a tracked cadence over time.</li>
+  </ul>
+
+  <h3>Keep your thinking in one place</h3>
+  <ul>
+    <li><strong>Quick Notes</strong> — a Notion-style notebook: notes made of collapsible sections you can drag to reorder, categorize, pin, or attach to a project.</li>
+    <li><strong>Project notes</strong> — an update log attached to a single project.</li>
+  </ul>
+
+  <h3>See your real productivity, honestly</h3>
+  <ul>
+    <li>An <strong>Analytics</strong> dashboard: completion cadence, activity over time, status and category breakdowns, backlog health (overdue / due soon / quick wins), most-active weekdays, top projects by effort, the <strong>idea → project → task funnel</strong>, sleeping projects, stalled projects, stale ideas, and Loop usage.</li>
+  </ul>
+
+  <h3>Plan visually, and take the plan with you</h3>
+  <ul>
+    <li>A <strong>Calendar</strong> with Day / Week / Month views showing tasks and routines, and how loaded any given day is.</li>
+    <li><strong>Subscribe to it anywhere.</strong> A private, read-only calendar feed (<code>.ics</code>) you can subscribe to from iOS Calendar, Google Calendar or Outlook — one URL, every platform, no passwords handed over.</li>
+    <li><strong>Or write directly into your calendar.</strong> Connect Google Calendar and your tasks and routines become real events (a routine is one recurring event, not one per day). An iCloud path exists for users who want native writes on Apple.</li>
+    <li><strong>Import from Google Tasks</strong> — each Google list routed into a Continuity project, de-duplicated so re-running it doesn't double your work.</li>
+  </ul>
+
+  <h3>Get help from an AI that knows your work</h3>
+  <ul>
+    <li><strong>Loop</strong> answers questions about your projects and — on the top tier — <strong>creates and reorganizes your work through conversation</strong>, with 44 dedicated capabilities covering every object in the product.</li>
+    <li>Use it <strong>from inside Claude</strong> through a secure connector, without leaving the AI chat you already use.</li>
+  </ul>
+
+  <h3>Stay reminded, on your own terms</h3>
+  <ul>
+    <li><strong>Telegram</strong> digests — a weekly review, a daily “what's pending”, and an end-of-day warning that only fires if something is still open.</li>
+    <li><strong>Mobile push notifications</strong> and bilingual transactional <strong>email</strong>.</li>
+    <li>All scheduled in <em>your</em> timezone, at <em>your</em> chosen hour, switchable per type.</li>
+  </ul>
+
+  <h3>Own your data</h3>
+  <ul>
+    <li><strong>Export and re-import</strong> your entire workspace as a file.</li>
+    <li><strong>Delete your account</strong> — permanently, from inside the app, in two confirmations.</li>
+  </ul>
+
+  <h3>The objects, in one table</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Object</th><th>What it is</th><th>Why it exists</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Project</strong></td><td>A body of work with a name, a <em>why</em>, a next step, a status, a priority and optional closure notes.</td><td>The unit the whole product defends: it must reach a decision.</td></tr>
+      <tr><td><strong>Task</strong></td><td>A unit of work, optionally inside a project, with a due date/time and estimated hours.</td><td>What you actually do today.</td></tr>
+      <tr><td><strong>Blocker</strong></td><td>A note that a task is waiting on something.</td><td>Makes “stuck” visible instead of silent — and rolls up to the project.</td></tr>
+      <tr><td><strong>Idea</strong></td><td>A one-line capture with no commitment.</td><td>Record an impulse without opening a project you'll abandon.</td></tr>
+      <tr><td><strong>Routine</strong></td><td>A recurring commitment with its own occurrences.</td><td>Consistency, kept separate from one-off work.</td></tr>
+      <tr><td><strong>Quick Note</strong></td><td>A notebook note with collapsible, reorderable sections.</td><td>Thinking that doesn't fit in a task.</td></tr>
+      <tr><td><strong>Category</strong></td><td>A user-defined label shared across projects and notes.</td><td>Grouping without a rigid hierarchy.</td></tr>
+      <tr><td><strong>Activity</strong></td><td>An append-only log of meaningful events.</td><td>Feeds the diary, the analytics, and the “is this user alive?” logic.</td></tr>
+      <tr><td><strong>Graveyard insight</strong></td><td>A cached AI reflection across killed projects.</td><td>Turns a pile of failures into a pattern you can act on.</td></tr>
+    </tbody>
+  </table></div>
+
+  <!-- ================= 3 ================= -->
+  <h2 id="actors">3 · Who uses it, and what each can do</h2>
+
+  <p>Continuity is deliberately a <strong>single-user product</strong> — it is <em>your</em> workspace, not a team tool. But several distinct actors interact with the system.</p>
+
+  <div class="tw"><table>
+    <thead><tr><th>Actor</th><th>Who they are</th><th>What they can do</th></tr></thead>
+    <tbody>
+      <tr><td><strong>The individual user</strong></td><td>A founder, freelancer or builder managing their own work.</td><td>Everything in §2: create and close projects, manage tasks, ideas, routines and notes, see analytics and the calendar, talk to Loop, connect integrations, and configure account, theme, avatar, language and notifications.</td></tr>
+      <tr><td><strong>The visitor</strong></td><td>Anyone on the public website.</td><td>Read the landing page, blog, help centre and legal pages — in English or Spanish — without an account.</td></tr>
+      <tr><td><strong>Loop, the built-in assistant</strong></td><td>Continuity's own AI, acting on the user's behalf.</td><td>Reads that one user's data to answer questions; on the top tier, creates and updates their work through conversation. Never crosses between users, and is bound by exactly the same limits as the human.</td></tr>
+      <tr><td><strong>An external AI client (Claude)</strong></td><td>The user's own Claude app, connected through a link the user authorizes.</td><td>Reads their Continuity data from inside Claude; on the top tier, writes too. Access is granted explicitly and revocable at any time.</td></tr>
+      <tr><td><strong>The administrator / operator</strong></td><td>The Continuity team running the service.</td><td>A separate back-office at <code>admon.continuu.it</code>: users and plans, the beta cohort, billing and revenue, announcements, marketing and help content, the bug-report inbox, background jobs, platform stats and an audit log. <em>Internal; not part of the customer product.</em></td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note">
+    <p><strong>There is no multi-user collaboration today</strong> — no shared projects, no team workspaces, no comments between users. Each account is private to its owner. This is a deliberate product decision, not an oversight: the product is about <em>your</em> relationship with <em>your</em> unfinished work. A B2B “Teams” layer has been designed on paper but <strong>no code for it exists yet</strong> (see §5).</p>
+  </div>
+
+  <h3>What each plan unlocks, in plain terms</h3>
+  <div class="tw"><table class="plans">
+    <thead><tr><th></th><th>Free</th><th>Pro — $8.99/mo</th><th>Studio — $14.99/mo</th></tr></thead>
+    <tbody>
+      <tr><td>The workspace</td><td>A real, non-expiring workspace: 3 projects, 50 open tasks, 2 routines, 30 ideas</td><td>Room for a portfolio: 25 projects, 20 routines, 500 ideas, 1,000 notes</td><td>Unlimited</td></tr>
+      <tr><td><strong>Loop</strong></td><td>Not included — the app shows what Loop <em>would</em> do with your data</td><td><strong>Query mode</strong>: a catalogue of ready-made questions about your own work</td><td><strong>Conversation mode</strong>: Loop creates, edits and reorganizes your work</td></tr>
+      <tr><td>Claude connector</td><td><strong>Included, read-only</strong></td><td>Included, read-only</td><td>Included, <strong>with write access</strong></td></tr>
+      <tr><td>Integrations</td><td>Calendar feed, Telegram, email</td><td>+ Google Tasks &amp; Calendar sync, daily digest</td><td>Everything</td></tr>
+      <tr><td>AI quick capture</td><td>—</td><td>—</td><td>Included</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note how">
+    <p><strong>A notable commercial choice:</strong> the <em>free</em> tier gets the Claude connector. That is not an accident. Reading your own data through your own Claude subscription costs Continuity almost nothing — so the cheapest tier gets the feature that costs the least to serve, and Continuity's own AI spend is concentrated in the tier that pays for it.</p>
+    <p style="margin-top:10px;font-size:13.5px;">Annual billing: Pro $89.99/yr, Studio $149.99/yr — a 17% saving. 14-day trial on both.</p>
+  </div>
+
+  <!-- ================= 4 ================= -->
+  <h2 id="distinctive">4 · What makes Continuity distinctive</h2>
+
+  <p>The handful of things that genuinely set the product apart. For each: <strong>why it matters commercially first</strong>, then the technical detail for readers who want it.</p>
+
+  <h3 id="d1">4.1 · Forced closure — the core idea</h3>
+  <p><strong>Why it matters.</strong> Every other tool lets work pile up in silence. Continuity's reason to exist is that it <em>refuses to let a project quietly rot</em>. After a stretch of inactivity a project is automatically marked <strong>Stalled</strong> and the user is confronted with a humane choice: keep it, pause it, or kill it. This is the feature the whole brand rests on (“Finish what you start”), and it is the reason someone would choose this over a generic to-do app.</p>
+  <p><strong>The detail.</strong> A project's life is an explicit seven-state machine. An hourly scheduled job sweeps active projects and moves ones untouched for 14 days to <code>stalled</code>. Two details show the care taken: only <em>active</em> projects auto-stall (an idea is allowed to sit), and the automatic transition is <strong>excluded from the engagement signals</strong> used elsewhere — the system refuses to let its own robot reset the user's activity clock. There is also an avalanche guard so that enabling the feature doesn't stall a hundred projects at once.</p>
+
+  <h3 id="d2">4.2 · Time as a visible material</h3>
+  <p><strong>Why it matters.</strong> Most tools show a list where a project touched this morning looks identical to one abandoned in March. Continuity makes neglect <em>visible</em> — a cold project looks cold — so the confrontation happens before the product has to nag.</p>
+  <p><strong>The detail.</strong> Two derived values ship with every project: days since it was last touched, and a cooling band (warm 0–7, cooling 8–21, cold 22+). Crucially these are computed <strong>server-side in exactly one place</strong>, because the alternative — each client computing its own — produces the failure where the web says “11 days” and the phone says “cold” about the same project. “Blocked” is derived the same way, rather than being added as an eighth project status.</p>
+
+  <h3 id="d3">4.3 · The Graveyard and the AI autopsy</h3>
+  <p><strong>Why it matters.</strong> Killing a project is reframed from failure into <em>learning</em>. Killed projects don't vanish — they go to a <strong>Graveyard</strong>, each carrying why it died and what was learned. Once you've killed a few, the AI looks across all of them and names <strong>the pattern</strong>: why <em>this person</em> keeps abandoning work. No checklist app can offer that, and it is a strong reason to stay.</p>
+  <p><strong>The detail.</strong> Killing a project captures structured closure notes and triggers a one-time AI reflection. Once three or more projects are dead, a second pass computes a cross-project insight, cached as a single record and invalidated when a project is revived. Both passes are <strong>compute-on-write and strictly best-effort</strong>: reading the graveyard never calls the model, and any failure — no API key, an API error, a plan that doesn't include it — is swallowed so that <em>the kill itself always succeeds</em>. The product never blocks a user's decision on an AI call.</p>
+
+  <h3 id="d4">4.4 · One assistant, three front doors — including <em>inside Claude</em></h3>
+  <p><strong>Why it matters.</strong> Loop isn't only in the app. The same intelligence is on the web, in the mobile app, <strong>and inside Claude</strong> through an industry-standard connector — so a power user can manage their projects by talking to the assistant they already use daily. And there's a commercial edge: used through the connector, <strong>the AI usage is billed to the user's own Claude subscription, not to Continuity</strong>. That distribution channel costs almost nothing to run, which is exactly why even the free tier gets it.</p>
+  <p><strong>The detail.</strong> The web assistant, the mobile assistant and the external connector all call the <em>same</em> 44-tool layer, so behaviour cannot drift between surfaces. The connector is an <strong>MCP (Model Context Protocol) server</strong> — the open standard Anthropic uses for tool integrations — fronted by a self-hosted <strong>OAuth 2.1</strong> authorization server with PKCE, dynamically registered clients, hashed authorization codes and refresh tokens, per-plan rate limiting, and an event log of every authorize / refresh / revoke so a connection can be audited and cut off.</p>
+  <p>The two channels are <strong>priced by separate policies on purpose</strong>, and the code says so in as many words: the connector spends the user's money, the assistant spends Continuity's. Re-tiering one therefore cannot silently move the other.</p>
+
+  <h3 id="d5">4.5 · Three assistants behind one switch</h3>
+  <p><strong>Why it matters.</strong> “AI features” usually means one expensive thing that either works or is locked behind a paywall. Continuity ships <strong>three genuinely different assistants</strong> so every tier gets an honest answer, and so the AI bill tracks revenue instead of usage.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Tier</th><th>What the user gets</th><th>What it costs to serve</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Free</strong></td><td>A panel showing what Loop <em>would</em> do with their data, and a way to upgrade</td><td><strong>Zero</strong> — no model call is possible</td></tr>
+      <tr><td><strong>Pro</strong></td><td>A catalogue of ready-made questions, answered instantly from their real data</td><td><strong>Zero</strong> — answers are computed on Continuity's own servers</td></tr>
+      <tr><td><strong>Studio</strong></td><td>The real conversational assistant that can create and reorganize work</td><td>Metered AI spend</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>The detail.</strong> The rule lives in a single function. Before it existed, the answer to “what can this plan do with Loop?” was spelled out in six places that didn't talk to each other. Now the server publishes the mode to the clients, so neither app infers capability from the plan name. The middle tier is the interesting one: a <em>deterministic</em> catalogue rendered server-side in the user's language, which never reaches an AI model — so it can't be rate-limited, can't hallucinate, and can't cost anything. Its labels come from the server too, which means adding a new canned question needs <strong>no app release</strong>.</p>
+  <p>There is also a “deep” model tier (a stronger Claude model for harder requests) with <strong>no user-facing switch at all</strong>, and the reasoning is stated explicitly in the code: a button that is sometimes honoured and sometimes silently ignored — which is what it became once a quota ran out — is worse than no button. The server decides, based on an admin flag and a daily cap.</p>
+
+  <h3 id="d6">4.6 · Payments where price parity is structural</h3>
+  <p><strong>Why it matters.</strong> Continuity sells the same subscription on the web, the App Store and Google Play. The obvious risk is prices drifting apart, or two stores both believing they own a customer's plan. Both failures are designed out rather than watched for.</p>
+  <p><strong>The detail.</strong> There is <strong>one set of amounts</strong> shared by all three channels, so charging differently per channel would take a deliberate edit to one file. And every channel funnels into a <strong>single write point</strong> for “which plan does this user have and who sold it.” That layer guarantees three things: a stale event from one channel can never overwrite another channel's live entitlement; conflicts resolve deterministically (the longest-running entitlement wins, and the loser is written to the audit log so it can be refunded) rather than by arrival order; and billing exemptions are honoured in exactly one place. Store notifications are de-duplicated by the store's own event id and kept in full, so that “I paid on my iPhone and the app says Free” is answerable.</p>
+  <div class="note">
+    <p>One small decision shows the level of care: each product identifier is stored as a <em>list</em>, because the payment provider's products are immutable and every price change mints a new id. With a single id, existing subscribers' renewals would arrive unrecognized and those people would silently lose their plan at renewal — <strong>precisely the customers who had been paying longest</strong>.</p>
+  </div>
+
+  <h3 id="d7">4.7 · Privacy by design in the metrics</h3>
+  <p><strong>Why it matters.</strong> Continuity measures engagement to run the business, but it does so <strong>without storing what you do</strong>. For a product holding your most personal ambitions, “we count that you were active, we never read what you wrote” is a real trust signal — and one fewer thing to disclose in a security review.</p>
+  <p><strong>The detail.</strong> Interaction metrics are daily counters per user and per channel (web / mobile / connector). No message content, query text, IP or user-agent is persisted in them, and a failure to record a metric never breaks the user's actual request. The AI usage meter works the same way: counts and token totals, not conversations.</p>
+
+  <h3 id="d8">4.8 · A marketing site engineered to convert</h3>
+  <p><strong>Why it matters.</strong> First impressions convert. The public site was rebuilt to load fast on a phone on a weak connection, because a slow landing page costs sign-ups directly.</p>
+  <p><strong>The detail.</strong> Public pages are pre-built and cached at the edge, while the logged-in application stays dynamic. The enabling decision is unglamorous and absolute: <strong>the root layout must never read cookies</strong>, because doing so turns the entire application dynamic and kills the pre-rendering. Language therefore lives in the URL (<code>/</code> English, <code>/es</code> Spanish) instead of a cookie, and the heavy libraries — the data client, the auth SDK, the animation library — are kept out of the public bundle entirely. The reported result was roughly <strong>44% less first-load JavaScript</strong> (233 kB → 130 kB) and images cut from ~3.3 MB to ~120 KB.</p>
+
+  <h3 id="d9">4.9 · A design system with only three voices</h3>
+  <p><strong>Why it matters.</strong> A product about focus cannot itself be visually noisy. The current redesign reduces the entire interface to three meanings, which is what lets a stalled project <em>feel</em> different from a healthy one without a legend.</p>
+  <div class="flow">
+    <span class="hot">signal · it hurts</span><span>accent · it wants attention today</span><span class="done">closed · done, launched</span>
+  </div>
+  <p><strong>The detail.</strong> Colour is allowed to say exactly those three things. <strong>There is no fourth colour</strong>; everything else is said with ink weight or rule strength. A recurring time or an effort estimate is <em>metadata</em>, not a signal — “a 2h doesn't hurt.” Colour values live in one generated token file, mirrored to the mobile app with an automated parity check that fails the moment a single hex diverges between platforms.</p>
+
+  <h3 id="d10">4.10 · Fair, transparent limits</h3>
+  <p><strong>Why it matters.</strong> The freemium model is enforced predictably, so users always know what they get and an upgrade feels fair rather than punitive.</p>
+  <p><strong>The detail.</strong> Every limit — projects, tasks, ideas, routines, notes, plus AI allowances — is defined once per plan and enforced at the service layer, which means <strong>the limit applies identically whether the user creates something by hand or asks Loop to create it.</strong> There is no path around it. Exact figures are in <a href="#limits">Annex&nbsp;E</a>.</p>
+
+  <!-- ================= 5 ================= -->
+  <h2 id="status">5 · Where each capability stands today</h2>
+
+  <p>Continuity is a real, running product — but like any active product some pieces are fully shipped and others are in flight. An honest snapshot.</p>
+
+  <div class="tw"><table>
+    <thead><tr><th>Capability</th><th class="ctr">Web</th><th class="ctr">Mobile</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Projects, tasks, ideas, routines, categories</td><td class="ctr"><span class="pill ok">Shipped</span></td><td class="ctr"><span class="pill ok">Shipped</span></td><td>Full lifecycle including stalled / paused / killed / revive.</td></tr>
+      <tr><td>Today view, Today's Focus, custom layout</td><td class="ctr"><span class="pill ok">Shipped</span></td><td class="ctr"><span class="pill ok">Shipped</span></td><td></td></tr>
+      <tr><td>Activity log</td><td class="ctr"><span class="pill ok">Shipped</span></td><td class="ctr"><span class="pill ok">Shipped</span></td><td></td></tr>
+      <tr><td>Quick Notes (Notion-style)</td><td class="ctr"><span class="pill ok">Shipped</span></td><td class="ctr"><span class="pill ok">Shipped</span></td><td></td></tr>
+      <tr><td>Quick capture (⌘K) with parser</td><td class="ctr"><span class="pill ok">Shipped</span></td><td class="ctr"><span class="pill ok">Shipped</span></td><td>Parser duplicated verbatim across platforms; <strong>tests exist only on web</strong>.</td></tr>
+      <tr><td>Calendar (Day / Week / Month)</td><td class="ctr"><span class="pill ok">Shipped</span></td><td class="ctr"><span class="pill ok">Shipped</span></td><td></td></tr>
+      <tr><td>Calendar <code>.ics</code> subscription feed</td><td class="ctr"><span class="pill ok">Shipped</span></td><td class="ctr"><span class="pill ok">Shipped</span></td><td>Private read-only URL; works on iOS, Google and Outlook.</td></tr>
+      <tr><td>Google Calendar push + Google Tasks import</td><td class="ctr"><span class="pill ok">Shipped</span></td><td class="ctr"><span class="pill ok">Shipped</span></td><td>One-way (Continuity → Google); re-syncs patch instead of duplicating.</td></tr>
+      <tr><td>iCloud CalDAV write</td><td class="ctr"><span class="pill part">Blocked</span></td><td class="ctr"><span class="pill part">Blocked</span></td><td>Code is written and wired, <strong>but the <code>caldav</code> library is absent from <code>requirements.txt</code></strong>, so it reports itself unavailable in the deployed environment. Installing it is the remaining step.</td></tr>
+      <tr><td>Analytics dashboard</td><td class="ctr"><span class="pill ok">Shipped</span></td><td class="ctr"><span class="pill ok">Shipped</span></td><td></td></tr>
+      <tr><td>Loop assistant (3 tiers)</td><td class="ctr"><span class="pill ok">Shipped</span></td><td class="ctr"><span class="pill ok">Shipped</span></td><td></td></tr>
+      <tr><td>Graveyard + AI autopsy</td><td class="ctr"><span class="pill ok">Shipped</span></td><td class="ctr"><span class="pill ok">Shipped</span></td><td>Best-effort by design; never blocks the kill.</td></tr>
+      <tr><td>Claude connector (MCP + OAuth 2.1)</td><td class="ctr"><span class="pill ok">Shipped</span></td><td class="ctr"><span class="pill na">—</span></td><td>Live endpoint, consent screen and a real settings page. Connections are listed and revocable.</td></tr>
+      <tr><td>Payments — three channels</td><td class="ctr"><span class="pill ok">Shipped</span></td><td class="ctr"><span class="pill ok">Shipped</span></td><td>Web and native paywalls both built; store product ids and keys are configuration, not code.</td></tr>
+      <tr><td>Telegram digests (weekly / daily / end-of-day)</td><td class="ctr"><span class="pill ok">Shipped</span></td><td class="ctr"><span class="pill ok">Shipped</span></td><td>Runs from an hourly cron, scheduled in the user's own timezone.</td></tr>
+      <tr><td>Mobile push notifications</td><td class="ctr"><span class="pill na">—</span></td><td class="ctr"><span class="pill ok">Enabled</span></td><td>Turned on 11 Sep 2026. Kept behind an environment variable rather than a hard-coded value, so it can be switched off without a 20-minute rebuild.</td></tr>
+      <tr><td>Bilingual lifecycle email</td><td class="ctr"><span class="pill ok">Shipped</span></td><td class="ctr"><span class="pill ok">Shipped</span></td><td>Ships with <code>dry_run</code> <strong>on by default</strong> — sends are logged for admin preview instead of delivered.</td></tr>
+      <tr><td>Beta programme + lifecycle</td><td class="ctr"><span class="pill ok">Shipped</span></td><td class="ctr"><span class="pill na">—</span></td><td>50 spots, enrollment open. Inactivity tracked in rolling tiers; unused spots auto-reclaimed, always after a warning.</td></tr>
+      <tr><td>Account self-deletion</td><td class="ctr"><span class="pill ok">Shipped</span></td><td class="ctr"><span class="pill ok">Shipped</span></td><td>Hard delete of data plus the auth account. Satisfies Apple's requirement.</td></tr>
+      <tr><td>Backup export / import</td><td class="ctr"><span class="pill ok">Shipped</span></td><td class="ctr"><span class="pill ok">Shipped</span></td><td></td></tr>
+      <tr><td>Admin back-office</td><td class="ctr"><span class="pill ok">Shipped</span></td><td class="ctr"><span class="pill na">—</span></td><td>Deliberately excluded from mobile.</td></tr>
+      <tr><td>Marketing site, blog, help centre, CMS</td><td class="ctr"><span class="pill ok">Shipped</span></td><td class="ctr"><span class="pill na">—</span></td><td>Bilingual, statically served, edited from the admin panel.</td></tr>
+      <tr><td>Visual redesign</td><td class="ctr"><span class="pill part">In flight</span></td><td class="ctr"><span class="pill part">In flight</span></td><td><strong>Waves 0 and 1 complete, wave 2 partial.</strong> Mid-transition by design; both platforms already carry the new primitives and token system.</td></tr>
+      <tr><td>Sleeping-project alerts</td><td class="ctr"><span class="pill no">Planned</span></td><td class="ctr"><span class="pill no">Planned</span></td><td>Designed; the notification command does not exist yet.</td></tr>
+      <tr><td>WhatsApp notifications</td><td class="ctr"><span class="pill no">Planned</span></td><td class="ctr"><span class="pill no">Planned</span></td><td>Fully specified in documentation; <strong>no code</strong>. Telegram is the live channel.</td></tr>
+      <tr><td>Teams / B2B collaboration</td><td class="ctr"><span class="pill no">Planned</span></td><td class="ctr"><span class="pill no">Planned</span></td><td>Product decisions closed on paper; <strong>no model, no code</strong>.</td></tr>
+      <tr><td>Mobile home-screen widget</td><td class="ctr"><span class="pill no">Planned</span></td><td class="ctr"><span class="pill no">Planned</span></td><td>Planned in documentation; <strong>no code</strong>.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note flag">
+    <p><strong>A note on documentation versus reality.</strong> Several internal design documents describe features as “designed, not yet built” when the code is in fact <strong>ahead</strong> of them, and at least one payments document contradicts itself in its own header because the migration it describes has since been implemented. Where documentation and code disagree, this presentation follows <strong>the code</strong>.</p>
+  </div>
+
+  <!-- ================= ANNEX ================= -->
+  <section class="annex-break">
+    <p class="kicker">Technical annex</p>
+    <h2 id="stack" style="margin-top:6px;">A · Technology stack</h2>
+    <p style="color:var(--text-3);font-size:14.5px;margin-top:-4px;">Everything from here down is for a technically inclined reader. The business case above is complete without it.</p>
+
+    <div class="tw"><table class="kv">
+      <tbody>
+        <tr><td>Backend</td><td>Python 3.12, <strong>Django 5.1.4</strong>, <strong>Strawberry GraphQL 0.253.1</strong>, psycopg 3, gunicorn (gthread workers, so the assistant's streaming responses flush as they arrive), WhiteNoise, django-ratelimit. Deployed on <strong>Render</strong>.</td></tr>
+        <tr><td>Database</td><td><strong>PostgreSQL</strong> on <strong>Supabase</strong>. Row-Level Security is enabled, but the real defence is the ORM's per-user filter at the service layer.</td></tr>
+        <tr><td>Authentication</td><td><strong>Supabase Auth</strong>. The client holds a signed token (JWT); the backend verifies it and derives the user identity server-side. Django has no <code>User</code> model of its own.</td></tr>
+        <tr><td>Web frontend</td><td><strong>Next.js 15.0.7</strong> (App Router), <strong>React 19</strong>, <strong>Apollo Client 3</strong>, <strong>Tailwind CSS 3.4</strong>, <strong>next-intl</strong> (EN/ES), Tiptap 3 (admin CMS editor), Recharts, dnd-kit, framer-motion, driver.js. Package manager <strong>pnpm</strong>. Hosted on <strong>Vercel</strong>.</td></tr>
+        <tr><td>Mobile</td><td><strong>Expo SDK 54 / React Native 0.81.5</strong>, expo-router 6, <strong>NativeWind 4.2</strong>, Apollo Client 4, i18next + ICU. Package manager <strong>npm</strong>. Built and distributed via <strong>EAS</strong>; in Apple TestFlight, bundle <code>it.continuu.app</code>.</td></tr>
+        <tr><td>AI</td><td><strong>Anthropic Claude</strong> — a fast model for normal chat, and a stronger “deep” model gated by an admin switch plus a per-plan daily cap.</td></tr>
+        <tr><td>Payments</td><td><strong>RevenueCat</strong> across all three channels (Web Billing, App Store, Google Play). Stripe is no longer an issuer — it remains only the card processor underneath Web Billing.</td></tr>
+        <tr><td>Transactional email</td><td><strong>Resend</strong> (bilingual welcome and lifecycle emails).</td></tr>
+        <tr><td>Notifications</td><td><strong>Telegram</strong> (direct HTTP, no SDK) and <strong>Expo Push</strong>. WhatsApp is specified but not built.</td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="note">
+      <p><strong>Definitions for non-specialists.</strong> <em>GraphQL</em> — a query language that lets an app ask the server for exactly the data it needs in one request, instead of stitching together several. <em>JWT</em> — a signed digital token that proves who you are without re-sending your password. <em>MCP (Model Context Protocol)</em> — an open standard, created by Anthropic, that lets AI assistants safely use external tools. <em>OAuth 2.1</em> — the “Sign in with…” handshake that lets one app act on your behalf in another without ever seeing your password. <em>ISR / static rendering</em> — building pages ahead of time so a visitor gets a file instead of waiting for a computation. <em>Cron</em> — a scheduled job that runs on a timer.</p>
+    </div>
+
+    <h2 id="repo">B · Repository layout — read this before anything else</h2>
+    <p>The project is <strong>not a monorepo</strong>, despite what some internal documents assume. It is <strong>three sibling folders, each with its own git repository</strong>; the top-level folder is not version-controlled at all.</p>
+    <div class="tw"><table>
+      <thead><tr><th>Folder</th><th>Contents</th><th>Scale</th></tr></thead>
+      <tbody>
+        <tr><td><code>backend/</code></td><td>Django + Strawberry GraphQL API</td><td>~37,700 lines of Python (excluding migrations), 36 core migrations, <strong>545 test functions in 50 files</strong></td></tr>
+        <tr><td><code>frontend/</code></td><td>Next.js web app, marketing site and admin panel</td><td>~55,500 lines of TypeScript/TSX, 28 test files</td></tr>
+        <tr><td><code>continuity-mobile/</code></td><td>Expo / React Native app (separate public repo)</td><td>~28,700 lines of TypeScript/TSX, <strong>no automated tests</strong></td></tr>
+      </tbody>
+    </table></div>
+    <p>Two consequences that matter operationally:</p>
+    <ol>
+      <li><strong>There is no shared package layer, and there cannot be one without first building monorepo infrastructure.</strong> Cross-platform logic (the quick-capture parser, the design tokens, the bug-report topic list) is therefore <strong>duplicated deliberately and kept in sync by convention</strong> — with an automated parity check for the design tokens, and a documented “if you edit one, copy the other” rule for the rest.</li>
+      <li><strong>The backend deploys from a different GitHub repository</strong> (<code>agtz92/continuity_backend</code>), not from this working folder.</li>
+    </ol>
+
+    <h2 id="architecture">C · Architecture overview</h2>
+<pre class="diagram">                            ┌────────────────────────────────┐
+     Web (Next.js/Vercel) ──┤                                │
+                            │      Django + Strawberry       │
+     Mobile (Expo / RN)   ──┤            on Render           ├── PostgreSQL (Supabase)
+                            │                                │
+     Claude ── MCP/OAuth ───┤   one shared assistant-tool    ├── Anthropic · RevenueCat
+     (external AI client)   │            layer               │   Resend · Telegram · Expo
+                            └────────────────────────────────┘
+                                          ▲
+     Marketing site (static) ──── public, unauthenticated GraphQL ─┘</pre>
+
+    <h4>Public surface of the backend</h4>
+    <div class="tw"><table>
+      <thead><tr><th>Endpoint</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><code>/graphql/</code></td><td>The single authenticated API for both apps.</td></tr>
+        <tr><td><code>/public-graphql/</code></td><td>Published marketing and help content only. <strong>No authentication</strong>, deliberately separate from the app API, so the static site can be built without credentials.</td></tr>
+        <tr><td><code>/mcp/</code></td><td>The Claude connector (JSON-RPC), accepted with and without a trailing slash because MCP clients don't follow redirects on POST.</td></tr>
+        <tr><td><code>/.well-known/oauth-*</code>, <code>/oauth/{register,authorize,token}</code></td><td>The self-hosted OAuth 2.1 authorization server for the connector.</td></tr>
+        <tr><td><code>/api/assistant/{chat,actions,usage,parse-capture,…}</code></td><td>The assistant surface. <code>chat</code> streams; <code>actions</code> is the deterministic catalogue.</td></tr>
+        <tr><td><code>/api/billing/{store-webhook,revenuecat}/</code></td><td>Payment notifications from all three channels.</td></tr>
+        <tr><td><code>/api/telegram/webhook/&lt;secret&gt;/</code></td><td>Inbound Telegram binding.</td></tr>
+        <tr><td><code>/api/calendar/feed/&lt;token&gt;.ics</code></td><td>The private calendar subscription feed.</td></tr>
+        <tr><td><code>/api/google/oauth/callback</code></td><td>Shared callback for Google Tasks and Google Calendar.</td></tr>
+      </tbody>
+    </table></div>
+
+    <p><strong>Scheduled work</strong> runs as a single hourly Render cron chaining: lifecycle welcome emails → weekly digest → daily digest → due reminders → announcement push → OAuth token cleanup → stalled-project sweep → beta lifecycle. Each command gates itself on the user's local hour, so one hourly job covers every timezone. The beta lifecycle runs inside this chain — hour-gated to 15:00 UTC — explicitly to avoid paying for a second cron service.</p>
+
+    <h2 id="datamodel">D · Core data model</h2>
+    <div class="tw"><table>
+      <thead><tr><th>Entity</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Project</strong></td><td>The central object. Seven-state lifecycle, priority, optional category and due date, manual ordering, plus structured closure notes for both pause and kill, and a one-time AI reflection on death.</td></tr>
+        <tr><td><strong>Task</strong></td><td>Optional project link, due date/time, estimated hours, done flag, a “parked” due date for deferrals, and a client token so a retried write never creates a duplicate.</td></tr>
+        <tr><td><strong>TaskBlocker</strong></td><td>What a task is waiting on. Rolls up to derive a project's “blocked” state.</td></tr>
+        <tr><td><strong>Idea</strong></td><td>Lightweight capture; promotable to a Project (the promotion timestamp is kept for funnel analytics).</td></tr>
+        <tr><td><strong>Routine</strong> / <strong>RoutineOccurrence</strong></td><td>A recurring commitment and its individual instances.</td></tr>
+        <tr><td><strong>ProjectNote</strong></td><td>An update attached to one project.</td></tr>
+        <tr><td><strong>QuickNote</strong> / <strong>NoteSection</strong></td><td>Notebook note with ordered, collapsible sections. Deleting a category or project <strong>does not</strong> delete the note.</td></tr>
+        <tr><td><strong>Category</strong></td><td>User-defined label, unique per user, shared across projects and notes.</td></tr>
+        <tr><td><strong>Activity</strong></td><td>Append-only log of meaningful events — the basis of the diary, the analytics and the engagement signals.</td></tr>
+        <tr><td><strong>GraveyardInsight</strong></td><td>Cached cross-project AI reflection on killed projects.</td></tr>
+        <tr><td><strong>StalledSweepState</strong></td><td>Bookkeeping so the stall sweep can't avalanche.</td></tr>
+        <tr><td><strong>AccountProfile</strong></td><td>Per-user plan, billing channel and subscription ids, admin flag, billing exemption, beta cohort state, and a cache version counter. <em>Despite the name, not an auth user — Supabase owns those.</em></td></tr>
+        <tr><td><strong>AppConfig</strong></td><td>Global typed key/value runtime configuration — the beta knobs, the deep-model switch, the email <code>dry_run</code> master switch. Changing behaviour does not require a redeploy.</td></tr>
+        <tr><td><strong>UserPreferences</strong></td><td>Today-view layout, stored as JSON so new sections need no migration.</td></tr>
+        <tr><td><strong>OnboardingProgress</strong></td><td>Five-step onboarding plus tour state.</td></tr>
+        <tr><td><strong>InteractionDay</strong> / <strong>UsageDay</strong></td><td>Privacy-preserving daily counters (engagement and AI usage).</td></tr>
+        <tr><td><strong>GoogleOAuthCredential</strong> / <strong>ICloudCalendarCredential</strong></td><td>Integration credentials, encrypted at rest (Fernet).</td></tr>
+        <tr><td><strong>OAuthClient / AuthorizationCode / RefreshToken / ConnectionEvent</strong></td><td>The connector's OAuth tables. Codes and refresh tokens are stored <strong>hashed</strong>; access tokens are stateless and short-lived.</td></tr>
+        <tr><td><strong>NotificationSettings / Link / Notification / ExpoPushToken / EmailSend</strong></td><td>Channel preferences, linked channels, the send outbox, device tokens and email idempotency.</td></tr>
+        <tr><td><strong>StoreWebhookEvent</strong></td><td>Every payment notification, keyed by the store's own event id — de-duplication and reconciliation in one table.</td></tr>
+        <tr><td><strong>BlogPost / Page / HelpCategory / HelpResource / MediaAsset</strong></td><td>The CMS behind the public site.</td></tr>
+        <tr><td><strong>Announcement</strong>, <strong>BugReport</strong>, <strong>AdminAuditLog</strong></td><td>In-app announcements, the one-way support inbox, and a record of every admin action.</td></tr>
+      </tbody>
+    </table></div>
+
+    <h2 id="limits">E · Plans and limits (exact figures from the code)</h2>
+    <h4>Entity limits — <code>∞</code> means unlimited; <code>admin</code> matches <code>studio</code></h4>
+    <div class="tw"><table>
+      <thead><tr><th>Limit</th><th class="num">Free</th><th class="num">Pro</th><th class="num">Studio</th></tr></thead>
+      <tbody>
+        <tr><td>Projects (excluding killed/archived)</td><td class="num">3</td><td class="num">25</td><td class="num">∞</td></tr>
+        <tr><td>Tasks per project</td><td class="num">20</td><td class="num">200</td><td class="num">∞</td></tr>
+        <tr><td>Open tasks (total)</td><td class="num">50</td><td class="num">∞</td><td class="num">∞</td></tr>
+        <tr><td>Routines</td><td class="num">2</td><td class="num">20</td><td class="num">∞</td></tr>
+        <tr><td>Ideas</td><td class="num">30</td><td class="num">500</td><td class="num">∞</td></tr>
+        <tr><td>Categories</td><td class="num">3</td><td class="num">15</td><td class="num">∞</td></tr>
+        <tr><td>Quick Notes</td><td class="num">50</td><td class="num">1,000</td><td class="num">∞</td></tr>
+        <tr><td>Notes per project</td><td class="num">3</td><td class="num">∞</td><td class="num">∞</td></tr>
+        <tr><td>Sections per note</td><td class="num">20</td><td class="num">∞</td><td class="num">∞</td></tr>
+      </tbody>
+    </table></div>
+
+    <h4>Assistant and connector limits</h4>
+    <div class="tw"><table>
+      <thead><tr><th></th><th class="ctr">Free</th><th class="ctr">Pro</th><th class="ctr">Studio</th><th class="ctr">Admin</th></tr></thead>
+      <tbody>
+        <tr><td>Assistant mode</td><td class="ctr"><code>none</code></td><td class="ctr"><code>canned</code></td><td class="ctr"><code>llm</code></td><td class="ctr"><code>llm</code></td></tr>
+        <tr><td>Reaches the AI model?</td><td class="ctr">No</td><td class="ctr"><strong>No</strong></td><td class="ctr">Yes</td><td class="ctr">Yes</td></tr>
+        <tr><td>Messages per day</td><td class="ctr">—</td><td class="ctr">—</td><td class="ctr">600</td><td class="ctr">∞</td></tr>
+        <tr><td>Monthly token ceiling</td><td class="ctr">—</td><td class="ctr">—</td><td class="ctr"><strong>None, deliberately</strong></td><td class="ctr">—</td></tr>
+        <tr><td>“Deep” model messages/day</td><td class="ctr">0</td><td class="ctr">0</td><td class="ctr">25</td><td class="ctr">100</td></tr>
+        <tr><td>Connector rate limit</td><td class="ctr">30/min</td><td class="ctr">120/min</td><td class="ctr">300/min</td><td class="ctr">600/min</td></tr>
+        <tr><td>Connector capability</td><td class="ctr">Read + set priority</td><td class="ctr">Read + set priority</td><td class="ctr">Full read/write</td><td class="ctr">Full read/write</td></tr>
+      </tbody>
+    </table></div>
+
+    <p>Three design nuances worth reading twice:</p>
     <ul>
-      <li>All three clients (web, mobile, external Claude) speak to <strong>one GraphQL API</strong>.</li>
-      <li>A small <strong>public, unauthenticated endpoint</strong> serves only <em>published</em> marketing/help content to the static website, kept separate from the authenticated app API.</li>
-      <li>The in-app assistant and the external connector share the <strong>same tool implementations</strong>, so behavior and permissions stay consistent across surfaces.</li>
+      <li><strong>Studio has no monthly token ceiling on purpose.</strong> The code states why: the old one cut people off mid-month with no warning and no way to see it coming. The daily message count is the honest, legible limit, and the deep-model cap bounds the expensive half.</li>
+      <li><strong>A paid plan must never be able to do less than a cheaper one.</strong> That is why Pro keeps <code>set_project_priority</code> on the connector even though it is a mutating tool — the free tier already had it.</li>
+      <li><strong>Billing exemption is decoupled from the plan.</strong> A beta member, friend, investor or partner can be exempt from charges while sitting on any feature tier, with an optional expiry.</li>
     </ul>
-  </section>
+    <p><strong>Other limits:</strong> GraphQL is rate-limited at 120 requests/min per user and 300/min per IP. The bug-report channel allows 10 submissions per user per hour.</p>
 
-  <section id="datamodel">
-    <h2><span class="num">C</span>Core data model</h2>
-    <p>Confirmed in <code>backend/core/models.py</code>:</p>
-    <table>
-      <tr><th>Entity</th><th>Purpose</th></tr>
-      <tr><td>Project</td><td>The central object. 7-state lifecycle, priority, optional category, due date, structured closure notes.</td></tr>
-      <tr><td>Task / TaskBlocker</td><td>A unit of work (optional project link, due date/time, effort, done flag) and what it's blocked by.</td></tr>
-      <tr><td>Idea</td><td>Lightweight capture; promotable to a Project.</td></tr>
-      <tr><td>Routine / RoutineOccurrence</td><td>Recurring habit and its individual occurrences.</td></tr>
-      <tr><td>ProjectNote</td><td>A note attached to a specific project.</td></tr>
-      <tr><td>QuickNote / NoteSection</td><td>Notion-style note with ordered, collapsible sections.</td></tr>
-      <tr><td>Category</td><td>User-defined tag shared across projects and notes.</td></tr>
-      <tr><td>Activity</td><td>Append-only log of meaningful events (basis of the Log and analytics).</td></tr>
-      <tr><td>GraveyardInsight</td><td>Cached cross-project AI reflection on killed projects.</td></tr>
-      <tr><td>StalledSweepState</td><td>Bookkeeping for the background "stall" sweep.</td></tr>
-      <tr><td>AccountProfile</td><td>Per-user plan, Stripe linkage, beta-cohort status, quota/cache versioning.</td></tr>
-      <tr><td>InteractionDay / UsageDay</td><td>Privacy-preserving daily counters (engagement and AI usage).</td></tr>
-      <tr><td>OAuth* tables</td><td>Backing store for the secure MCP connector (clients, codes, refresh tokens, connection events).</td></tr>
-    </table>
-  </section>
-
-  <section id="plans">
-    <h2><span class="num">D</span>Plans and limits</h2>
-    <h4>Entity limits (∞ = unlimited)</h4>
-    <table class="num-col">
-      <tr><th>Limit</th><th>Free</th><th>Pro</th><th>Studio</th></tr>
-      <tr><td>Projects (excl. killed/archived)</td><td>3</td><td>25</td><td>∞</td></tr>
-      <tr><td>Tasks per project</td><td>20</td><td>200</td><td>∞</td></tr>
-      <tr><td>Open tasks (total)</td><td>50</td><td>∞</td><td>∞</td></tr>
-      <tr><td>Routines</td><td>2</td><td>20</td><td>∞</td></tr>
-      <tr><td>Ideas</td><td>30</td><td>500</td><td>∞</td></tr>
-      <tr><td>Categories</td><td>3</td><td>15</td><td>∞</td></tr>
-      <tr><td>Quick Notes</td><td>50</td><td>1,000</td><td>∞</td></tr>
-      <tr><td>Notes per project</td><td>3</td><td>∞</td><td>∞</td></tr>
-      <tr><td>Sections per note</td><td>20</td><td>∞</td><td>∞</td></tr>
-    </table>
-    <h4>AI assistant quotas</h4>
-    <table class="num-col">
-      <tr><th>AI limit</th><th>Free</th><th>Pro</th><th>Studio</th></tr>
-      <tr><td>Messages per day</td><td>15</td><td>200</td><td>600</td></tr>
-      <tr><td>Tokens per month</td><td>100K</td><td>3M</td><td>15M</td></tr>
-      <tr><td>"Deep" (Sonnet) msgs/day</td><td>0</td><td>5</td><td>25</td></tr>
-    </table>
-    <blockquote>If a user drops from a paid plan to Free while <em>over</em> the limit, creation is blocked across the app until they clean up below the cap — preventing "free behavior on paid leftovers." Billing-exemption is intentionally <strong>decoupled</strong> from the plan (a beta member, friend or investor can be exempt from charges on a given feature tier).</blockquote>
-  </section>
-
-  <section id="security">
-    <h2><span class="num">E</span>Security &amp; privacy posture</h2>
+    <h2 id="security">F · Security and privacy posture</h2>
     <ul>
-      <li><strong>Authentication</strong> on every request via Supabase JWT; identity derived server-side, never trusted from the client.</li>
-      <li>The <strong>admin</strong> surface is gated by an explicit flag and <strong>every admin action is audit-logged</strong>.</li>
-      <li>The <strong>external connector</strong> uses an OAuth flow; connections are recorded (authorized / refreshed / revoked) and revocable by user or admin.</li>
-      <li><strong>Analytics store counts, not content</strong> — no message bodies persisted in interaction metrics; metric failures never break the request.</li>
-      <li>The <strong>bug-report</strong> channel is intentionally one-way (user → admin inbox), with a soft per-user rate limit.</li>
+      <li><strong>Authentication</strong> on every authenticated request via the Supabase token; the identity is derived server-side and never trusted from the client. Every service-layer query filters by that user id.</li>
+      <li><strong>Row-Level Security is enabled</strong> on the database, but the documentation is candid that the ORM filter is the real defence — RLS is depth, not the primary control.</li>
+      <li><strong>The admin surface</strong> is gated behind an explicit <code>is_admin</code> flag, and <strong>every admin action is written to an audit log</strong> with actor, action, target and payload.</li>
+      <li><strong>The connector</strong> uses a full OAuth 2.1 flow with PKCE and public clients only (no shared secret to leak). Authorization codes and refresh tokens are <strong>stored hashed</strong>, so a database leak cannot replay them; access tokens are stateless and short-lived, and revocation works through the refresh token. Every authorize / refresh / revoke is recorded as an event the user or an admin can act on.</li>
+      <li><strong>The connector's permission policy is enforced twice</strong> — once when advertising which tools exist, and again before executing one. The second check is the real guarantee: a tool the model was never shown is still rejected. The plan and the user id always come from the server, never from the model's arguments.</li>
+      <li><strong>Integration credentials are encrypted at rest</strong> (Fernet) — Google refresh tokens and the iCloud app-specific password alike.</li>
+      <li><strong>Metrics store counts, not content.</strong> No message bodies, query text, IPs or user agents in the interaction metrics; a metric failure never breaks the request it was measuring.</li>
+      <li><strong>The bug-report channel is intentionally one-way</strong> (user → admin inbox) with no reply path — stated in the code as a design invariant, not an unfinished feature.</li>
+      <li><strong>Outbound email defaults to <code>dry_run</code></strong>, so a misconfigured lifecycle job logs instead of mailing real users.</li>
+      <li><strong>Account deletion is a hard delete</strong> of application data in a single transaction, followed by deletion of the auth account.</li>
     </ul>
-  </section>
 
-  <section id="decisions">
-    <h2><span class="num">F</span>Notable engineering decisions</h2>
+    <h2 id="decisions">G · Notable engineering decisions</h2>
+    <p>Beyond the product-level items in §4, these are visible in the code and worth knowing:</p>
     <ul>
-      <li><strong>Static-first marketing site.</strong> Public pages pre-rendered and edge-cached; locale in the URL (not cookies) so pages stay static; heavy libraries excluded from the public bundle. ~44% smaller first-load JavaScript.</li>
-      <li><strong>Idempotent, config-driven operations.</strong> Background jobs (welcome emails, inactivity reclaim, stall sweeps) are idempotent and tunable via a runtime config table without redeploy; emails default to a safe <code>dry_run</code> mode.</li>
-      <li><strong>Shared tool layer for all AI surfaces</strong> keeps the in-app assistant and the external connector behaviorally identical, gated by the same plan checks.</li>
-      <li><strong>Active modularization.</strong> Oversized files are tracked in <code>AUDITORIA_CODIGO.md</code> and being decomposed — internal code-health work, not user-facing.</li>
+      <li><strong>Streaming writes are persisted as they happen, not at the end of the turn.</strong> The reasoning is recorded in the codebase: the assistant's tools have already written to the database by the time a stream is cut, so persisting the conversation at the end left users with a real project and eight real tasks and a chat that never mentioned creating them. A cut stream now loses at most the tail.</li>
+      <li><strong>Running out of tool budget is not an error.</strong> The assistant spends one more call <em>without tools</em> so the model can close the turn by saying what it managed to do. A user is never left with half-finished writes and no explanation.</li>
+      <li><strong>Config-driven, idempotent background jobs.</strong> Welcome emails, inactivity reclaim and stall sweeps are all idempotent and tunable through a runtime configuration table without a redeploy.</li>
+      <li><strong>A deliberate rejection of two-way calendar sync.</strong> The read-only <code>.ics</code> feed is one implementation covering iOS, Google and Outlook without storing anyone's credentials. The heavier credential-storing paths exist for users who want native writes, and the code says plainly that most users are better served by the feed.</li>
+      <li><strong>List queries defer large content columns.</strong> The public content API explicitly avoids loading article bodies in list views, and counts published items with a single aggregate query rather than one per category — both guarded with comments explaining the N+1 they prevent.</li>
+      <li><strong>An active, measured modularization effort.</strong> Oversized files are tracked in <code>AUDITORIA_CODIGO.md</code> across three audit passes, with before/after line counts. Every file originally marked urgent has been resolved; the report is candid about two regressions the refactor itself introduced.</li>
     </ul>
-  </section>
 
-  <section id="i18n">
-    <h2><span class="num">G</span>Internationalization</h2>
-    <p>Full <strong>English / Spanish</strong> support across web and mobile (<code>next-intl</code> on web, <code>i18next-ICU</code> on mobile). Marketing locale is encoded in the URL (<code>/</code> for English, <code>/es</code> for Spanish) to keep pages statically cacheable.</p>
-  </section>
+    <h2 id="i18n">H · Internationalization</h2>
+    <p>Full <strong>English / Spanish</strong> support across web, mobile, notifications and lifecycle email. On the web, the marketing locale is encoded in the <strong>URL</strong> (<code>/</code> English, <code>/es</code> Spanish, with <code>/resources</code> ↔ <code>/recursos</code>) specifically so those pages can stay statically cacheable; the logged-in app resolves locale from a cookie. Canonical and <code>hreflang</code> metadata is declared per language pair. The help centre exists in both languages. The admin panel is intentionally Spanish-only and not internationalized.</p>
 
-  <section id="testing">
-    <h2><span class="num">H</span>Testing &amp; deployment</h2>
+    <h2 id="testing">I · Testing and deployment</h2>
     <ul>
-      <li><strong>Backend:</strong> pytest + pytest-django (in-memory SQLite, Supabase JWT stubbed). Deployed on Render with scheduled cron jobs for lifecycle tasks.</li>
-      <li><strong>Web:</strong> Vitest + Testing Library with a mocked GraphQL client; deployed on Vercel.</li>
-      <li><strong>Mobile:</strong> built and distributed through EAS; first build in Apple TestFlight.</li>
+      <li><strong>Backend:</strong> pytest + pytest-django — <strong>545 test functions across 50 files</strong>. The suite is fully isolated from the developer's environment: an in-memory SQLite database, a stubbed auth secret, and no outbound HTTP. Deployed on Render via <code>render.yaml</code> / <code>build.sh</code> / <code>Procfile</code>, with the scheduled cron described in §C.</li>
+      <li><strong>Web:</strong> Vitest + Testing Library, 28 test files, with a mocked GraphQL client. Deployed on Vercel; the marketing/app static-vs-dynamic split is verifiable from the build output.</li>
+      <li><strong>Mobile:</strong> verified by <code>expo export</code> followed by <code>tsc --noEmit</code>, in that order — because the export step is what regenerates the typed routes. Distributed via EAS to TestFlight. <strong>There is no automated test suite.</strong></li>
     </ul>
+
+    <h2 id="open">J · Open items and things to confirm</h2>
+    <ol>
+      <li><strong>A contradiction in the beta offer.</strong> The landing page promises <em>“Lifetime free access to Pro tier”</em>, but the backend enrolls beta members in <strong>Studio</strong> (deliberately — the conversational assistant lives there). The product is more generous than the copy. <strong>To confirm:</strong> which is intended, and update the other.</li>
+      <li><strong>iCloud CalDAV is code-complete but not deployable as configured</strong> — the <code>caldav</code> library is absent from <code>requirements.txt</code>, so the feature reports itself unavailable. A one-line fix plus a verification pass, not outstanding engineering.</li>
+      <li><strong>A <code>basic</code> plan appears in the connector's permission policy but does not exist</strong> in the plan enum. Harmless today (it is a read-only entry), but it is either dead code or an unshipped tier.</li>
+      <li><strong>The payments documentation contradicts itself in its own header.</strong> The migration it describes as pending has been implemented on all three channels; closing that work means rewriting sections 2–9 of that document. Until then, the code is the only reliable source.</li>
+      <li><strong>The visual redesign is mid-flight</strong> (waves 0–1 done, wave 2 partial). Screens will not all look alike until it lands.</li>
+      <li><strong>Cross-platform duplicated logic is a standing risk.</strong> The quick-capture parser is a verbatim copy between web and mobile, and <strong>its tests exist only on the web side</strong>. A divergence would make the same typed sentence create different things on the two platforms.</li>
+      <li><strong>The mobile app has no automated tests</strong> — the largest coverage gap in the project.</li>
+      <li><strong>Local prices outside USD are not equalized.</strong> Parity is guaranteed in dollars; Apple and Google apply their own conversion matrices, so a euro or peso price will differ between channels unless set by hand on both sides. Documented as a known, accepted limitation.</li>
+      <li><strong>Not decided, per the payments plan:</strong> whether the mobile paywall should sell to someone who already has a web entitlement, and whether assisted migration between channels is ever built.</li>
+      <li><strong>The working directory is not a git repository</strong> and the three sub-projects version independently, so this presentation reflects the state of the files on disk rather than release history.</li>
+    </ol>
+
+    <p class="footnote">Prepared from a direct review of the Continuity codebase — backend, web frontend, mobile app, and project documentation — on 14 September 2026. Figures and capabilities are taken from the source; anything not verifiable in the code is flagged above as “to confirm” rather than asserted.</p>
   </section>
 
-  <section id="open">
-    <h2><span class="num">I</span>Open items / to confirm</h2>
-    <ul>
-      <li><strong>Exact subscription prices</strong> (dollar amounts for Pro/Studio) live in Stripe and were not read from the codebase — confirm separately before quoting.</li>
-      <li><strong>Mobile parity</strong> in flight: calendar, push notifications (server side), account self-deletion (App Store requirement).</li>
-      <li><strong>Connector</strong> advanced features (async long-running tools, tool-call notifications) are planned, not yet shipped.</li>
-      <li>The working directory is <strong>not a git repository</strong>, so this reflects the current state of files rather than version history.</li>
-    </ul>
-  </section>
-
-  <footer>
-    Prepared from a direct review of the Continuity codebase (backend, web frontend, mobile app, and project documentation).
-    Figures and capabilities are taken from the source; anything not verifiable in the code is explicitly flagged as "to confirm" rather than asserted.
-  </footer>
+</article>
 </main>
 </div>
+
+<script>
+(function(){
+  var links = Array.prototype.slice.call(document.querySelectorAll('nav.toc a'));
+  var targets = links.map(function(a){ return document.querySelector(a.getAttribute('href')); });
+  function sync(){
+    var best = 0, y = window.scrollY + 110;
+    for (var i = 0; i < targets.length; i++){
+      if (targets[i] && targets[i].offsetTop <= y) best = i;
+    }
+    links.forEach(function(a, i){ a.classList.toggle('active', i === best); });
+  }
+  var ticking = false;
+  window.addEventListener('scroll', function(){
+    if (ticking) return;
+    ticking = true;
+    window.requestAnimationFrame(function(){ sync(); ticking = false; });
+  }, {passive:true});
+  sync();
+})();
+</script>
 </body>
 </html>
