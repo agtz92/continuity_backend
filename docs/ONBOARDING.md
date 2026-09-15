@@ -25,7 +25,7 @@ Confundirlos es el primer error. Uno pide datos, el otro enseña el producto.
 | | **Flujo de alta** | **Tour del dashboard** |
 |---|---|---|
 | Qué es | 5 pasos en pantalla propia | 10 pasos encima del producto |
-| Pide | nombre · **tema + paleta** · avatar · plan · personalizar Today | nada |
+| Pide | **tema + paleta** · nombre · avatar · plan · personalizar Today | nada |
 | Escribe | perfil, tema, paleta, layout | nada del usuario |
 | Estado servidor | `OnboardingProgress.status` + `current_step` | `OnboardingProgress.tour_status` |
 | Valores | `pending · in_progress · completed · skipped` | `pending · seen · skipped` |
@@ -53,14 +53,24 @@ continuity-mobile/src/components/onboarding/tour/
 continuity-mobile/docs/onboarding-tour.md   ← la receta corta
 ```
 
-**Flujo de alta** — los cinco pasos son: **1** nombre · **2** modo de tema **y
-paleta** (las cinco gamas: ocre · salvia · óxido · hielo · ciruela; el
-onboarding arranca en `hielo`, no en el `ocre` por defecto del resto de la app)
-· **3** avatar · **4** plan · **5** personalizar Today.
+**Flujo de alta** — los cinco pasos son: **1** modo de tema **y paleta** (las
+cinco gamas: ocre · salvia · óxido · hielo · ciruela; el onboarding arranca en
+`hielo`, no en el `ocre` por defecto del resto de la app) · **2** nombre · **3**
+avatar · **4** plan · **5** personalizar Today.
+
+El tema va primero desde el 2026-09-14 y **lleva la bienvenida en su
+encabezado** ("Bienvenido, builder. Esto toma 90 segundos. Empecemos por cómo se
+ve."): se elige cómo se ve antes de dar ningún dato, y la elección se
+previsualiza en toda la app en vivo.
+
+Los componentes y las claves i18n **no llevan número** —`StepTheme`,
+`onboarding.theme.*`— precisamente para que reordenar no obligue a renombrar
+nada. Si añades uno, mantén esa propiedad: nombra por lo que hace, no por dónde
+está.
 
 ```
-frontend/src/app/(app)/onboarding/OnboardingFlow.tsx  + steps/Step1..5
-continuity-mobile/src/app/onboarding.tsx              + components/onboarding/Step1..5
+frontend/src/app/(app)/onboarding/OnboardingFlow.tsx  + steps/Step{Theme,Name,Avatar,Plan,Customize}
+continuity-mobile/src/app/onboarding.tsx              + components/onboarding/Step{...}
 backend/core/services/onboarding.py                   ← TOTAL_STEPS, set_step, complete
 backend/core/schema_mutations.py                      ← setOnboardingStep, completeOnboarding, markTour
 backend/core/models.py                                ← OnboardingProgress, OnboardingStatus, TourStatus
@@ -162,10 +172,17 @@ el total cableado en tres. Para añadir un paso 6 hay que tocar **seis sitios**:
 1. `backend/core/services/onboarding.py` → `TOTAL_STEPS = 5` (valida el rango de
    `set_step`; si no lo subes, el paso 6 devuelve `BAD_INPUT`).
 2. `frontend/.../OnboardingFlow.tsx` → `TOTAL_STEPS` + una rama `{step === 6 && …}`.
-3. `frontend/.../onboarding/steps/Step6X.tsx` → el componente.
+3. `frontend/.../onboarding/steps/StepLoQueSea.tsx` → el componente.
 4. `continuity-mobile/src/app/onboarding.tsx` → `TOTAL_STEPS` + su rama.
-5. `continuity-mobile/src/components/onboarding/Step6X.tsx` → el componente.
-6. `messages` de los dos repos → los textos.
+5. `continuity-mobile/src/components/onboarding/StepLoQueSea.tsx` → el componente.
+6. `messages` de los dos repos → los textos, bajo una clave con el mismo nombre
+   semántico que el componente.
+
+**Reordenar es más barato que añadir**, y se hizo una vez (tema al 1): son las
+dos ramas del `switch`, los `goToStep` que apuntan a ellas, el botón "Atrás" —que
+en web vive dentro de cada paso, no en el contenedor— y la copia que se mude. El
+backend no se entera. Móvil no tiene ese problema: su "Atrás" es global
+(`{step > 1 && …}`).
 
 Y hay dos trampas que no se ven:
 
