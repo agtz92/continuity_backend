@@ -186,6 +186,12 @@ def _ann(
     )
 
 
+def _only_announcement(user_id):
+    items = [i for i in compute_user_notifications(user_id) if i.kind == "announcement"]
+    assert len(items) == 1, items
+    return items[0]
+
+
 class TestAnnouncements:
     @pytest.mark.django_db
     def test_published_announcement_visible_to_all(self, free_user):
@@ -193,6 +199,29 @@ class TestAnnouncements:
         items = compute_user_notifications(free_user)
         titles = [i.title for i in items if i.kind == "announcement"]
         assert titles == ["Hello world"]
+
+    @pytest.mark.django_db
+    def test_id_carries_a_content_revision(self, free_user):
+        # Los clientes recuerdan los descartes por id y para siempre, así que
+        # el id tiene que decir *qué versión* se descartó: editar el mensaje o
+        # mover la ventana debe devolver el banner a quien ya lo había cerrado.
+        ann = _ann(title="Hello world")
+        first = _only_announcement(free_user).id
+        assert first.startswith(f"ann.{ann.id}.")
+
+        ann.body = "Otra cosa"
+        ann.save()
+        assert _only_announcement(free_user).id != first
+
+    @pytest.mark.django_db
+    def test_id_survives_an_edit_that_changes_nothing_visible(self, free_user):
+        # Al revés: un guardado que no cambia lo que la persona lee no debe
+        # volver a molestar a quien ya lo cerró.
+        ann = _ann(title="Hello world")
+        before = _only_announcement(free_user).id
+
+        ann.save()
+        assert _only_announcement(free_user).id == before
 
     @pytest.mark.django_db
     def test_draft_announcement_hidden(self, free_user):

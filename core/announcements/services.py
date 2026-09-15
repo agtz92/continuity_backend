@@ -13,6 +13,7 @@ caller (GraphQL resolver) translates the dataclass into the API shape.
 
 from __future__ import annotations
 
+import hashlib
 import uuid
 from dataclasses import dataclass
 from typing import Optional
@@ -156,6 +157,33 @@ def _announcement_visible_to(a: Announcement, user_id: uuid.UUID, plan: str) -> 
     return plan_match or user_match
 
 
+def _announcement_revision(a: Announcement) -> str:
+    """Short hash of the fields that make an announcement *a different message*.
+
+    The clients remember dismissals by notification id (localStorage on web,
+    AsyncStorage on mobile) and that memory is forever. Keying only on the row
+    id meant an announcement edited and re-scheduled — a re-publish in every
+    practical sense — stayed invisible on any device that had closed the
+    earlier version, with nothing the admin could do about it. Folding the
+    content and the window into the id makes a dismissal apply to *that*
+    version: edit the message or move its dates and it comes back.
+
+    Deliberately excludes `updated_at` so an idempotent save (or a field that
+    doesn't change what the user reads, like `dismissible`) doesn't nag people
+    again.
+    """
+    parts = [
+        a.title,
+        a.body,
+        a.cta_label,
+        a.cta_url,
+        a.severity,
+        a.starts_at.isoformat() if a.starts_at else "",
+        a.ends_at.isoformat() if a.ends_at else "",
+    ]
+    return hashlib.sha1("".join(parts).encode()).hexdigest()[:8]
+
+
 def _active_announcements(user_id: uuid.UUID, plan: str) -> list[UserNotification]:
     now = timezone.now()
     qs = Announcement.objects.filter(status=Status.PUBLISHED)
@@ -169,7 +197,7 @@ def _active_announcements(user_id: uuid.UUID, plan: str) -> list[UserNotificatio
             continue
         out.append(
             UserNotification(
-                id=f"ann.{a.id}",
+                id=f"ann.{a.id}.{_announcement_revision(a)}",
                 kind="announcement",
                 severity=a.severity,
                 title=a.title,
