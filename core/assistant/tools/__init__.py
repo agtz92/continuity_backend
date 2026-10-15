@@ -34,7 +34,10 @@ from ..tiers import WRITE_TIER  # noqa: F401 — re-export
 logger = logging.getLogger(__name__)
 
 
-MAX_RESULT_BYTES = 2_000  # ~500 tokens
+#: Byte cap on one tool result (~4-5k tokens). Big enough for a full page
+#: of 50 tasks; the old 2 KB cap silently cut lists to 10 and the model
+#: then reported partial lists as totals.
+MAX_RESULT_BYTES = 20_000
 MAX_LIST_ITEMS = 50
 
 
@@ -142,39 +145,79 @@ def call(name: str, user_id: uuid.UUID, args: dict, plan: str = "free") -> dict:
 # ---------- helpers used by individual tools ----------
 
 
+def paginate(qs, args: dict, *, default_limit: int = 20) -> tuple[list, dict]:
+    """Slice a queryset (or list) by the model's `offset` / `limit` args.
+
+    Returns `(rows, meta)` where meta is `{total, offset, returned,
+    next_offset}` — `next_offset` is None once the last page is reached, so
+    the model knows whether it has seen everything before claiming totals.
+    """
+    limit = max(1, min(int(args.get("limit") or default_limit), MAX_LIST_ITEMS))
+    offset = max(0, int(args.get("offset") or 0))
+    total = qs.count() if hasattr(qs, "count") and not isinstance(qs, list) else len(qs)
+    rows = list(qs[offset : offset + limit])
+    return rows, _page_meta(total, offset, len(rows))
+
+
+def _page_meta(total: int, offset: int, returned: int) -> dict:
+    end = offset + returned
+    return {
+        "total": total,
+        "offset": offset,
+        "returned": returned,
+        "next_offset": end if end < total else None,
+    }
+
+
+def _encoded_len(value: Any) -> int:
+    return len(json.dumps(value, default=_json_default))
+
+
 def _truncate_payload(value: Any) -> Any:
     """Hard byte cap on tool results.
 
-    If the raw JSON is over MAX_RESULT_BYTES, we truncate any list it
-    contains by half until under the cap, then add `truncated: true`.
+    Under MAX_RESULT_BYTES the result passes through untouched. Over it,
+    the largest list is trimmed to as many items as fit (not a blind cut),
+    and a paginated payload's `returned` / `next_offset` are rewritten so
+    the model can fetch the rest with `offset`.
     """
-    encoded = json.dumps(value, default=_json_default)
-    if len(encoded) <= MAX_RESULT_BYTES:
+    if _encoded_len(value) <= MAX_RESULT_BYTES:
         return value
     if isinstance(value, dict):
         return _truncate_dict(value)
     if isinstance(value, list):
-        return _truncate_list(value)
-    return {"truncated": True, "value": str(value)[: MAX_RESULT_BYTES]}
+        return _truncate_dict({"items": value, **_page_meta(len(value), 0, len(value))})
+    return {"truncated": True, "value": str(value)[:MAX_RESULT_BYTES]}
 
 
 def _truncate_dict(d: dict) -> dict:
-    out: dict = {}
-    for k, v in d.items():
-        if isinstance(v, list) and len(v) > 10:
-            out[k] = v[:10]
+    out = dict(d)
+    list_keys = sorted(
+        (k for k, v in out.items() if isinstance(v, list) and v),
+        key=lambda k: _encoded_len(out[k]),
+        reverse=True,
+    )
+    for k in list_keys:
+        if _encoded_len(out) <= MAX_RESULT_BYTES:
+            break
+        full = out[k]
+        # Largest prefix that fits (binary search; keep at least one item).
+        lo, hi = 1, len(full)
+        while lo < hi:
+            mid = (lo + hi + 1) // 2
+            out[k] = full[:mid]
+            if _encoded_len(out) <= MAX_RESULT_BYTES:
+                lo = mid
+            else:
+                hi = mid - 1
+        out[k] = full[:lo]
+        if lo < len(full):
             out.setdefault("truncated_keys", []).append(k)
-        else:
-            out[k] = v
-    encoded = json.dumps(out, default=_json_default)
-    if len(encoded) > MAX_RESULT_BYTES:
-        out["truncated"] = True
+            if "next_offset" in out and "returned" in out:
+                offset = int(out.get("offset") or 0)
+                out.update(_page_meta(int(out.get("total", len(full))), offset, lo))
+    out["truncated"] = True
     return out
-
-
-def _truncate_list(items: list) -> dict:
-    keep = items[:10]
-    return {"items": keep, "truncated": True, "total": len(items)}
 
 
 def _json_default(o: Any):

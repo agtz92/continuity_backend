@@ -19,7 +19,8 @@ from django.utils import timezone
 
 from core.services import routines as routines_svc
 
-from . import short_text, tool
+from . import paginate, short_text, tool
+from .read import _LIMIT, _OFFSET, _PAGING_HINT
 
 
 _WEEKDAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -50,18 +51,27 @@ def _describe_recurrence(r) -> str:
         "id, title, the recurrence rule, start/end dates, effort, optional "
         "time_of_day (clock time, null = all-day), and whether the routine is "
         "archived. Set include_archived=false to hide archived routines."
+        + _PAGING_HINT
     ),
     input_schema={
         "type": "object",
         "properties": {
             "include_archived": {"type": "boolean", "default": True},
+            "limit": {**_LIMIT, "default": 50},
+            "offset": _OFFSET,
         },
         "additionalProperties": False,
     },
 )
 def _list_routines(user_id: uuid.UUID, args: dict) -> dict:
-    rows = routines_svc.list_routines(
-        user_id, include_archived=bool(args.get("include_archived", True))
+    rows, page = paginate(
+        list(
+            routines_svc.list_routines(
+                user_id, include_archived=bool(args.get("include_archived", True))
+            )
+        ),
+        args,
+        default_limit=50,
     )
     return {
         "routines": [
@@ -81,7 +91,7 @@ def _list_routines(user_id: uuid.UUID, args: dict) -> dict:
             }
             for r in rows
         ],
-        "count": len(rows),
+        **page,
     }
 
 
@@ -92,6 +102,7 @@ def _list_routines(user_id: uuid.UUID, args: dict) -> dict:
         "routine is scheduled for and whether it has been completed. Use for "
         "'what routines are due this week' or 'did I keep up with X'. "
         "`days_ahead` looks forward from today, `days_back` looks backward."
+        + _PAGING_HINT
     ),
     input_schema={
         "type": "object",
@@ -108,6 +119,8 @@ def _list_routines(user_id: uuid.UUID, args: dict) -> dict:
                 "maximum": 365,
                 "default": 0,
             },
+            "limit": {**_LIMIT, "default": 50},
+            "offset": _OFFSET,
         },
         "additionalProperties": False,
     },
@@ -121,7 +134,11 @@ def _list_routine_occurrences(user_id: uuid.UUID, args: dict) -> dict:
         r.id: r
         for r in routines_svc.list_routines(user_id, include_archived=False)
     }
-    items = routines_svc.list_due_in_range(user_id, from_date, to_date)
+    items, page = paginate(
+        list(routines_svc.list_due_in_range(user_id, from_date, to_date)),
+        args,
+        default_limit=50,
+    )
     return {
         "from_date": from_date.isoformat(),
         "to_date": to_date.isoformat(),
@@ -138,5 +155,5 @@ def _list_routine_occurrences(user_id: uuid.UUID, args: dict) -> dict:
             }
             for it in items
         ],
-        "count": len(items),
+        **page,
     }

@@ -31,6 +31,27 @@ def list_tasks(
     daily_view: bool = False,
     limit: int = 50,
 ) -> list[Task]:
+    qs = tasks_queryset(
+        user_id,
+        project_id=project_id,
+        done=done,
+        due_within_days=due_within_days,
+        daily_view=daily_view,
+    )
+    if limit:
+        qs = qs[: max(1, min(int(limit), 200))]
+    return list(qs)
+
+
+def tasks_queryset(
+    user_id: uuid.UUID,
+    *,
+    project_id: Optional[uuid.UUID] = None,
+    done: Optional[bool] = None,
+    due_within_days: Optional[int] = None,
+    daily_view: bool = False,
+):
+    """Filtered, ordered, unsliced — for callers that paginate (count + offset)."""
     qs = Task.objects.filter(user_id=user_id).prefetch_related("blockers")
     if project_id is not None:
         qs = qs.filter(project_id=project_id)
@@ -47,10 +68,7 @@ def list_tasks(
         now = timezone.now()
         cutoff = now + dt.timedelta(days=int(due_within_days))
         qs = qs.filter(due_date__isnull=False, due_date__lte=cutoff)
-    qs = qs.order_by("done", "due_date", "-created")
-    if limit:
-        qs = qs[: max(1, min(int(limit), 200))]
-    return list(qs)
+    return qs.order_by("done", "due_date", "-created", "id")
 
 
 def get_task(user_id: uuid.UUID, task_id) -> Task:

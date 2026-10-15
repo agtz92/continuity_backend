@@ -29,12 +29,20 @@ from core.services.analytics import AnalyticsRange, compute_analytics
 from core.services.projects import NotFoundError
 from core.services.summary import get_dashboard_summary
 
-from . import days_between, short_text, tool
+from . import days_between, paginate, short_text, tool
 
 
 # ---------- Schemas as constants ----------
 
 _LIMIT = {"type": "integer", "minimum": 1, "maximum": 50}
+#: Paginated list tools return `total`, `returned` and `next_offset`;
+#: pass `next_offset` back as `offset` to get the next page.
+_OFFSET = {"type": "integer", "minimum": 0, "default": 0}
+_PAGING_HINT = (
+    " Paginated: the result has `total`, `returned` and `next_offset`; "
+    "while `next_offset` is not null, call again with `offset=next_offset` "
+    "before stating totals."
+)
 
 
 # ---------- Dashboard summary ----------
@@ -79,6 +87,7 @@ def _get_dashboard_summary(user_id: uuid.UUID, args: dict) -> dict:
         "List the user's projects. Filter by status, priority, or category. "
         "Returns id, name, status, priority, days_idle, and a short description "
         "snippet. Sorted by most-recent activity. Default limit 20, max 50."
+        + _PAGING_HINT
     ),
     input_schema={
         "type": "object",
@@ -93,18 +102,21 @@ def _get_dashboard_summary(user_id: uuid.UUID, args: dict) -> dict:
             },
             "category_id": {"type": "string", "format": "uuid"},
             "limit": {**_LIMIT, "default": 20},
+            "offset": _OFFSET,
         },
         "additionalProperties": False,
     },
 )
 def _list_projects(user_id: uuid.UUID, args: dict) -> dict:
     now = timezone.now()
-    rows = projects_svc.list_projects(
-        user_id,
-        status=args.get("status"),
-        priority=args.get("priority"),
-        category_id=args.get("category_id"),
-        limit=int(args.get("limit") or 20),
+    rows, page = paginate(
+        projects_svc.projects_queryset(
+            user_id,
+            status=args.get("status"),
+            priority=args.get("priority"),
+            category_id=args.get("category_id"),
+        ),
+        args,
     )
     return {
         "projects": [
@@ -120,7 +132,7 @@ def _list_projects(user_id: uuid.UUID, args: dict) -> dict:
             }
             for p in rows
         ],
-        "count": len(rows),
+        **page,
     }
 
 
@@ -225,6 +237,7 @@ def _get_project_detail(user_id: uuid.UUID, args: dict) -> dict:
     description=(
         "List tasks. Filter by project, by `done`, or by `due_within_days` "
         "to find what's coming up. Default limit 20, max 50."
+        + _PAGING_HINT
     ),
     input_schema={
         "type": "object",
@@ -233,17 +246,20 @@ def _get_project_detail(user_id: uuid.UUID, args: dict) -> dict:
             "done": {"type": "boolean"},
             "due_within_days": {"type": "integer", "minimum": 0, "maximum": 365},
             "limit": {**_LIMIT, "default": 20},
+            "offset": _OFFSET,
         },
         "additionalProperties": False,
     },
 )
 def _list_tasks(user_id: uuid.UUID, args: dict) -> dict:
-    rows = tasks_svc.list_tasks(
-        user_id,
-        project_id=args.get("project_id"),
-        done=args.get("done"),
-        due_within_days=args.get("due_within_days"),
-        limit=int(args.get("limit") or 20),
+    rows, page = paginate(
+        tasks_svc.tasks_queryset(
+            user_id,
+            project_id=args.get("project_id"),
+            done=args.get("done"),
+            due_within_days=args.get("due_within_days"),
+        ),
+        args,
     )
 
     def _blocker_summaries(task) -> list[dict]:
@@ -269,7 +285,7 @@ def _list_tasks(user_id: uuid.UUID, args: dict) -> dict:
             }
             for t in rows
         ],
-        "count": len(rows),
+        **page,
     }
 
 
@@ -281,17 +297,19 @@ def _list_tasks(user_id: uuid.UUID, args: dict) -> dict:
     description=(
         "List the user's open ideas (not yet promoted to projects). "
         "Sorted newest first. Default limit 20, max 50."
+        + _PAGING_HINT
     ),
     input_schema={
         "type": "object",
         "properties": {
             "limit": {**_LIMIT, "default": 20},
+            "offset": _OFFSET,
         },
         "additionalProperties": False,
     },
 )
 def _list_ideas(user_id: uuid.UUID, args: dict) -> dict:
-    rows = ideas_svc.list_ideas(user_id, limit=int(args.get("limit") or 20))
+    rows, page = paginate(ideas_svc.ideas_queryset(user_id), args)
     return {
         "ideas": [
             {
@@ -303,7 +321,7 @@ def _list_ideas(user_id: uuid.UUID, args: dict) -> dict:
             }
             for i in rows
         ],
-        "count": len(rows),
+        **page,
     }
 
 
@@ -540,6 +558,7 @@ def _search(user_id: uuid.UUID, args: dict) -> dict:
         "`search` (matches title + section content), `category_id`, "
         "`project_id`, `pinned`. Bodies are omitted here; use `get_quick_note` "
         "for full content."
+        + _PAGING_HINT
     ),
     input_schema={
         "type": "object",
@@ -548,7 +567,8 @@ def _search(user_id: uuid.UUID, args: dict) -> dict:
             "category_id": {"type": "string", "format": "uuid"},
             "project_id": {"type": "string", "format": "uuid"},
             "pinned": {"type": "boolean"},
-            "limit": _LIMIT,
+            "limit": {**_LIMIT, "default": 30},
+            "offset": _OFFSET,
         },
         "additionalProperties": False,
     },
@@ -561,9 +581,9 @@ def _list_quick_notes(user_id: uuid.UUID, args: dict) -> dict:
         project_id=args.get("project_id"),
         pinned=args.get("pinned"),
     )
-    limit = min(int(args.get("limit") or 30), 50)
+    rows, page = paginate(list(notes), args, default_limit=30)
     out = []
-    for n in notes[:limit]:
+    for n in rows:
         secs = list(n.sections.all())
         out.append(
             {
@@ -579,7 +599,7 @@ def _list_quick_notes(user_id: uuid.UUID, args: dict) -> dict:
                 "updated_at": n.updated_at.isoformat() if n.updated_at else None,
             }
         )
-    return {"quick_notes": out, "total": len(notes)}
+    return {"quick_notes": out, **page}
 
 
 @tool(

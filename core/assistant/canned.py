@@ -7,8 +7,8 @@ point: nothing here can hallucinate, rate-limit, cost money, or stall
 halfway through.
 
 Why it calls `core.services.*` directly instead of the assistant's read
-tools: the `@tool` decorator truncates every result to 2 KB / 10 items so
-a model doesn't drown in context. That is right for a model and wrong for
+tools: the `@tool` decorator caps every result (~20 KB, pages of <=50
+items) so a model doesn't drown in context. That is right for a model and wrong for
 a list a person is reading — "you have 14 overdue tasks" must show 14.
 Same data, same services, no cap.
 

@@ -16,10 +16,15 @@ from .projects import NotFoundError
 
 
 def list_ideas(user_id: uuid.UUID, *, limit: int = 30) -> list[Idea]:
-    qs = Idea.objects.filter(user_id=user_id).order_by("-created")
+    qs = ideas_queryset(user_id)
     if limit:
         qs = qs[: max(1, min(int(limit), 100))]
     return list(qs)
+
+
+def ideas_queryset(user_id: uuid.UUID):
+    """Ordered, unsliced — for callers that paginate (count + offset)."""
+    return Idea.objects.filter(user_id=user_id).order_by("-created", "id")
 
 
 def get_idea(user_id: uuid.UUID, idea_id) -> Idea:

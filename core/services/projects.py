@@ -57,6 +57,22 @@ def list_projects(
     category_id: Optional[uuid.UUID] = None,
     limit: int = 50,
 ) -> list[Project]:
+    qs = projects_queryset(
+        user_id, status=status, priority=priority, category_id=category_id
+    )
+    if limit:
+        qs = qs[: max(1, min(int(limit), 200))]
+    return list(qs)
+
+
+def projects_queryset(
+    user_id: uuid.UUID,
+    *,
+    status: Optional[str] = None,
+    priority: Optional[str] = None,
+    category_id: Optional[uuid.UUID] = None,
+):
+    """Filtered, ordered, unsliced — for callers that paginate (count + offset)."""
     qs = Project.objects.filter(user_id=user_id)
     if status:
         qs = qs.filter(status=status)
@@ -64,10 +80,7 @@ def list_projects(
         qs = qs.filter(priority=priority)
     if category_id:
         qs = qs.filter(category_id=category_id)
-    qs = qs.order_by("-last_activity")
-    if limit:
-        qs = qs[: max(1, min(int(limit), 200))]
-    return list(qs)
+    return qs.order_by("-last_activity", "id")
 
 
 def get_project(user_id: uuid.UUID, project_id) -> Project:
