@@ -77,8 +77,23 @@ vez de deducirla del `plan`.
   conexión de BD** del request y siempre hace `join`). Sin esto, un `tool_use` largo dejaba
   ~60 s de silencio y el proxy cortaba el turno. Los clientes lanzan `StreamCutError` si el
   stream cierra sin `done` y recargan `/conversations/<id>/messages/`.
-- **Truncar en `max_tokens` a mitad de un `tool_use` conserva el texto** y tira solo las
-  llamadas inejecutables. El turno entero ya no se descarta.
+- **Truncar en `max_tokens` a mitad de un `tool_use` no termina el turno.** Se guarda el
+  texto (o un placeholder si no había prosa), se tiran las llamadas inejecutables y se añade
+  un mensaje `user` "se cortó antes de ejecutar X; repítelo en ≤2 llamadas por respuesta".
+  Máx. `MAX_TRUNCATION_RETRIES` (2), que gastan presupuesto; al agotarlos vuelve el `error`.
+  La instrucción **no** se persiste: al releer quedan dos filas `assistant` seguidas, que la
+  API fusiona.
+- **Anunciar y cerrar recibe un empujón.** Si un `end_turn` sin tools termina en `:` o su
+  último párrafo dice "voy a / déjame / procedo / I'll / let me" (salvo "let me know"), y no
+  acaba en `?`, se hace **una** llamada extra por turno pidiendo ejecutar o preguntar
+  (`_announces_without_acting`, `NUDGE_INSTRUCTION`). El system prompt lo prohíbe de origen y
+  la regla 5 de brainstorming exige cerrar con la pregunta de aprobación.
+- **Errores transitorios de Anthropic se reintentan** (`_stream_with_retry`):
+  `OverloadedError`/`APIConnectionError`/`APITimeoutError`/`InternalServerError`/
+  `RateLimitError`, comparados por nombre de clase, con `RETRY_BACKOFF_SECONDS` (1 s, 3 s).
+  **Solo si ese intento no emitió texto**; si ya salió prosa, reintentar la duplicaría y el
+  error sube como antes.
+- Pruebas de todo lo anterior: `core/assistant/tests/test_unfinished_turns.py`.
 - **El historial se cuenta en turnos, no en filas** (`ASSISTANT_MAX_HISTORY_TURNS`), y los
   `tool_result` viejos se compactan sin borrarlos (borrar uno huerfaniza su `tool_use` y
   devuelve 400).

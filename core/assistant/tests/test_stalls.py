@@ -436,7 +436,8 @@ def test_a_turn_truncated_mid_tool_use_keeps_its_prose(
             "cache_creation_input_tokens": 0,
         },
     }
-    fake = fake_anthropic([truncated])
+    # Truncated on the first try and on both retries, so the turn gives up.
+    fake = fake_anthropic([truncated] * (anthropic_client.MAX_TRUNCATION_RETRIES + 1))
 
     with mock.patch.object(
         anthropic_client, "_build_anthropic_client", return_value=fake
@@ -448,9 +449,10 @@ def test_a_turn_truncated_mid_tool_use_keeps_its_prose(
     conv = Conversation.objects.get(user_id=user_a)
     rows = list(
         Message.objects.filter(conversation=conv, role=MessageRole.ASSISTANT)
+        .order_by("created")
     )
-    assert len(rows) == 1
-    blocks = rows[0].content
-    assert blocks[0]["text"].startswith("Ahora agrego las notas")
-    # The unusable call is gone — keeping it would 400 every later request.
-    assert not any(b.get("type") == "tool_use" for b in blocks)
+    assert rows
+    assert rows[0].content[0]["text"].startswith("Ahora agrego las notas")
+    # The unusable calls are gone — keeping them would 400 every later request.
+    for row in rows:
+        assert not any(b.get("type") == "tool_use" for b in row.content)

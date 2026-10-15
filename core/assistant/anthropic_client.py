@@ -14,12 +14,19 @@ spends one more call *without tools* so the model closes the turn itself,
 naming what it managed to do and what is left. The alternative — the old
 behaviour — was an error frame mid-flight, which left the user with
 half-applied writes and no idea which ones landed.
+
+**Nor do the other ways a turn used to stop halfway.** A response cut off
+by `max_tokens` mid-tool_use is retried in smaller pieces (up to
+`MAX_TRUNCATION_RETRIES`); a reply that announces work and ends without
+doing it gets one nudge; a transient upstream error is retried with
+backoff while the attempt has not streamed text yet.
 """
 
 from __future__ import annotations
 
 import json
 import logging
+import re
 import threading
 import time
 import uuid
@@ -44,6 +51,40 @@ Close the turn now, in the user's language:
 3. Offer to continue in the next message.
 
 Do not apologise at length and do not claim anything you did not actually do."""
+
+
+#: Sent as a user-role message after a response hit `max_tokens` in the
+#: middle of a tool_use. None of the calls it was writing can run, so the
+#: model gets told which ones and asked to redo them in smaller bites.
+TRUNCATION_RETRY_INSTRUCTION = """[runtime] Your previous response was cut off by the length limit before it could run: {names}. NONE of those calls were executed.
+
+Redo them now, at most 2 tool calls per response, keeping each call's content short enough to finish. Do not repeat text you already wrote."""
+
+#: Persisted in place of a truncated response that had no prose, so the
+#: thread does not end on the user's message as if nothing happened.
+TRUNCATION_PLACEHOLDER = "(Response cut off before running {names}; retrying in smaller pieces.)"
+
+#: Retries after a truncated tool_use, per turn. They spend tool budget
+#: like any other iteration.
+MAX_TRUNCATION_RETRIES = 2
+
+#: Sent as a user-role message, once per turn, when the model announced an
+#: action ("voy a…", "let me…") and closed the turn without doing it.
+NUDGE_INSTRUCTION = """[runtime] You announced an action but ended your turn without doing it. Either call the tool(s) now to do what you announced, or — if you need the user's input or approval first — ask for it with an explicit question. Do not repeat what you already wrote."""
+
+#: Anthropic errors worth retrying: they say nothing about the request.
+#: Matched by class name so the check works without importing the SDK.
+TRANSIENT_ERRORS = frozenset(
+    {
+        "OverloadedError",
+        "APIConnectionError",
+        "APITimeoutError",
+        "InternalServerError",
+        "RateLimitError",
+    }
+)
+#: Sleep before each retry; its length is the number of retries.
+RETRY_BACKOFF_SECONDS = (1.0, 3.0)
 
 
 #: Keepalive. While the model writes a long tool_use input (note bodies,
@@ -237,6 +278,57 @@ def _stream_turn(
     yield ("__final__", final)
 
 
+def _stream_with_retry(cli, **kwargs):
+    """`_stream_turn`, retried with backoff on a transient upstream error.
+
+    Only while the attempt has not streamed any text: the user already saw
+    that prose, and a retry would write it a second time.
+    """
+    for attempt in range(len(RETRY_BACKOFF_SECONDS) + 1):
+        spoke = False
+        try:
+            for kind, payload in _stream_turn(cli, **kwargs):
+                if kind == "text_delta":
+                    spoke = True
+                yield (kind, payload)
+            return
+        except Exception as e:  # noqa: BLE001 — re-raised unless transient
+            if (
+                spoke
+                or type(e).__name__ not in TRANSIENT_ERRORS
+                or attempt >= len(RETRY_BACKOFF_SECONDS)
+            ):
+                raise
+            logger.warning(
+                "assistant: transient %s, retry %d", type(e).__name__, attempt + 1
+            )
+            yield ("ping", {})
+            time.sleep(RETRY_BACKOFF_SECONDS[attempt])
+
+
+_ANNOUNCE_RE = re.compile(
+    r"\bvoy a\b|\bd[ée]jame\b(?!\s+saber)|\bprocedo\b|\bI['’]ll\b|\blet me\b(?!\s+know)",
+    re.IGNORECASE,
+)
+
+
+def _announces_without_acting(blocks: list[dict]) -> bool:
+    """True when a tool-less reply promises work instead of doing or asking.
+
+    Looks at the last paragraph only: an earlier "voy a…" followed by a
+    finished answer is narration, not a pending promise. A reply ending in
+    ":" is announcing by construction.
+    """
+    text = "".join(b.get("text") or "" for b in blocks if b.get("type") == "text")
+    text = text.strip()
+    if not text or text.endswith("?"):
+        return False
+    if text.endswith(":"):
+        return True
+    last = text.split("\n\n")[-1]
+    return bool(_ANNOUNCE_RE.search(last))
+
+
 def _call_with_keepalive(fn: Callable[[], Any], *, every: Optional[float] = None):
     """Run `fn` in a helper thread, yielding ("ping", {}) every `every` seconds
     until it finishes. Yields ("__result__", value) last; re-raises its error.
@@ -320,6 +412,8 @@ def run_turn_iter(
     appended: list[AppendedMessage] = []
     executed: list[dict] = []
     stop_reason = "end_turn"
+    truncation_retries = 0
+    nudged = False
 
     convo = list(messages)
 
@@ -363,7 +457,7 @@ def run_turn_iter(
                 {"iterations": cap, "executed": [e["name"] for e in executed]},
             )
             final = None
-            for kind, payload in _stream_turn(
+            for kind, payload in _stream_with_retry(
                 cli,
                 model=model,
                 max_tokens=max_tokens,
@@ -390,7 +484,7 @@ def run_turn_iter(
             break
 
         final = None
-        for kind, payload in _stream_turn(
+        for kind, payload in _stream_with_retry(
             cli,
             model=model,
             max_tokens=max_tokens,
@@ -425,6 +519,35 @@ def run_turn_iter(
             # drop only the unusable calls, so the transcript still shows
             # what was said instead of silently losing the turn.
             text_only = [b for b in assistant_blocks if b.get("type") == "text"]
+            if truncation_retries < MAX_TRUNCATION_RETRIES:
+                # Ask for the same work in smaller pieces instead of ending
+                # the turn. With no prose, a placeholder keeps the thread
+                # from ending on the user; the instruction goes in as a
+                # user message so roles keep alternating. It is not
+                # persisted — replay merges the two assistant rows.
+                truncation_retries += 1
+                names = ", ".join(
+                    b.get("name") or "?"
+                    for b in assistant_blocks
+                    if b.get("type") == "tool_use"
+                )
+                kept = text_only or [
+                    {"type": "text", "text": TRUNCATION_PLACEHOLDER.format(names=names)}
+                ]
+                convo.append({"role": "assistant", "content": kept})
+                _add(AppendedMessage(kind="assistant", content=kept))
+                convo.append(
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": TRUNCATION_RETRY_INSTRUCTION.format(names=names),
+                            }
+                        ],
+                    }
+                )
+                continue
             if text_only:
                 convo.append({"role": "assistant", "content": text_only})
                 _add(AppendedMessage(kind="assistant", content=text_only))
@@ -446,6 +569,20 @@ def run_turn_iter(
         _add(AppendedMessage(kind="assistant", content=assistant_blocks))
 
         if stop_reason != "tool_use":
+            if (
+                stop_reason == "end_turn"
+                and not nudged
+                and not has_tool_use
+                and _announces_without_acting(assistant_blocks)
+            ):
+                # "Voy a crear el proyecto…" and the turn ends: the user is
+                # left waiting for work that never comes. One push per turn
+                # to either do it or ask.
+                nudged = True
+                convo.append(
+                    {"role": "user", "content": [{"type": "text", "text": NUDGE_INSTRUCTION}]}
+                )
+                continue
             break
 
         tool_results: list[dict] = []

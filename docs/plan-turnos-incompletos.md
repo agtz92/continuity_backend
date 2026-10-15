@@ -52,6 +52,8 @@ Los `xfail(strict=True)` y `it.fails` revientan en cuanto se arregla el bug, as�
 
 ### P1: que el modelo termine lo que empezó
 
+> Implementado (4, 5 y 6) en `core/assistant/anthropic_client.py` y `prompts.py`; los `xfail` de B, C y D ya no llevan marca.
+
 4. **Truncado, reintento en trozos (C).** Ante `max_tokens` con `tool_use`:
    - guardar el texto o un placeholder;
    - añadir un mensaje de sistema: "tu respuesta se cortó antes de ejecutar X; repítelo en llamadas de como máximo 2 por respuesta";

@@ -260,11 +260,6 @@ def test_a_slow_tool_keeps_the_connection_alive(user_a, make_profile, monkeypatc
 
 
 @pytest.mark.django_db
-@pytest.mark.xfail(
-    strict=True,
-    reason="BUG: el modelo anuncia la acción y cierra con end_turn sin llamar "
-    "tools; el loop lo acepta como respuesta final (visto en prod 2026-09-11)",
-)
 def test_a_turn_that_only_announces_work_gets_nudged_to_do_it(user_a, make_profile):
     make_profile(user_a, plan="studio")
     client = _Client(
@@ -298,39 +293,82 @@ def test_a_genuine_question_is_not_nudged(user_a, make_profile):
     assert len(client.calls) == 1
 
 
+@pytest.mark.django_db
+def test_the_nudge_happens_once_per_turn(user_a, make_profile):
+    make_profile(user_a, plan="studio")
+    announce = lambda: _Stream([_text("Voy a crear el proyecto ahora.")], "end_turn")  # noqa: E731
+    client = _Client([announce(), announce(), announce()])
+    _run(user_a, client, {"content": "Crea el proyecto"})
+    assert len(client.calls) == 2
+
+
+@pytest.mark.parametrize(
+    "text,expected",
+    [
+        ("Primero, déjame proponerte la estructura:", True),
+        ("Listo, creé las 3 tareas.\n\nI'll keep an eye on the deadlines.", True),
+        ("Listo, creé las 3 tareas. Let me know if you want changes.", False),
+        ("Voy a crear esto.\n\nHecho: 3 tareas creadas.", False),
+        ("¿Lo creo así?", False),
+    ],
+)
+def test_announcement_detector(text, expected):
+    assert anthropic_client._announces_without_acting([_text(text)]) is expected
+
+
 # --------------------------------------------------------------------------
 # C. Truncado en max_tokens con SOLO tool_use (sin prosa)
 # --------------------------------------------------------------------------
 
 
 @pytest.mark.django_db
-def test_pure_tool_truncation_today_leaves_the_thread_ending_on_the_user(
+def test_pure_tool_truncation_no_longer_leaves_the_thread_ending_on_the_user(
     user_a, make_profile
 ):
-    """Comportamiento actual, fijado para que el arreglo lo cambie a propósito.
-
-    Si el turno truncado no tenía texto, no se persiste NADA del asistente:
-    el hilo termina en el mensaje del usuario, exactamente la firma de los
-    32 turnos "NO_REPLY" en prod.
-    """
+    """Antes, un turno truncado sin texto no persistía NADA del asistente: el
+    hilo terminaba en el mensaje del usuario, la firma de los 32 turnos
+    "NO_REPLY" de prod. Ahora se guarda un placeholder y se reintenta."""
     make_profile(user_a, plan="studio")
     client = _Client([_Stream([_tool("tu_1", "create_note")], "max_tokens")])
     frames = _frames(_run(user_a, client, {"content": "notas largas"}))
 
-    assert any(k == "error" for k, _ in frames)
+    assert not any(k == "error" for k, _ in frames)
     conv = Conversation.objects.get(user_id=user_a)
-    roles = list(
-        Message.objects.filter(conversation=conv).order_by("created").values_list("role", flat=True)
+    rows = list(Message.objects.filter(conversation=conv).order_by("created"))
+    assert [r.role for r in rows] == [
+        MessageRole.USER,
+        MessageRole.ASSISTANT,
+        MessageRole.ASSISTANT,
+    ]
+    assert "create_note" in rows[1].content[0]["text"]
+    # El reintento le dijo al modelo qué no corrió, como mensaje de usuario.
+    # (`messages` es la lista viva del loop: se busca, no se toma la cola.)
+    convo = client.calls[1]["messages"]
+    i = next(
+        i
+        for i, m in enumerate(convo)
+        if m["role"] == "user"
+        and isinstance(m["content"], list)
+        and "NONE of those calls" in m["content"][0].get("text", "")
     )
-    assert roles == [MessageRole.USER]
+    assert "create_note" in convo[i]["content"][0]["text"]
+    assert convo[i - 1]["role"] == "assistant"
+    # Lo que añadió el loop alterna (el historial previo no es asunto suyo).
+    roles = [m["role"] for m in convo[i - 2 :]]
+    assert all(a != b for a, b in zip(roles, roles[1:])), roles
 
 
 @pytest.mark.django_db
-@pytest.mark.xfail(
-    strict=True,
-    reason="BUG: truncar a mitad de un tool_use termina el turno con error en "
-    "vez de pedirle al modelo que reintente en trozos más chicos",
-)
+def test_truncation_gives_up_after_two_retries(user_a, make_profile):
+    make_profile(user_a, plan="studio")
+    client = _Client([_Stream([_tool(f"tu_{i}", "create_note")], "max_tokens") for i in range(3)])
+    frames = _frames(_run(user_a, client, {"content": "notas largas"}))
+
+    assert len(client.calls) == 3
+    assert any(k == "error" for k, _ in frames)
+
+
+@pytest.mark.django_db
 def test_truncation_mid_tool_use_retries_in_smaller_pieces(user_a, make_profile):
     make_profile(user_a, plan="studio")
     client = _Client(
@@ -355,21 +393,30 @@ class OverloadedError(Exception):
     """Mismo nombre de clase que el SDK; la vista lo mira por nombre."""
 
 
-def _overloaded_script():
+@pytest.fixture(autouse=True)
+def _no_backoff(monkeypatch):
+    monkeypatch.setattr(anthropic_client, "RETRY_BACKOFF_SECONDS", (0, 0))
+
+
+def _overloaded_script(failures=1):
     return [
         _Stream(
             [_text("Creo el proyecto:"), _tool("tu_1", "create_project", {"name": "Finanzas"})],
             "tool_use",
         ),
-        _Stream([], "end_turn", raise_on_enter=OverloadedError("overloaded")),
+        *[
+            _Stream([], "end_turn", raise_on_enter=OverloadedError("overloaded"))
+            for _ in range(failures)
+        ],
         _Stream([_text("Proyecto creado.")], "end_turn"),
     ]
 
 
 @pytest.mark.django_db
 def test_work_done_before_an_upstream_error_is_kept(user_a, make_profile):
+    """Cuando el error persiste más allá de los reintentos."""
     make_profile(user_a, plan="studio")
-    client = _Client(_overloaded_script())
+    client = _Client(_overloaded_script(failures=3))
     frames = _frames(_run(user_a, client, {"content": "crea Finanzas"}))
 
     assert Project.objects.filter(user_id=user_a, name="Finanzas").exists()
@@ -383,16 +430,28 @@ def test_work_done_before_an_upstream_error_is_kept(user_a, make_profile):
 
 
 @pytest.mark.django_db
-@pytest.mark.xfail(
-    strict=True,
-    reason="BUG: un 529/APIConnectionError a mitad del turno lo mata; no hay "
-    "reintento con backoff dentro del loop",
-)
 def test_a_transient_upstream_error_is_retried(user_a, make_profile):
     make_profile(user_a, plan="studio")
     client = _Client(_overloaded_script())
     frames = _frames(_run(user_a, client, {"content": "crea Finanzas"}))
     assert next(p for k, p in frames if k == "done")["ok"] is True
+    assert Project.objects.filter(user_id=user_a, name="Finanzas").count() == 1
+
+
+class _StreamThatDiesAfterText(_Stream):
+    def __iter__(self):
+        yield from super().__iter__()
+        raise OverloadedError("overloaded")
+
+
+@pytest.mark.django_db
+def test_an_error_after_streaming_text_is_not_retried(user_a, make_profile):
+    """Reintentar reescribiría la prosa que el usuario ya vio."""
+    make_profile(user_a, plan="studio")
+    client = _Client([_StreamThatDiesAfterText([_text("Te cuento:")], "end_turn")])
+    frames = _frames(_run(user_a, client, {"content": "hola"}))
+    assert len(client.calls) == 1
+    assert next(p for k, p in frames if k == "done")["ok"] is False
 
 
 # --------------------------------------------------------------------------
