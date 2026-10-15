@@ -71,6 +71,12 @@ vez de deducirla del `plan`.
   dejaba al usuario con un proyecto y ocho tareas reales y una conversación que nunca
   mencionó haberlos creado. Un stream cortado ahora pierde como mucho la cola, y los
   `tool_use` huérfanos que queden los limpia `_trim_to_pair_clean` al leer.
+- **El cable nunca queda mudo.** `_stream_turn` emite `tool_use_pending {name}` al abrir un
+  bloque `tool_use` y un `ping` (comentario SSE `: ping`) tras 10 s o 200 eventos del SDK sin
+  reenviar nada; las tools corren vía `_call_with_keepalive` (hilo auxiliar que **comparte la
+  conexión de BD** del request y siempre hace `join`). Sin esto, un `tool_use` largo dejaba
+  ~60 s de silencio y el proxy cortaba el turno. Los clientes lanzan `StreamCutError` si el
+  stream cierra sin `done` y recargan `/conversations/<id>/messages/`.
 - **Truncar en `max_tokens` a mitad de un `tool_use` conserva el texto** y tira solo las
   llamadas inejecutables. El turno entero ya no se descarta.
 - **El historial se cuenta en turnos, no en filas** (`ASSISTANT_MAX_HISTORY_TURNS`), y los

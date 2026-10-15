@@ -276,6 +276,11 @@ class ChatView(View):
                     # Tuple (kind, payload) — forward to browser immediately
                     # so the user sees text appear as the model writes it.
                     kind, payload = item
+                    if kind == "ping":
+                        # SSE comment: keeps proxies from idling the socket
+                        # out and every client ignores it.
+                        yield b": ping\n\n"
+                        continue
                     yield _format_sse(kind, payload)
             except AssistantConfigError as e:
                 logger.error("Assistant config error: %s", e)

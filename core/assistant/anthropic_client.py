@@ -20,6 +20,8 @@ from __future__ import annotations
 
 import json
 import logging
+import threading
+import time
 import uuid
 from dataclasses import dataclass, field
 from typing import Any, Callable, Iterable, Optional
@@ -42,6 +44,19 @@ Close the turn now, in the user's language:
 3. Offer to continue in the next message.
 
 Do not apologise at length and do not claim anything you did not actually do."""
+
+
+#: Keepalive. While the model writes a long tool_use input (note bodies,
+#: detailed prompts) the SDK yields hundreds of `input_json_delta` events
+#: and we forward none of them — measured in prod: 63s with no byte on the
+#: wire, long enough for any proxy idle-timeout to cut the turn. A `ping`
+#: event (an SSE comment on the wire, which clients ignore) goes out after
+#: this many seconds of silence...
+KEEPALIVE_SECONDS = 10.0
+#: ...or after this many SDK events with nothing forwarded, whichever comes
+#: first. A comment is 8 bytes; sending one every few hundred tokens of
+#: tool input costs nothing and does not depend on the clock.
+KEEPALIVE_EVERY_EVENTS = 200
 
 
 @dataclass
@@ -165,6 +180,9 @@ def _stream_turn(
     if tools is not None:
         kwargs["tools"] = tools
 
+    last_emit = time.monotonic()
+    silent = 0
+
     with cli.messages.stream(**kwargs) as stream:
         for event in stream:
             if is_cancelled():
@@ -172,7 +190,22 @@ def _stream_turn(
             kind = getattr(event, "type", None) or (
                 event.get("type") if isinstance(event, dict) else None
             )
-            if kind == "content_block_delta":
+            out = None
+            if kind == "content_block_start":
+                block = getattr(event, "content_block", None) or (
+                    event.get("content_block") if isinstance(event, dict) else None
+                )
+                block_type = getattr(block, "type", None) or (
+                    block.get("type") if isinstance(block, dict) else None
+                )
+                if block_type == "tool_use":
+                    # The input can take a minute to write. Telling the UI
+                    # *what* is being written now beats a frozen bubble.
+                    name = getattr(block, "name", None) or (
+                        block.get("name") if isinstance(block, dict) else None
+                    )
+                    out = ("tool_use_pending", {"name": name or ""})
+            elif kind == "content_block_delta":
                 delta = getattr(event, "delta", None) or event.get("delta")
                 delta_type = getattr(delta, "type", None) or (
                     delta.get("type") if isinstance(delta, dict) else None
@@ -181,13 +214,76 @@ def _stream_turn(
                     text = getattr(delta, "text", None) or (
                         delta.get("text") if isinstance(delta, dict) else ""
                     )
-                    yield ("text_delta", {"text": text or ""})
-            # Other events (content_block_start, message_start, etc.) are
-            # ignored at the SSE layer — we forward only what the UI uses.
+                    out = ("text_delta", {"text": text or ""})
+            # Other events (message_start, input_json_delta, etc.) are not
+            # forwarded — but they still count towards the keepalive.
+
+            if out is not None:
+                yield out
+                last_emit = time.monotonic()
+                silent = 0
+                continue
+            silent += 1
+            if (
+                silent >= KEEPALIVE_EVERY_EVENTS
+                or time.monotonic() - last_emit >= KEEPALIVE_SECONDS
+            ):
+                yield ("ping", {})
+                last_emit = time.monotonic()
+                silent = 0
 
         final = stream.get_final_message()
 
     yield ("__final__", final)
+
+
+def _call_with_keepalive(fn: Callable[[], Any], *, every: Optional[float] = None):
+    """Run `fn` in a helper thread, yielding ("ping", {}) every `every` seconds
+    until it finishes. Yields ("__result__", value) last; re-raises its error.
+
+    The view can only write to the socket from its own generator, so a slow
+    tool call would otherwise leave the wire silent for its whole duration.
+
+    The helper thread borrows this thread's DB connections (the same trick
+    as Django's LiveServerThread): the tool runs inside the request's
+    connection and transaction, exactly as if it were called inline. That
+    is safe because this thread does nothing with the database meanwhile —
+    it only yields pings — and it always joins before returning, even when
+    the client vanishes (GeneratorExit), so the connection is never used
+    by two threads at once.
+    """
+    from django.db import connections
+
+    every = KEEPALIVE_SECONDS if every is None else every
+    conns = list(connections.all(initialized_only=True))
+    box: dict[str, Any] = {}
+
+    def _target() -> None:
+        for conn in conns:
+            connections[conn.alias] = conn
+        try:
+            box["value"] = fn()
+        except BaseException as e:  # noqa: BLE001 — re-raised in the caller
+            box["error"] = e
+
+    for conn in conns:
+        conn.inc_thread_sharing()
+    worker = threading.Thread(target=_target, name="assistant-tool", daemon=True)
+    try:
+        worker.start()
+        while True:
+            worker.join(timeout=every)
+            if not worker.is_alive():
+                break
+            yield ("ping", {})
+    finally:
+        worker.join()
+        for conn in conns:
+            conn.dec_thread_sharing()
+
+    if "error" in box:
+        raise box["error"]
+    yield ("__result__", box.get("value"))
 
 
 def run_turn_iter(
@@ -360,7 +456,14 @@ def run_turn_iter(
             name = block.get("name")
             args = block.get("input") or {}
             yield ("tool_use_start", {"id": tool_id, "name": name, "input": args})
-            result = tools_pkg.call(name, user_id, args, plan)
+            result = None
+            for kind, payload in _call_with_keepalive(
+                lambda: tools_pkg.call(name, user_id, args, plan)
+            ):
+                if kind == "__result__":
+                    result = payload
+                else:
+                    yield (kind, payload)
             executed.append({"name": name, "ok": "error" not in (result or {})})
             yield ("tool_result", {"id": tool_id, "name": name, "output": result})
             tool_results.append(
