@@ -488,3 +488,50 @@ def test_after_a_cut_the_next_message_sees_what_already_ran(user_a, make_profile
     assert "create_project" in sent and "Finanzas" in sent
     assert Project.objects.filter(user_id=user_a, name="Finanzas").count() == 1
     assert Task.objects.filter(user_id=user_a).count() == 0
+
+
+# --------------------------------------------------------------------------
+# F. El mensaje del usuario no viaja duplicado
+# --------------------------------------------------------------------------
+
+
+def _user_text_count(messages, text):
+    n = 0
+    for m in messages:
+        if m["role"] != "user":
+            continue
+        content = m["content"]
+        if isinstance(content, str):
+            n += content == text
+        else:
+            n += sum(1 for b in content if b.get("type") == "text" and b.get("text") == text)
+    return n
+
+
+@pytest.mark.django_db
+def test_the_user_message_is_sent_once(user_a, make_profile):
+    """`ChatView` persiste el mensaje antes de armar el historial (para no
+    perderlo si se corta la conexión); `build_messages` lo añadía otra vez
+    al final y el modelo veía el texto duplicado en dos `user` seguidos."""
+    make_profile(user_a, plan="studio")
+
+    first = _Client([_Stream([_text("Hola.")], "end_turn")])
+    frames = _frames(_run(user_a, first, {"content": "primer mensaje"}))
+    conv_id = next(d["conversation_id"] for k, d in frames if k == "meta")
+    sent = first.calls[0]["messages"]
+    assert _user_text_count(sent, "primer mensaje") == 1
+    # `calls[i]["messages"]` es la lista viva: el loop le añade la
+    # respuesta después, así que solo se mira el prefijo.
+    assert [m["role"] for m in sent][:2] == ["user", "assistant"]
+
+    second = _Client([_Stream([_text("Listo.")], "end_turn")])
+    _run(user_a, second, {"content": "segundo mensaje", "conversation_id": conv_id})
+    sent = second.calls[0]["messages"]
+    assert _user_text_count(sent, "segundo mensaje") == 1
+    assert _user_text_count(sent, "primer mensaje") == 1
+    assert [m["role"] for m in sent][:4] == ["user", "assistant", "user", "assistant"]
+
+    # La persistencia anticipada sigue ahí.
+    assert Message.objects.filter(
+        conversation_id=conv_id, role=MessageRole.USER
+    ).count() == 2

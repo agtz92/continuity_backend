@@ -173,6 +173,11 @@ class ChatView(View):
                 user_id=user_id, title=_derive_title(content)
             )
 
+        # Read the history BEFORE persisting the new turn: `build_messages`
+        # appends `content` itself, so reading after the insert sent the
+        # user's text twice in a row.
+        history_messages = prompts.build_messages(conv, content)
+
         # Persist the user turn upfront so on-disconnect we don't lose it.
         user_msg = Message.objects.create(
             conversation=conv,
@@ -191,7 +196,6 @@ class ChatView(View):
             logger.exception("Failed to build system blocks")
             return _json_error(f"Failed to prepare context: {e}", status=500)
 
-        history_messages = prompts.build_messages(conv, content)
         # The deep model is a server-side decision (admin switch + plan +
         # daily cap). No request field, no button: the user gets the better
         # model or doesn't, and is never shown a lever they can't pull.
