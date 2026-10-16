@@ -1,3 +1,5 @@
+# Fija también las transitivas — ver la cabecera de constraints.txt.
+-c constraints.txt
 Django==5.1.4
 strawberry-graphql[django]==0.253.1
 django-cors-headers==4.6.0
