@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 import uuid
 from typing import Any, Iterable
 
@@ -194,6 +195,7 @@ class ChatView(View):
             )
         except Exception as e:  # noqa: BLE001
             logger.exception("Failed to build system blocks")
+            _stamp_outcome(user_msg.pk, "error:context")
             return _json_error(f"Failed to prepare context: {e}", status=500)
 
         # The deep model is a server-side decision (admin switch + plan +
@@ -208,6 +210,12 @@ class ChatView(View):
         # what stops a previous Stop — whose flag outlives its turn by up
         # to 60s — from killing the message the user just sent.
         cache.delete(cancel_key)
+
+        # How the turn ended, stamped on the USER row (see `_stamp_outcome`).
+        # Stays None until a branch below sets it; still None in `finally`
+        # means the client vanished mid-turn.
+        outcome: dict[str, Any] = {"value": None}
+        started = time.monotonic()
 
         def _run_stream() -> Iterable[bytes]:
             yield _format_sse(
@@ -288,6 +296,7 @@ class ChatView(View):
                     yield _format_sse(kind, payload)
             except AssistantConfigError as e:
                 logger.error("Assistant config error: %s", e)
+                outcome["value"] = "error:config"
                 yield _format_sse(
                     "error",
                     {"message": str(e), "code": "config"},
@@ -296,6 +305,7 @@ class ChatView(View):
                 return
             except Exception as e:  # noqa: BLE001
                 logger.exception("Assistant run_turn failed")
+                outcome["value"] = f"error:{type(e).__name__}"
                 msg = _humanize_anthropic_error(e)
                 yield _format_sse("error", {"message": msg})
                 yield _format_sse("done", {"ok": False})
@@ -303,6 +313,7 @@ class ChatView(View):
 
             if result is None:
                 # Defensive — generator exited without a TurnResult.
+                outcome["value"] = "error:no_result"
                 yield _format_sse("error", {"message": "no result"})
                 yield _format_sse("done", {"ok": False})
                 return
@@ -332,6 +343,7 @@ class ChatView(View):
 
             conv.save(update_fields=["updated_at"])
 
+            outcome["value"] = result.final_stop_reason or "end_turn"
             yield _format_sse(
                 "done",
                 {
@@ -351,6 +363,18 @@ class ChatView(View):
                 # guarantees an abandoned turn never poisons the next one:
                 # the flag dies with the turn that owned it, not 60s later.
                 cache.delete(cancel_key)
+                # A turn that never reached a branch above was cut: the
+                # client (or a proxy) hung up first. Recording it is what
+                # makes these visible — before, a cut turn left no trace.
+                final = outcome["value"] or "cut"
+                _stamp_outcome(user_msg.pk, final)
+                logger.info(
+                    "assistant turn conv=%s outcome=%s secs=%.1f model=%s",
+                    conv.id,
+                    final,
+                    time.monotonic() - started,
+                    model,
+                )
 
         response = StreamingHttpResponse(
             event_stream(), content_type="text/event-stream"
@@ -746,6 +770,23 @@ class HealthView(View):
 
 
 # ---------- helpers ----------
+
+
+def _stamp_outcome(user_msg_pk, outcome: str) -> None:
+    """Record how a chat turn ended on its USER row's `stop_reason`.
+
+    Assistant rows already carry the model's stop_reason, but a turn that
+    errors or gets cut before the first assistant row leaves nothing behind
+    — that is how 32 dead turns went unnoticed. The user row exists from
+    the start, so it is the one place every turn can report to. Values:
+    `end_turn`, `tool_budget_closed`, `cancelled`, `error:<Class>`, `cut`.
+
+    Best-effort: this runs in a `finally` and must never mask the real error.
+    """
+    try:
+        Message.objects.filter(pk=user_msg_pk).update(stop_reason=outcome[:32])
+    except Exception:  # noqa: BLE001
+        logger.exception("Could not stamp assistant turn outcome")
 
 
 def _derive_title(content: str) -> str:

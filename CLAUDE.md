@@ -94,6 +94,12 @@ vez de deducirla del `plan`.
   **Solo si ese intento no emitió texto**; si ya salió prosa, reintentar la duplicaría y el
   error sube como antes.
 - Pruebas de todo lo anterior: `core/assistant/tests/test_unfinished_turns.py`.
+- **Cada turno deja escrito cómo terminó en la fila del USUARIO** (`Message.stop_reason`:
+  `end_turn` · `tool_budget_closed` · `cancelled` · `error:<Clase>` · `cut`). Lo sella
+  `_stamp_outcome` desde el `finally` de `ChatView`. Antes, un turno que moría antes de la
+  primera fila del asistente no dejaba rastro (así pasaron 32 sin que nadie los viera).
+  Turnos con problemas: `select stop_reason, count(*) from assistant_message where
+  role='user' and created > now() - interval '7 days' group by 1;`
 - **El historial se cuenta en turnos, no en filas** (`ASSISTANT_MAX_HISTORY_TURNS`), y los
   `tool_result` viejos se compactan sin borrarlos (borrar uno huerfaniza su `tool_use` y
   devuelve 400).

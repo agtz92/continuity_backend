@@ -271,12 +271,18 @@ def test_activity_query_requires_auth(execute_query):
 
 @pytest.mark.django_db
 def test_activity_query_newest_first_with_limit(execute_query, user_a):
+    # Explicit, distinct timestamps: on Windows five creates in a row can share
+    # one clock tick, and then "-created" ties and the order is arbitrary.
+    base = timezone.now()
     for n in range(5):
-        Activity.objects.create(
+        row = Activity.objects.create(
             user_id=user_a,
             kind=ActivityKind.PROJECT_CREATED,
             entity_id=user_a,
             entity_title=f"Project {n}",
+        )
+        Activity.objects.filter(pk=row.pk).update(
+            created=base + dt.timedelta(seconds=n)
         )
     res = execute_query(
         ACTIVITY_QUERY, user_id=user_a, variable_values={"limit": 3}

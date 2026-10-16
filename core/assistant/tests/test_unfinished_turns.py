@@ -535,3 +535,53 @@ def test_the_user_message_is_sent_once(user_a, make_profile):
     assert Message.objects.filter(
         conversation_id=conv_id, role=MessageRole.USER
     ).count() == 2
+
+
+# --------------------------------------------------------------------------
+# F. Cada turno deja escrito cómo terminó (en la fila del usuario)
+# --------------------------------------------------------------------------
+
+
+def _user_outcome(user_id):
+    conv = Conversation.objects.get(user_id=user_id)
+    return (
+        Message.objects.filter(conversation=conv, role=MessageRole.USER)
+        .order_by("created")
+        .last()
+        .stop_reason
+    )
+
+
+@pytest.mark.django_db
+def test_a_finished_turn_records_its_stop_reason(user_a, make_profile):
+    make_profile(user_a, plan="studio")
+    _run(user_a, _Client([_Stream([_text("Hola.")], "end_turn")]), {"content": "hola"})
+    assert _user_outcome(user_a) == "end_turn"
+
+
+@pytest.mark.django_db
+def test_an_upstream_error_is_recorded_even_with_no_assistant_row(user_a, make_profile):
+    """Los 32 turnos muertos de prod no dejaron rastro: ni una fila del
+    asistente. Ahora el error queda en la fila del usuario."""
+    make_profile(user_a, plan="studio")
+    client = _Client(
+        [_Stream([], "end_turn", raise_on_enter=OverloadedError("x")) for _ in range(3)]
+    )
+    _run(user_a, client, {"content": "crea Finanzas"})
+    assert _user_outcome(user_a) == "error:OverloadedError"
+
+
+@pytest.mark.django_db
+def test_a_cut_stream_is_recorded_as_cut(user_a, make_profile):
+    make_profile(user_a, plan="studio")
+    client = _Client(
+        [
+            _Stream([_tool("tu_1", "list_projects")], "tool_use"),
+            _Stream([_text("Listo.")], "end_turn"),
+        ]
+    )
+    with mock.patch.object(anthropic_client, "_build_anthropic_client", return_value=client):
+        resp = _post(user_a, {"content": "go"})
+        next(iter(resp.streaming_content))  # solo el meta, y el cliente cuelga
+        resp.close()
+    assert _user_outcome(user_a) == "cut"
