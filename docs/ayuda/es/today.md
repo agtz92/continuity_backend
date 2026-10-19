@@ -135,7 +135,7 @@ Proyectos casi terminados (“Casi listo”) y los que cierras con pocas tareas 
 
 ---
 
-## 9. Proyectos durmiendo
+## 9. Proyectos estancados
 
 [imagen: today-09-durmiendo.png]
 

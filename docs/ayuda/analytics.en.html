@@ -40,7 +40,7 @@
       <li><a href="#backlog"><span class="n">6</span>Backlog</a></li>
       <li><a href="#breakdown"><span class="n">7</span>Status &amp; category</a></li>
       <li><a href="#effort"><span class="n">8</span>Effort &amp; funnel</a></li>
-      <li><a href="#sleeping"><span class="n">9</span>Sleeping &amp; stale ideas</a></li>
+      <li><a href="#sleeping"><span class="n">9</span>Stalled &amp; stale ideas</a></li>
     </ol>
   </nav>
 
@@ -77,7 +77,7 @@
     <ol class="anatomy-list">
       <li><b>Title + range selector</b> — at the top. The range (7d/30d/90d/1y/All) feeds <b>every</b> panel at once.</li>
       <li><b>Cadence &amp; activity</b> — your recent pulse: how many days you were active and the daily curve.</li>
-      <li><b>Project panels</b> — most active, backlog, status/category, effort, sleeping.</li>
+      <li><b>Project panels</b> — most active, backlog, status/category, effort, stalled.</li>
       <li><b>Idea panels</b> — the idea funnel and stale ideas.</li>
     </ol>
     <div class="note info">On <b>mobile</b> you'll see a strip of <b>chips</b> (Activity · Cadence · Status · …) and <b>one panel</b> at a time: tap a chip to switch panel. On <b>desktop</b> they're all stacked. While it recomputes after you change the range, <b>“refreshing…”</b> appears next to the title.</div>
@@ -343,13 +343,13 @@
 
   <!-- 9 · SLEEPING + STALE -->
   <section class="step" id="sleeping">
-    <div class="step-head"><span class="badge">9</span><h2>Sleeping · Stale ideas</h2></div>
+    <div class="step-head"><span class="badge">9</span><h2>Stalled · Stale ideas</h2></div>
     <p class="sub">What's cooling off: projects with no recent activity and ideas not promoted.</p>
     <div class="grid2">
       <div>
-        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Sleeping</span></div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="tag">Stalled</span></div>
         <div class="canvas">
-          <div style="margin-bottom:2px"><b style="font-size:14px"><span style="color:#818cf8;margin-right:6px">☾</span>Sleeping</b></div>
+          <div style="margin-bottom:2px"><b style="font-size:14px"><span style="color:#818cf8;margin-right:6px">☾</span>Stalled</b></div>
           <div class="xsmall muted" style="margin-bottom:12px">Projects with no recent activity (≥7 days)</div>
           <ul style="list-style:none;margin:0;padding:0;display:grid;gap:8px">
             <li class="sleeprow" style="padding:9px 12px"><span class="small" style="flex:1">Newsletter</span><span class="chip" style="border-color:color-mix(in srgb,var(--amber) 30%,transparent);color:#fcd34d;background:var(--amber-soft)">7-14d</span><span class="xsmall muted">10d</span></li>
@@ -376,11 +376,11 @@
     <div class="grid2" style="margin-top:20px">
       <div class="how"><h3>How to use it</h3><ul>
         <li>It's your <b>rescue</b> list: reactivate a project or drop an idea to free up space.</li>
-        <li>"Sleeping" complements the <b>Today</b> alert, but here you see the full list.</li>
+        <li>"Stalled" complements the <b>Today</b> alert, but here you see the full list.</li>
         <li>To act, open the project or idea from their respective tabs.</li>
       </ul></div>
       <div class="how"><h3>How to edit it</h3><ul>
-        <li class="edit">Read-only. If all is on track: <b>“Nothing sleeping. Good pace.”</b> and <b>“No stale ideas.”</b></li>
+        <li class="edit">Read-only. If all is on track: <b>“Nothing stalled. Good pace.”</b> and <b>“No stale ideas.”</b></li>
       </ul></div>
     </div>
     <div class="note info">Every panel is <b>read-only</b>: Analytics doesn't change your data, it <em>reflects</em> it. The only lever is the <b>date range</b> up top. If a panel comes up empty, it's almost always a lack of data in that range — widen it or log more activity.</div>

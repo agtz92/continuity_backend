@@ -12,7 +12,7 @@ De arriba hacia abajo, Analíticas se arma así:
 
 1. **Título + selector de rango** — arriba. El rango (7d/30d/90d/1a/Todo) alimenta **todos** los paneles a la vez.
 2. **Cadencia y actividad** — el pulso reciente: cuántos días estuviste activo y la curva diaria.
-3. **Paneles de proyectos** — más activos, backlog, estado/categoría, esfuerzo, durmiendo.
+3. **Paneles de proyectos** — más activos, backlog, estado/categoría, esfuerzo, estancados.
 4. **Paneles de ideas** — el embudo de ideas y las ideas estancadas.
 
 > **Nota:** en **móvil** verás una tira de **chips** (Actividad · Cadencia · Estado · …) y **un solo panel** a la vez: toca un chip para cambiar de panel. En **escritorio** se muestran todos apilados. Mientras recalcula tras cambiar el rango, junto al título aparece **“actualizando…”**.
@@ -137,11 +137,11 @@ Cómo se reparten tus proyectos. A la izquierda, barras por **estado** (cada col
 
 ---
 
-## 9. Durmiendo · Ideas estancadas
+## 9. Estancados · Ideas estancadas
 
 [imagen: analytics-10-sleeping.png]
 
-**Durmiendo** lista proyectos sin actividad reciente (≥7 días). La etiqueta agrupa la gravedad (**7-14d** → **15-30d** → **30+d**) y a la derecha van los días exactos sin actividad.
+**Estancados** lista proyectos sin actividad reciente (≥7 días). La etiqueta agrupa la gravedad (**7-14d** → **15-30d** → **30+d**) y a la derecha van los días exactos sin actividad.
 
 [imagen: analytics-11-sleeping.png]
 
@@ -149,10 +149,10 @@ Cómo se reparten tus proyectos. A la izquierda, barras por **estado** (cada col
 
 **Cómo se usa**
 - Es tu lista de **rescate**: reactiva un proyecto o suelta una idea para liberar espacio.
-- “Durmiendo” complementa la alerta de **Today**, pero aquí ves la lista completa.
+- “Estancados” complementa la alerta de **Today**, pero aquí ves la lista completa.
 - Para actuar, abre el proyecto o la idea desde sus pestañas respectivas.
 
 **Cómo editar**
-- Solo lectura. Si todo va al día: **“Nada durmiendo. Buen ritmo.”** y **“Sin ideas estancadas.”**
+- Solo lectura. Si todo va al día: **“Nada estancado. Buen ritmo.”** y **“Sin ideas estancadas.”**
 
 > **Nota:** todos los paneles son **solo lectura**: Analíticas no cambia tus datos, los *refleja*. La única palanca es el **rango de fechas** de arriba. Si un panel sale vacío, casi siempre es por falta de datos en ese rango — amplíalo o registra más actividad.

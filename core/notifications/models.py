@@ -11,7 +11,7 @@ class Channel(models.TextChoices):
 class NotificationKind(models.TextChoices):
     WEEKLY_DIGEST = "weekly_digest", "Weekly digest"
     DAILY_DIGEST = "daily_digest", "Daily pending tasks"
-    SLEEPING_ALERT = "sleeping_alert", "Sleeping project alert"
+    SLEEPING_ALERT = "sleeping_alert", "Stalled project alert"
     DUE_REMINDER = "due_reminder", "Due-date reminder"
     MANUAL = "manual", "Manual / admin"
 

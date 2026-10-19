@@ -51,7 +51,7 @@ _PAGING_HINT = (
 @tool(
     name="get_dashboard_summary",
     description=(
-        "Top-level counts: active vs sleeping vs launched vs archived projects, "
+        "Top-level counts: active vs stalled vs launched vs archived projects, "
         "open / overdue / due-soon tasks, and ideas. Use this when the user asks "
         "'how am I doing' or 'what's my workload' style questions."
     ),
@@ -367,7 +367,7 @@ _ANALYTICS_VIEWS = (
     description=(
         "Fetch a slice of the user's analytics. Use `view` to pick the "
         "section: cadence (activity days), top_projects, backlog_health (overdue / "
-        "quick-wins), sleeping (idle projects), stale_ideas, idea_funnel "
+        "quick-wins), sleeping (stalled projects), stale_ideas, idea_funnel "
         "(promotion rate), effort (hours by project), weekday_heatmap. "
         "Use `range` to pick the time window."
     ),

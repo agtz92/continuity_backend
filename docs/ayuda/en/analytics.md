@@ -12,7 +12,7 @@ Top to bottom, Analytics is built like this:
 
 1. **Title + range selector** — at the top. The range (7d/30d/90d/1y/All) feeds **every** panel at once.
 2. **Cadence & activity** — your recent pulse: how many days you were active and the daily curve.
-3. **Project panels** — most active, backlog, status/category, effort, sleeping.
+3. **Project panels** — most active, backlog, status/category, effort, stalled.
 4. **Idea panels** — the idea funnel and stale ideas.
 
 > **Note:** on **mobile** you'll see a strip of **chips** (Activity · Cadence · Status · …) and **one panel** at a time: tap a chip to switch panel. On **desktop** they're all stacked. While it recomputes after you change the range, **“refreshing…”** appears next to the title.
@@ -137,11 +137,11 @@ How your projects split. On the left, bars by **status** (each color = a lifecyc
 
 ---
 
-## 9. Sleeping · Stale ideas
+## 9. Stalled · Stale ideas
 
 [image: analytics-10-sleeping.png]
 
-**Sleeping** lists projects with no recent activity (≥7 days). The badge groups severity (**7-14d** → **15-30d** → **30+d**) and on the right are the exact days idle.
+**Stalled** lists projects with no recent activity (≥7 days). The badge groups severity (**7-14d** → **15-30d** → **30+d**) and on the right are the exact days idle.
 
 [image: analytics-11-sleeping.png]
 
@@ -149,10 +149,10 @@ How your projects split. On the left, bars by **status** (each color = a lifecyc
 
 **How to use it**
 - It's your **rescue** list: reactivate a project or drop an idea to free up space.
-- "Sleeping" complements the **Today** alert, but here you see the full list.
+- "Stalled" complements the **Today** alert, but here you see the full list.
 - To act, open the project or idea from their respective tabs.
 
 **How to edit it**
-- Read-only. If all is on track: **“Nothing sleeping. Good pace.”** and **“No stale ideas.”**
+- Read-only. If all is on track: **“Nothing stalled. Good pace.”** and **“No stale ideas.”**
 
 > **Note:** every panel is **read-only**: Analytics doesn't change your data, it *reflects* it. The only lever is the **date range** up top. If a panel comes up empty, it's almost always a lack of data in that range — widen it or log more activity.

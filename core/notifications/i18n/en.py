@@ -10,7 +10,7 @@ STRINGS = {
     "weekly.open": "*{count}* open",
     "weekly.quickWins": "{count} *quick wins* ready to close",
     "weekly.almostThere": "{count} projects *almost there*",
-    "weekly.sleepingHeader": "*{count}* sleeping projects",
+    "weekly.sleepingHeader": "*{count}* stalled projects",
     "weekly.sleepingRow": "{name} — {days}d idle",
     "weekly.staleHeader": "*{count}* ideas untouched for 30\\+ days",
     "weekly.funnel": "Funnel: {created} ideas created, {promoted} promoted \\({rate}%\\)",

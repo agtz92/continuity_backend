@@ -135,7 +135,7 @@ Nearly-finished projects (“Almost there”) and ones you can close with few ta
 
 ---
 
-## 9. Sleeping projects
+## 9. Stalled projects
 
 [image: today-09-sleeping.png]
 
