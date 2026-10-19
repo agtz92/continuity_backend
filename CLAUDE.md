@@ -9,6 +9,37 @@ El schema raíz fusiona las apps con `merge_types()` en `core/schema.py`. Admin 
 `_admin_user_id(info)` (`core/admin_api/permissions.py`) + auditoría `audit_record(...)`
 (`core/admin_api/audit.py`). Migraciones contra Postgres de Supabase (`DATABASE_URL`).
 
+## Señales en vivo (Supabase Realtime) — triggers en cada escritura
+
+Web y móvil se actualizan sin recargar gracias a un trigger AFTER INSERT/UPDATE/DELETE que
+llama a `public.notify_user_change()` y manda un broadcast al canal privado `user:<user_id>`
+con `{table, op}` (nada de datos: el cliente vuelve a pedir por GraphQL). Clientes:
+`frontend/src/hooks/useLiveInvalidation.ts` y `continuity-mobile/src/hooks/useLiveSync.ts`.
+
+- **Dónde:** `core/migrations/0036_live_change_signals.py` (función, política de
+  `realtime.messages` y triggers en 11 tablas de `core`) y
+  `core/notifications/migrations/0015_live_settings_signal.py` (preferencias: tema, paleta, idioma).
+- **Corren dentro de CADA escritura.** Por eso el `realtime.send` va en
+  `exception when others then null`: si Realtime falla, la escritura del usuario se guarda igual.
+  No quites ese bloque.
+- **Tabla nueva que el usuario ve en web o móvil** → añádele su trigger en una migración nueva
+  (`after insert or update or delete … execute function public.notify_user_change()`); necesita
+  columna `user_id`. Sin trigger, sus cambios solo se ven al recargar o con el polling de respaldo.
+  Fuera a propósito: `core_interactionday` (se escribe en cada mutation) y credenciales/OAuth.
+- **Proceso masivo** (restore, importación): `set local app.live_off = '1'` en la transacción apaga
+  los avisos.
+- **Apagado de emergencia, sin deploy** (SQL editor de Supabase):
+  `alter table public.core_task disable trigger core_task_live;` — uno por tabla.
+- `realtime.messages` está particionada por día y **las particiones las crea el servicio de
+  Realtime** cuando hay clientes conectados. Sin clientes, `realtime.send` falla en silencio (lo
+  absorbe el `exception`). No crees particiones a mano.
+
+**Deploy en Render:** el Build Command del servicio (configurado a mano en el dashboard, no en
+`render.yaml` ni en `build.sh`) es `pip install -r requirements.txt && python manage.py migrate --no-input`.
+Hasta el 2026-10-19 era solo `pip install` y **ninguna migración corría en Render**. Si una
+migración falla, el build falla y sigue sirviendo la versión anterior. Ojo: el `.env` local apunta a
+la base de producción; un `migrate` en tu máquina la toca directo.
+
 ## Estructura del schema de `core` (tras el refactor de modularidad)
 
 `core/schema.py` quedó como **ensamblaje**: `class Query` + `merge_types` + `schema`.
