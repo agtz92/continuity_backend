@@ -148,6 +148,12 @@ class Task(TimestampedModel):
     # servidor grabara, el reintento devuelve la MISMA tarea en vez de crear una
     # segunda. Vacio para todo lo que no viene de una captura reintentable.
     client_token = models.CharField(max_length=64, blank=True, default="")
+    # Orden manual dentro del proyecto (drag & drop en el detalle). Denso 0..N
+    # por proyecto; las tareas nuevas o que llegan de otro proyecto caen al
+    # final. Sin proyecto no significa nada. No entra en Meta.ordering: las
+    # vistas diarias (Today/Tasks) siguen ordenando por fecha. `db_default`
+    # para que un backend sin este campo (deploy a medias) siga pudiendo insertar.
+    position = models.PositiveIntegerField(default=0, db_default=0)
 
     class Meta:
         ordering = ["done", "due_date", "-created"]

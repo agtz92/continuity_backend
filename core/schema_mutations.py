@@ -243,6 +243,19 @@ class Mutation:
         return _task_with_blockers(m)
 
     @strawberry.mutation
+    @gql_error_handler
+    def reorder_project_tasks(
+        self, info: Info, project_id: strawberry.ID, ordered_ids: List[strawberry.ID]
+    ) -> List[Task]:
+        """Orden manual de las tareas de un proyecto (drag & drop del detalle)."""
+        uid = _user_id(info)
+        rows = tasks_svc.reorder_project_tasks(uid, project_id, list(ordered_ids))
+        return [
+            Task.from_model(m, [TaskBlocker.from_model(b) for b in m.blockers.all()])
+            for m in rows
+        ]
+
+    @strawberry.mutation
     def delete_task(self, info: Info, id: strawberry.ID) -> bool:
         uid = _user_id(info)
         tasks_svc.delete_task(uid, id)

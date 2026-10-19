@@ -7,7 +7,7 @@ import uuid
 from typing import Optional
 
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Max, Q
 from django.utils import timezone
 
 from ..models import ActivityKind, Project, Task, TaskBlocker
@@ -71,6 +71,45 @@ def tasks_queryset(
     return qs.order_by("done", "due_date", "-created", "id")
 
 
+def next_task_position(user_id: uuid.UUID, project_id) -> int:
+    """Posición para una tarea que entra a `project_id`: al final de su orden
+    manual. Sin proyecto devuelve 0 (el orden manual solo existe dentro de uno)."""
+    if not project_id:
+        return 0
+    last = (
+        Task.objects.filter(user_id=user_id, project_id=project_id)
+        .aggregate(m=Max("position"))["m"]
+    )
+    return 0 if last is None else last + 1
+
+
+def reorder_project_tasks(
+    user_id: uuid.UUID, project_id, ordered_ids: list
+) -> list[Task]:
+    """Persiste el orden manual de las tareas de un proyecto (drag & drop del
+    detalle). Asigna posiciones densas 0..N siguiendo `ordered_ids`; ids que no
+    son de ese proyecto/usuario se ignoran y las tareas del proyecto que no
+    vienen en la lista conservan su posición. No toca `last_activity`: reordenar
+    no es actividad."""
+    assert_owned(user_id, project_id)
+    tasks = {
+        str(t.id): t
+        for t in Task.objects.filter(user_id=user_id, project_id=project_id)
+    }
+    with transaction.atomic():
+        for idx, tid in enumerate(ordered_ids):
+            t = tasks.get(str(tid))
+            if t is not None and t.position != idx:
+                t.position = idx
+                t.save(update_fields=["position"])
+    bump_context_version(user_id)
+    return list(
+        Task.objects.filter(user_id=user_id, project_id=project_id)
+        .prefetch_related("blockers")
+        .order_by("position", "-created")
+    )
+
+
 def get_task(user_id: uuid.UUID, task_id) -> Task:
     obj = Task.objects.filter(pk=task_id, user_id=user_id).first()
     if obj is None:
@@ -123,6 +162,7 @@ def create_task(
             user_id=user_id,
             title=title,
             project_id=project_id or None,
+            position=next_task_position(user_id, project_id),
             due_date=due_date,
             done=bool(done),
             effort_hours=effort_hours,
@@ -166,8 +206,12 @@ def update_task(
     assert_owned(user_id, project_id)
     task = get_task(user_id, task_id)
     old_due_date = task.due_date
+    new_project_id = project_id or None
+    if str(new_project_id or "") != str(task.project_id or ""):
+        # Cambiar de proyecto la manda al final del orden manual del nuevo.
+        task.position = next_task_position(user_id, new_project_id)
     task.title = title
-    task.project_id = project_id or None
+    task.project_id = new_project_id
     task.due_date = due_date
     task.done = bool(done)
     task.effort_hours = effort_hours

@@ -186,6 +186,8 @@ class Task:
     # los días y la razón, y no debería recalcularlos cada cliente.
     blocked_since: Optional[dt.datetime] = None
     blocked_reason: str = ""
+    # Orden manual dentro del proyecto (drag & drop). Solo lo lee el detalle.
+    position: int = 0
 
     @classmethod
     def from_model(cls, m: TaskModel, blockers: Optional[List["TaskBlocker"]] = None) -> "Task":
@@ -212,6 +214,7 @@ class Task:
             blockers=bs,
             blocked_since=cooling_svc.blocked_since(bs),
             blocked_reason=cooling_svc.blocked_reason(bs),
+            position=m.position,
         )
 
 

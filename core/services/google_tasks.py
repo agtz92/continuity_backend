@@ -30,6 +30,7 @@ from googleapiclient.discovery import build
 from ..models import GoogleOAuthCredential, Project, Task
 from ._cache import bump_context_version
 from . import projects as projects_svc
+from .tasks import next_task_position
 
 logger = logging.getLogger(__name__)
 
@@ -339,6 +340,7 @@ def import_tasks(user_id: uuid.UUID, mappings: list[dict]) -> dict:
                 Task.objects.create(
                     user_id=user_id,
                     project_id=project_id,
+                    position=next_task_position(user_id, project_id),
                     title=item.get("title", "") or "(untitled)",
                     due_date=_parse_due(item.get("due")),
                     done=done,
