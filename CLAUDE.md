@@ -19,6 +19,13 @@ con `{table, op}` (nada de datos: el cliente vuelve a pedir por GraphQL). Client
 - **Dónde:** `core/migrations/0036_live_change_signals.py` (función, política de
   `realtime.messages` y triggers en 11 tablas de `core`) y
   `core/notifications/migrations/0015_live_settings_signal.py` (preferencias: tema, paleta, idioma).
+- **Canal `admin`** (`core/migrations/0037_live_admin_signals.py`): `notify_admin_change()` en
+  `feedback_bugreport`, `billing_storewebhookevent`, `admin_api_adminauditlog` y
+  `assistant_accountprofile`. Este último se actualiza en **cada** escritura del usuario
+  (`bump_context_version`), así que su trigger de UPDATE lleva `WHEN` sobre las columnas que pinta
+  el admin (plan, billing, beta, `is_admin`). Si el admin empieza a mostrar otra columna, agrégala
+  ahí. La política usa `public.live_is_admin()` (security definer) porque el rol del usuario no
+  puede leer `assistant_accountprofile`.
 - **Corren dentro de CADA escritura.** Por eso el `realtime.send` va en
   `exception when others then null`: si Realtime falla, la escritura del usuario se guarda igual.
   No quites ese bloque.
