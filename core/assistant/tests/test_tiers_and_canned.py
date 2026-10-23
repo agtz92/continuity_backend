@@ -170,6 +170,69 @@ def test_running_an_action_answers_from_real_data(
 
 
 @pytest.mark.django_db
+def test_an_answer_with_rows_carries_a_studio_hint_that_is_not_persisted(
+    http, user_a, make_profile, make_project, make_task
+):
+    make_profile(user_a, "pro")
+    p = make_project(user_a, name="ERP migration", status="active")
+    make_task(
+        user_a,
+        project=p,
+        title="Normalise addresses",
+        due_date=timezone.now() - dt.timedelta(days=3),
+    )
+    resp = http.post(
+        "/api/assistant/actions/overdue/",
+        data=json.dumps({}),
+        content_type="application/json",
+        HTTP_AUTHORIZATION=f"Bearer {_make_jwt(user_a)}",
+    )
+    hint = resp.json()["studio_hint"]
+    assert hint["label"] and hint["text"]
+
+    # Beside the answer, never inside it: a thread reopened after upgrading
+    # must not carry the pitch.
+    conv = Conversation.objects.get(id=resp.json()["conversation_id"])
+    stored = Message.objects.get(conversation=conv, role=MessageRole.ASSISTANT)
+    assert hint["text"] not in json.dumps(stored.content)
+
+
+@pytest.mark.django_db
+def test_no_studio_hint_on_an_empty_answer(http, user_a, make_profile):
+    """'Move everything overdue' under 'nothing overdue' sells nothing."""
+    make_profile(user_a, "pro")
+    resp = http.post(
+        "/api/assistant/actions/overdue/",
+        data=json.dumps({}),
+        content_type="application/json",
+        HTTP_AUTHORIZATION=f"Bearer {_make_jwt(user_a)}",
+    )
+    assert resp.json()["studio_hint"] is None
+
+
+@pytest.mark.django_db
+def test_actions_without_an_obvious_next_step_get_no_hint(
+    http, user_a, make_profile, make_project
+):
+    make_profile(user_a, "pro")
+    make_project(user_a, name="ERP migration", status="active")
+    resp = http.post(
+        "/api/assistant/actions/active_projects/",
+        data=json.dumps({}),
+        content_type="application/json",
+        HTTP_AUTHORIZATION=f"Bearer {_make_jwt(user_a)}",
+    )
+    assert resp.json()["studio_hint"] is None
+
+
+def test_every_hinted_action_has_its_phrase_in_both_languages():
+    assert canned.HINTED_ACTIONS <= set(canned.ACTIONS)
+    for locale in canned.STRINGS:
+        for action_id in canned.HINTED_ACTIONS:
+            assert canned.STRINGS[locale].get(f"hint.{action_id}"), (locale, action_id)
+
+
+@pytest.mark.django_db
 def test_an_action_answers_in_the_users_language(
     http, user_a, make_profile, make_project
 ):

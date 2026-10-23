@@ -84,7 +84,7 @@ vez de deducirla del `plan`.
 | modo | planes | qué es |
 |---|---|---|
 | `none` | free | sin asistente. `/chat/` y `/actions/` responden 403 `plan_required`. El cliente pinta un cartel. |
-| `canned` | pro | catálogo determinista (`core/assistant/canned.py`). **Nunca llama a Anthropic**: consulta `core.services.*` y renderiza plantillas en el servidor, en el locale del usuario. No gasta cupo. |
+| `canned` | pro | catálogo determinista (`core/assistant/canned.py`). **Nunca llama a Anthropic**: consulta `core.services.*` y renderiza plantillas en el servidor, en el locale del usuario. No gasta cupo. Las consultas de `HINTED_ACTIONS` devuelven además `studio_hint` (qué haría Studio con esa respuesta; `None` si la respuesta está vacía), que **no se persiste**. Cada frase debe poder cumplirla una write tool real. |
 | `llm` | studio, admin | el chat real: Anthropic, tools, escritura. También gatea `/parse-capture/`. |
 
 - **`WRITE_TIER`** (misma constante) es el `plan_required` de las 32 mutating tools.

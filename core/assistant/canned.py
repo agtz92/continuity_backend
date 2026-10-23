@@ -98,6 +98,12 @@ STRINGS: dict[str, dict[str, str]] = {
         "pending_mark": "pendiente",
         "events": "{n} movimientos",
         "standalone": "suelta",
+        "hint.label": "En Studio le dirías",
+        "hint.overdue": "«Mueve todo lo vencido a la próxima semana.»",
+        "hint.due_this_week": "«Reparte esto entre mis próximos cinco días.»",
+        "hint.blocked": "«¿Cuál destrabo primero, y qué le falta?»",
+        "hint.stalled_projects": "«Pausa los que lleven un mes quietos y anota por qué.»",
+        "hint.stale_ideas": "«Convierte la mejor en proyecto, con tres tareas.»",
     },
     "en": {
         "group.today": "Today",
@@ -152,6 +158,12 @@ STRINGS: dict[str, dict[str, str]] = {
         "pending_mark": "pending",
         "events": "{n} events",
         "standalone": "standalone",
+        "hint.label": "On Studio you'd say",
+        "hint.overdue": "“Move everything overdue to next week.”",
+        "hint.due_this_week": "“Spread these across my next five days.”",
+        "hint.blocked": "“Which one do I unblock first, and what's missing?”",
+        "hint.stalled_projects": "“Pause the ones idle for a month and note why.”",
+        "hint.stale_ideas": "“Turn the best one into a project, with three tasks.”",
     },
 }
 
@@ -522,6 +534,35 @@ class UnknownAction(Exception):
     pass
 
 
+#: Actions whose answer leaves an obvious next step — one Studio could take
+#: on the very rows just shown. The hint is that step, phrased as something
+#: the user would say. The rest (summary, routines, search…) get none: a
+#: hint under every answer stops being read.
+#:
+#: Every phrase here must be something Studio's write tools can actually
+#: do (`update_task`, `update_project`, `promote_idea`…). A hint that
+#: promises more than the model delivers sells the plan on a lie.
+HINTED_ACTIONS = frozenset(
+    {"overdue", "due_this_week", "blocked", "stalled_projects", "stale_ideas"}
+)
+
+
+def _studio_hint(action_id: str, locale: str, text: str) -> Optional[dict]:
+    """What Studio would do with this answer, or None.
+
+    None on an empty answer too: "move everything overdue" under "nothing
+    overdue" is a pitch with nothing behind it.
+    """
+    if action_id not in HINTED_ACTIONS:
+        return None
+    if text == _t(locale, f"empty.{action_id}"):
+        return None
+    return {
+        "label": _t(locale, "hint.label"),
+        "text": _t(locale, f"hint.{action_id}"),
+    }
+
+
 def run(action_id: str, user_id: uuid.UUID, *, locale: str, query: str = "") -> dict:
     """Execute one catalogue action. Returns Anthropic-shaped content blocks.
 
@@ -529,13 +570,19 @@ def run(action_id: str, user_id: uuid.UUID, *, locale: str, query: str = "") -> 
     it persists into `Message.content` and renders through the same client
     component as an `llm`-tier answer. A user upgrading mid-conversation
     sees one continuous thread, not two chat products stitched together.
+
+    `studio_hint` rides beside the content, never inside it: it is not part
+    of the answer, so it is not persisted, and a thread reopened after
+    upgrading carries no stale pitch.
     """
     action = ACTIONS.get(action_id)
     if action is None:
         raise UnknownAction(action_id)
-    text = action.run(user_id, locale if locale in STRINGS else "en", query)
+    loc = locale if locale in STRINGS else "en"
+    text = action.run(user_id, loc, query)
     return {
         "action_id": action_id,
-        "label": _t(locale if locale in STRINGS else "en", action_id),
+        "label": _t(loc, action_id),
         "content": [{"type": "text", "text": text}],
+        "studio_hint": _studio_hint(action_id, loc, text),
     }

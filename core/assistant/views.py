@@ -491,6 +491,8 @@ class RunActionView(View):
                 "action_id": action_id,
                 "label": answer["label"],
                 "content": answer["content"],
+                # Not persisted above on purpose: see `canned.run`.
+                "studio_hint": answer["studio_hint"],
             }
         )
 
