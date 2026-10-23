@@ -37,7 +37,7 @@ en los dos casos.
 
 | ES | EN |
 |---|---|
-| Cementerio · Atorados · Cancelado · Pausado · Vivió · Murió de | **Graveyard · Stuck · Killed · Paused · Lived · Died of** |
+| Cementerio · Atorados · Muerto · Pausado · Vivió · Murió de | **Graveyard · Stuck · Killed · Paused · Lived · Died of** |
 | Captura rápida · Alta/Media/Baja | **Quick capture · High/Medium/Low** |
 | Hoy · Proyectos · Tareas · Rutinas · Ideas · Notas · Calendario · Analíticas | **Today · Projects · Tasks · Routines · Ideas · Notes · Calendar · Analytics** |
 
