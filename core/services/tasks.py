@@ -336,6 +336,33 @@ def toggle_task(user_id: uuid.UUID, task_id) -> Task:
     return task
 
 
+def postpone_task(user_id: uuid.UUID, task_id, due_date: dt.datetime) -> Task:
+    """Move a task's due date without touching anything else (used by the
+    push "Pasar a mañana" action). Same bookkeeping as an `update_task`
+    reschedule: clears a parked snapshot and logs the due-date change."""
+    task = get_task(user_id, task_id)
+    old_due_date = task.due_date
+    if old_due_date == due_date:
+        return task
+    task.due_date = due_date
+    task.parked_due_date = None
+    task.parked_due_time = None
+    task.save(update_fields=["due_date", "parked_due_date", "parked_due_time"])
+    if task.project_id:
+        touch_last_activity(user_id, task.project_id)
+    log_event(
+        user_id,
+        kind=ActivityKind.TASK_DUE_DATE_CHANGED,
+        entity_id=task.id,
+        entity_title=task.title,
+        project_id=task.project_id,
+        previous_value=iso(old_due_date),
+        new_value=iso(task.due_date),
+    )
+    bump_context_version(user_id)
+    return task
+
+
 def _detect_cycle(user_id: uuid.UUID, start_id, end_id) -> bool:
     """Return True if making start_id block end_id would create a cycle."""
     visited: set = set()

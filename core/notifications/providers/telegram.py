@@ -6,7 +6,13 @@ from typing import Optional, Sequence
 import requests
 from django.conf import settings
 
-from .base import DeliveryResult, InlineButton, NotificationProvider, ProviderError
+from .base import (
+    DeliveryResult,
+    InlineButton,
+    NotificationProvider,
+    ProviderError,
+    PushContent,
+)
 
 log = logging.getLogger(__name__)
 
@@ -32,6 +38,7 @@ class TelegramProvider(NotificationProvider):
         *,
         kind: Optional[str] = None,
         buttons: Optional[Sequence[InlineButton]] = None,
+        push: Optional[PushContent] = None,
     ) -> DeliveryResult:
         payload: dict = {
             "chat_id": external_id,

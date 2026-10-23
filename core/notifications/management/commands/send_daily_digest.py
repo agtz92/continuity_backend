@@ -65,15 +65,16 @@ class Command(BaseCommand):
             else:
                 dedupe_key = f"daily:{local_date.isoformat()}"
 
-            body = builders.build_daily_digest(setting.user_id, today=local_date)
+            msg = builders.build_daily_digest(setting.user_id, today=local_date)
             s = i18n_strings.get(setting.locale or "en")
             buttons = [{"text": s["daily.openDashboard"], "url": builders.DASHBOARD_URL}]
             result = enqueue(
                 user_id=setting.user_id,
                 kind="daily_digest",
                 dedupe_key=dedupe_key,
-                body=body,
+                body=msg.text,
                 buttons=buttons,
+                push=msg.push,
             )
             sent += result.sent
             self.stdout.write(f"user={setting.user_id} -> {result}")

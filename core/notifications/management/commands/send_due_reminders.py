@@ -61,8 +61,8 @@ class Command(BaseCommand):
                     continue
 
             local_date = now_local.date()
-            body = builders.build_due_warning(setting.user_id, today=local_date)
-            if body is None:
+            msg = builders.build_due_warning(setting.user_id, today=local_date)
+            if msg is None:
                 skipped_empty += 1
                 self.stdout.write(f"user={setting.user_id} -> nothing pending")
                 continue
@@ -78,8 +78,9 @@ class Command(BaseCommand):
                 user_id=setting.user_id,
                 kind="due_reminder",
                 dedupe_key=dedupe_key,
-                body=body,
+                body=msg.text,
                 buttons=buttons,
+                push=msg.push,
             )
             sent += result.sent
             self.stdout.write(f"user={setting.user_id} -> {result}")

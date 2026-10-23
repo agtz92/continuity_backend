@@ -27,7 +27,7 @@ from .models import (
     NotificationStatus,
 )
 from .providers import get_provider
-from .providers.base import InlineButton, ProviderError
+from .providers.base import InlineButton, ProviderError, PushContent
 
 log = logging.getLogger(__name__)
 
@@ -58,6 +58,7 @@ def enqueue(
     body: str,
     channels: Iterable[str] = (),
     buttons: Optional[Sequence[InlineButton]] = None,
+    push: Optional[PushContent] = None,
 ) -> EnqueueResult:
     """Create (or reuse) outbox rows and attempt delivery.
 
@@ -66,6 +67,8 @@ def enqueue(
     - Otherwise we attempt delivery and update the row to SENT or FAILED.
     - `buttons` (optional) render as a Telegram inline keyboard; other channels
       degrade gracefully (the persisted `body` is unchanged either way).
+    - `push` (optional) is the short phone version; Expo sends it instead of
+      deriving a title/body from `body`, and its outbox row stores it.
     """
     if kind not in NotificationKind.values:
         raise ValueError(f"Unknown kind: {kind}")
@@ -107,6 +110,7 @@ def enqueue(
             dedupe_key=dedupe_key,
             body=body,
             buttons=buttons,
+            push=push,
         )
         enq += e.enqueued
         sent += e.sent
@@ -139,6 +143,7 @@ def _enqueue_expo(
     dedupe_key: str,
     body: str,
     buttons: Optional[Sequence[InlineButton]] = None,
+    push: Optional[PushContent] = None,
 ) -> EnqueueResult:
     targets = _expo_targets(user_id)
     if not targets:
@@ -149,7 +154,8 @@ def _enqueue_expo(
         channel=Channel.EXPO.value,
         kind=kind,
         dedupe_key=dedupe_key,
-        body=body,
+        # Record what the phone actually showed, not the Telegram digest.
+        body=f"{push.title}\n{push.body}" if push else body,
     )
     if not created and notif.status == NotificationStatus.SENT:
         return EnqueueResult(0, 0, 1, 0)
@@ -167,7 +173,9 @@ def _enqueue_expo(
     last_error = ""
     msg_id = ""
     for tok in targets:
-        result = provider.send(tok.token, notif.body, kind=notif.kind, buttons=buttons)
+        result = provider.send(
+            tok.token, notif.body, kind=notif.kind, buttons=buttons, push=push
+        )
         if result.success:
             any_ok = True
             msg_id = result.external_message_id or msg_id

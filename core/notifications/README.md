@@ -26,7 +26,7 @@ Already in this module:
 
 Done:
 
-- **Builder** ([builders.py](builders.py)): `build_weekly_digest(user_id) -> str` reuses `core.analytics.compute_analytics(user_id, LAST_7_DAYS)` and renders a MarkdownV2 message with active days, top projects (with delta vs previous week), backlog (overdue / due soon / open, quick wins, almost there), sleeping projects, stale ideas, idea funnel, logged hours, and a dashboard link.
+- **Builder** ([builders.py](builders.py)): `build_weekly_digest(user_id)` (returns a `BuiltMessage` since Phase 2.7) reuses `core.analytics.compute_analytics(user_id, LAST_7_DAYS)` and renders a MarkdownV2 message with active days, top projects (with delta vs previous week), backlog (overdue / due soon / open, quick wins, almost there), sleeping projects, stale ideas, idea funnel, logged hours, and a dashboard link.
 - **Command** ([management/commands/send_weekly_digest.py](management/commands/send_weekly_digest.py)):
   - Designed to run hourly; respects `setting.timezone + digest_day_of_week + digest_hour`.
   - Flags: `--force` (ignore schedule, uses a unique-per-run dedupe key so re-sends are allowed), `--user-id <uuid>`, `--all-verified`.
@@ -45,7 +45,7 @@ The "is it the user's hour?" filter happens inside each command, so a single cro
 A per-user "today's pending" snapshot delivered at a user-chosen hour each day. Built on the same outbox/provider/cron infrastructure as the weekly digest.
 
 - **Settings fields** added to `NotificationSettings`: `daily_digest_enabled` (bool, default `False`), `daily_digest_hour` (0-23, default `8`). Migration: `0006_notificationsettings_daily_digest_enabled_and_more`.
-- **Builder** ([builders.py](builders.py)): `build_daily_digest(user_id, today=None) -> str` shares `_daily_context()` and `_render_pending_sections()` with the due-warning builder. The context queries `Task` directly (tasks where `done=False` and `due_date <= end_of_today_local`, split into overdue vs due-today) and pulls today's pending routines via [core/services/routines.py](../services/routines.py) `list_due_in_range(user_id, today, today)`, filtering out ones with a completed `RoutineOccurrence`. Three sections (⏰ overdue, 📌 due today, 🔁 routines today), each lists ALL items — no cap. Closes with a `daily.cta` line ("💪 *Marca tu progreso* a lo largo del día").
+- **Builder** ([builders.py](builders.py)): `build_daily_digest(user_id, today=None) -> str` shares `_daily_context()` and `_render_pending_sections()` with the due-warning builder. The context queries `Task` directly (tasks where `done=False` and `due_date <= end_of_today_local`, split into overdue vs due-today) and pulls today's pending routines via [core/services/routines.py](../services/routines.py) `list_due_in_range(user_id, today, today)`, filtering out ones with a completed `RoutineOccurrence`. Three sections (⏰ overdue, 📌 due today, 🔁 routines today), capped at 5 rows each since Phase 2.7.
 - **Command** ([management/commands/send_daily_digest.py](management/commands/send_daily_digest.py)):
   - Runs hourly (same cron). Filters by `now_local.hour == setting.daily_digest_hour` in the user's `setting.timezone`.
   - Natural dedupe: `daily:{YYYY-MM-DD}` (the user's local date) → one delivery per day per user.
@@ -67,6 +67,26 @@ A conditional warning that fires at a user-chosen hour **only if items are still
   - Same flags as the other digest commands; same inline button.
 - **GraphQL**: `dueReminderHour` replaces `dueReminderLeadHours` on the query and input.
 - **Frontend**: the existing toggle "Aviso de pendientes a fin de día" now pairs with an hour selector instead of a hours-of-lead number input.
+
+### Phase 2.7 — Message redesign: short push, action buttons ✅
+
+Push used to receive the full Telegram digest stripped of markup (up to 1,500 chars). Now every builder returns a `BuiltMessage(text, push)`:
+
+- **`text`** — the Telegram read. One emoji per section header, every list capped (`_LIST_CAP` = 5 for daily, 3 for weekly, then `_…y N más_`), a `👉 Empieza por:` focus line (the longest-overdue task, else the first due today; it isn't repeated in the sections), dates localized by hand (`date.*` strings — server `strftime` is English-only). The weekly dashboard link moved from inline Markdown to a button.
+- **`push`** — a `PushContent` ([providers/base.py](providers/base.py)): title with the number that matters ("8 pendientes para hoy, 3 atrasadas"), one line naming what to do first, deep link (`/today`, weekly → `/analytics`), Android channel (`daily` / `reminders` / `weekly` / `announcements`), `quiet` (weekly goes out without sound, iOS `passive`), and an action `category` + `data.taskIds`:
+  - `task_focus` → **Marcar hecha** · **Pasar a mañana** (daily digest's focus task; due warning with exactly one task).
+  - `tasks_bulk` → **Pasar todas a mañana** (due warning with several tasks).
+  - No category when there's nothing a button can act on (routines only, empty day, weekly).
+
+Push strings are plain text (`push.*` keys in [i18n/](i18n/)), never MarkdownV2. Plurals use `.one` / `.other` keys via `builders._plural`.
+
+`enqueue(push=...)` hands it to the Expo provider, and the Expo outbox row stores what the phone actually showed. Senders without a `PushContent` (`test_notification`, manual) keep the old derivation, now clipped to 180 chars with links reduced to their label.
+
+**Action buttons**: the app registers the categories (`continuity-mobile/src/lib/notifications.ts`, labels from `push.actions.*`) and calls `runNotificationAction(action: COMPLETE|POSTPONE, taskIds)` ([schema.py](schema.py) → [actions.py](actions.py)). Both actions are idempotent: complete never un-completes; postpone moves only open tasks due today or earlier to tomorrow in the user's timezone, keeping the time of day. Buttons open the app (`opensAppToForeground`), so the action runs authenticated and confirms with a toast. Doing it without opening the app would need `expo-task-manager` (a native build), and iOS still can't run it when the app is terminated.
+
+**Android channels are gated**: Android drops a push aimed at a channel the device hasn't created, and the app creates them in JS. `channelId` is only sent when `EXPO_PUSH_ANDROID_CHANNELS=True` — turn it on once the app version with the channels is installed (it ships by OTA; no new native modules).
+
+Tests: [tests/test_push_redesign.py](tests/test_push_redesign.py).
 
 ### Phase 1 local activation
 
@@ -293,5 +313,6 @@ The **Twilio sandbox is free** and enough to validate the entire system before i
 - **Per-channel and per-kind templates**: never inline `body=f"Hi {name}"`. Reusable + translatable to HSM when WhatsApp lands.
 - **Provider abstraction**: new platforms (email, push, SMS) are a new class in `providers/`, not a refactor.
 - **Timezones**: cron runs in UTC but scheduling decisions are made in `setting.timezone`. Don't use `timezone.now().hour` to decide; convert first.
-- **Markdown V2**: any dynamic content must go through `md_escape()` before reaching `body`.
+- **Markdown V2**: any dynamic content must go through `md_escape()` before reaching `body`. Push text (`PushContent`, `push.*` strings) is plain — never escape it.
+- **Two versions per message**: a builder returns `BuiltMessage(text, push)`. Never let push derive itself from the Telegram body; write its own short title/line.
 - **Inline buttons live outside the persisted body**: pass them via `enqueue(buttons=[...])`, not inline `[label](url)` syntax. The body stored in the outbox stays plain, providers attach the keyboard at send-time, and WhatsApp (which can't render rich keyboards in free-form messages) degrades cleanly. When you need a CTA, append a short motivating line to `body` and let the button carry the URL.

@@ -5,6 +5,7 @@ Exposes:
 - mutation updateNotificationSettings(...)
 - mutation requestChannelLink(channel) → { token, deepLink, expiresAt }
 - mutation disconnectChannel(channel) → bool
+- mutation runNotificationAction(action, taskIds) → int (push action buttons)
 """
 
 from __future__ import annotations
@@ -22,6 +23,7 @@ from django.utils import timezone
 from graphql import GraphQLError
 from strawberry.types import Info
 
+from . import actions
 from .models import (
     Channel,
     ExpoPushToken,
@@ -43,6 +45,12 @@ def _user_id(info: Info) -> uuid.UUID:
 class NotificationChannel(enum.Enum):
     TELEGRAM = "telegram"
     WHATSAPP = "whatsapp"
+
+
+@strawberry.enum
+class NotificationAction(enum.Enum):
+    COMPLETE = "complete"
+    POSTPONE = "postpone"
 
 
 @strawberry.type
@@ -344,3 +352,17 @@ class NotificationsMutation:
         uid = _user_id(info)
         NotificationLink.objects.filter(user_id=uid, channel=channel.value).delete()
         return True
+
+    @strawberry.mutation
+    def run_notification_action(
+        self, info: Info, action: NotificationAction, task_ids: List[strawberry.ID]
+    ) -> int:
+        """Run a push action button (mobile) on the tasks the push carried.
+
+        Idempotent: returns how many tasks actually changed, so a replayed
+        response or a task already handled in the app returns 0, not an error.
+        """
+        uid = _user_id(info)
+        if action == NotificationAction.COMPLETE:
+            return actions.complete_tasks(uid, task_ids)
+        return actions.postpone_tasks(uid, task_ids)

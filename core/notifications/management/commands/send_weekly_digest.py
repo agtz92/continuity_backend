@@ -18,7 +18,7 @@ import zoneinfo
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
-from core.notifications import builders
+from core.notifications import builders, i18n as i18n_strings
 from core.notifications.dispatcher import enqueue
 from core.notifications.models import NotificationLink, NotificationSettings
 
@@ -70,12 +70,16 @@ class Command(BaseCommand):
             else:
                 dedupe_key = f"weekly:{iso_year}-W{iso_week:02d}"
 
-            body = builders.build_weekly_digest(setting.user_id)
+            msg = builders.build_weekly_digest(setting.user_id)
+            s = i18n_strings.get(setting.locale or "en")
+            buttons = [{"text": s["weekly.openDashboard"], "url": builders.DASHBOARD_URL}]
             result = enqueue(
                 user_id=setting.user_id,
                 kind="weekly_digest",
                 dedupe_key=dedupe_key,
-                body=body,
+                body=msg.text,
+                buttons=buttons,
+                push=msg.push,
             )
             sent += result.sent
             self.stdout.write(

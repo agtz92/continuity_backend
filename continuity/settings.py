@@ -53,6 +53,12 @@ TWILIO_WHATSAPP_FROM = config("TWILIO_WHATSAPP_FROM", default="")
 NOTIFICATIONS_DEFAULT_TIMEZONE = config(
     "NOTIFICATIONS_DEFAULT_TIMEZONE", default="America/Mexico_City"
 )
+# Send Android `channelId` on push. Off until the app version that creates the
+# channels (daily/reminders/weekly/announcements) is installed: Android drops a
+# push aimed at a channel the device doesn't have.
+EXPO_PUSH_ANDROID_CHANNELS = config(
+    "EXPO_PUSH_ANDROID_CHANNELS", default=False, cast=bool
+)
 
 INSTALLED_APPS = [
     "django.contrib.admin",

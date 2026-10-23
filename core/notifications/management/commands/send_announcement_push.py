@@ -16,6 +16,7 @@ from core.announcements.services import _active_announcements
 from core.assistant.models import AccountProfile, Plan
 from core.notifications.dispatcher import enqueue
 from core.notifications.models import ExpoPushToken
+from core.notifications.providers.base import PushContent
 
 
 class Command(BaseCommand):
@@ -47,6 +48,12 @@ class Command(BaseCommand):
                     dedupe_key=f"announcement:{ann.id}",
                     body=body,
                     channels=("expo",),
+                    # The provider clips the body to two lock-screen lines.
+                    push=PushContent(
+                        title=ann.title,
+                        body=ann.body or "",
+                        android_channel="announcements",
+                    ),
                 )
                 sent += result.sent
                 skipped += result.skipped
