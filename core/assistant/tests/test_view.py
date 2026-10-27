@@ -406,3 +406,23 @@ def test_usage_reports_who_manages_the_plan(
     # Renamed, not kept as an alias: a stale client reading it would get
     # `undefined` and fall back to showing the dead checkout.
     assert "store_managed" not in data
+
+
+@pytest.mark.django_db
+def test_delete_conversation_removes_it_and_its_messages(http, user_a, user_b, make_profile):
+    make_profile(user_a, plan="free")
+    mine = Conversation.objects.create(user_id=user_a, title="Mía")
+    Message.objects.create(conversation=mine, role="user", content=[{"type": "text", "text": "hola"}])
+    theirs = Conversation.objects.create(user_id=user_b, title="Ajena")
+
+    auth = {"HTTP_AUTHORIZATION": f"Bearer {_make_jwt(user_a)}"}
+    other = http.delete(f"/api/assistant/conversations/{theirs.id}/", **auth)
+    assert other.status_code == 404
+    assert Conversation.objects.filter(pk=theirs.pk).exists()
+
+    res = http.delete(f"/api/assistant/conversations/{mine.id}/", **auth)
+    assert res.status_code == 200
+    assert not Conversation.objects.filter(pk=mine.pk).exists()
+    assert not Message.objects.filter(conversation_id=mine.pk).exists()
+
+    assert http.delete(f"/api/assistant/conversations/{mine.id}/").status_code == 401

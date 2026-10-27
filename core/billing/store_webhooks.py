@@ -111,6 +111,49 @@ def _authorized(request) -> bool:
     return hmac.compare_digest(provided, expected)
 
 
+#: RevenueCat event fields worth keeping: what was sold, when, for how much and
+#: in which tax country. Everything else — aliases, subscriber_attributes (may
+#: hold email/name), transfer ids — is never stored. `app_user_id` lives in
+#: its own column while the account exists.
+BILLING_EVENT_FIELDS = frozenset(
+    {
+        "id",
+        "type",
+        "store",
+        "environment",
+        "product_id",
+        "new_product_id",
+        "entitlement_ids",
+        "period_type",
+        "purchased_at_ms",
+        "expiration_at_ms",
+        "event_timestamp_ms",
+        "transaction_id",
+        "original_transaction_id",
+        "renewal_number",
+        "is_trial_conversion",
+        "cancel_reason",
+        "expiration_reason",
+        "price",
+        "price_in_purchased_currency",
+        "currency",
+        "country_code",
+        "tax_percentage",
+        "commission_percentage",
+        "takehome_percentage",
+    }
+)
+
+
+def minimal_payload(body: dict) -> dict:
+    """The part of a webhook body we store (see `BILLING_EVENT_FIELDS`)."""
+    event = body.get("event") or {}
+    return {
+        "api_version": body.get("api_version"),
+        "event": {k: v for k, v in event.items() if k in BILLING_EVENT_FIELDS},
+    }
+
+
 def _accepts_sandbox() -> bool:
     """Whether this deployment may act on test purchases.
 
@@ -263,7 +306,7 @@ def store_webhook(request):
                 "source": source,
                 "app_user_id": event.get("app_user_id") or "",
                 "product_id": event.get("product_id") or "",
-                "payload": body,
+                "payload": minimal_payload(body),
             },
         )
     except IntegrityError:

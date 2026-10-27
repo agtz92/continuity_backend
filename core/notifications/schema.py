@@ -270,6 +270,10 @@ class NotificationsMutation:
                 "token and deviceId are required",
                 extensions={"code": "INVALID_INPUT"},
             )
+        # A token is one device. If another account signed in here before
+        # without unregistering (expired session, no network), its pushes
+        # would keep landing on this phone: the token now belongs to the caller.
+        ExpoPushToken.objects.filter(token=token).exclude(user_id=uid).delete()
         ExpoPushToken.objects.update_or_create(
             user_id=uid, device_id=device_id, defaults={"token": token}
         )

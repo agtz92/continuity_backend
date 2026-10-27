@@ -18,6 +18,7 @@ import pytest
 from django.urls import reverse
 
 from core.assistant.models import AccountProfile, BillingSource, Plan
+from core.billing import store_webhooks
 from core.billing.models import StoreWebhookEvent
 
 
@@ -226,6 +227,19 @@ class TestIdempotencyAndSafety:
         assert row.event_type == "INITIAL_PURCHASE"
         assert row.source == BillingSource.APPLE.value
         assert row.payload["event"]["product_id"] == "pro_monthly"
+
+    def test_only_billing_fields_of_the_payload_are_stored(
+        self, client, store_settings, free_profile
+    ):
+        body = _payload(free_profile.user_id)
+        body["event"]["subscriber_attributes"] = {"$email": {"value": "ana@example.com"}}
+        body["event"]["aliases"] = ["$RCAnonymousID:abc"]
+        _post(client, body)
+        row = StoreWebhookEvent.objects.get(event_id="evt_1")
+        assert row.app_user_id == str(free_profile.user_id)
+        assert set(row.payload["event"]) <= store_webhooks.BILLING_EVENT_FIELDS
+        assert "ana@example.com" not in str(row.payload)
+        assert str(free_profile.user_id) not in str(row.payload)
 
     def test_anonymous_purchase_is_recorded_but_not_applied(
         self, client, store_settings, free_profile

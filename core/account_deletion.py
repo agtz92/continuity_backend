@@ -26,6 +26,7 @@ from core.admin_api.models import AdminAuditLog
 from core.announcements.models import Announcement, Status as AnnouncementStatus
 from core.assistant.models import AccountProfile, Conversation, UsageDay
 from core.billing.models import StoreWebhookEvent
+from core.billing.store_webhooks import minimal_payload
 from core.feedback.models import BugReport
 from core.models import (
     Activity,
@@ -100,38 +101,6 @@ USER_OWNED_MODELS = (
     BugReport,
 )
 
-#: RevenueCat event fields we still need for accounting after the person is
-#: gone (what was sold, when, for how much, in which tax country). Everything
-#: else — app_user_id, aliases, subscriber_attributes (may hold email/name),
-#: transfer ids — is dropped.
-_BILLING_EVENT_FIELDS = frozenset(
-    {
-        "id",
-        "type",
-        "store",
-        "environment",
-        "product_id",
-        "entitlement_ids",
-        "period_type",
-        "purchased_at_ms",
-        "expiration_at_ms",
-        "event_timestamp_ms",
-        "transaction_id",
-        "original_transaction_id",
-        "renewal_number",
-        "is_trial_conversion",
-        "cancel_reason",
-        "expiration_reason",
-        "price",
-        "price_in_purchased_currency",
-        "currency",
-        "country_code",
-        "tax_percentage",
-        "commission_percentage",
-        "takehome_percentage",
-    }
-)
-
 _REDACTED = {"redacted": "account_deleted"}
 
 
@@ -142,12 +111,8 @@ def _delete_app_data(user_id: uuid.UUID) -> None:
 
 
 def _scrub_store_payload(payload: dict) -> dict:
-    event = payload.get("event") or {}
-    return {
-        **_REDACTED,
-        "api_version": payload.get("api_version"),
-        "event": {k: v for k, v in event.items() if k in _BILLING_EVENT_FIELDS},
-    }
+    # Rows stored before ingest started trimming still carry the full body.
+    return {**_REDACTED, **minimal_payload(payload)}
 
 
 def _anonymize_retained_records(user_id: uuid.UUID) -> None:

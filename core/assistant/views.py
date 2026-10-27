@@ -582,6 +582,31 @@ class ConversationMessagesView(View):
         )
 
 
+# ---------- DELETE /conversations/<id>/ ----------
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class ConversationDetailView(View):
+    """Delete one conversation and its messages for good (right to erasure).
+
+    Free plans may delete too: a downgrade must not lock someone out of
+    removing what they wrote while they had the assistant.
+    """
+
+    http_method_names = ["delete"]
+
+    def delete(self, request: HttpRequest, conv_id: str):
+        early = _auth(request, method="DELETE")
+        if early is not None:
+            return early
+        deleted, _ = Conversation.objects.filter(
+            id=conv_id, user_id=request.user_id
+        ).delete()
+        if not deleted:
+            return _json_error("Not found", status=404)
+        return JsonResponse({"ok": True})
+
+
 # ---------- GET /usage/ ----------
 
 

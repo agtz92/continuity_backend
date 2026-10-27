@@ -21,6 +21,11 @@ urlpatterns = [
     ),
     path("conversations/", views.ConversationsView.as_view(), name="conversations"),
     path(
+        "conversations/<uuid:conv_id>/",
+        views.ConversationDetailView.as_view(),
+        name="conversation_detail",
+    ),
+    path(
         "conversations/<uuid:conv_id>/messages/",
         views.ConversationMessagesView.as_view(),
         name="conversation_messages",

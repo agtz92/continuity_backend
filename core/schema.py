@@ -194,6 +194,16 @@ class Query:
         uid = _user_id(info)
         return Profile.from_model(profiles_svc.get_profile(uid))
 
+    @strawberry.field(name="myDataExport")
+    def my_data_export(self, info: Info) -> str:
+        """Everything we hold about the user's content and settings, as a JSON
+        string the client saves to a file (right to data portability)."""
+        import json
+
+        from .services.data_export import build_export
+
+        return json.dumps(build_export(_user_id(info)), ensure_ascii=False, indent=2)
+
     @strawberry.field
     def onboarding_state(self, info: Info) -> OnboardingState:
         # Shared with the mutations that advance the flow — see
