@@ -62,7 +62,7 @@ services:
     plan: starter
     schedule: "0 * * * *"
     buildCommand: "./build.sh"
-    startCommand: "python manage.py send_lifecycle_welcome ; python manage.py send_weekly_digest && python manage.py send_daily_digest && python manage.py send_due_reminders && python manage.py send_announcement_push && python manage.py cleanup_oauth_tokens && python manage.py detect_stalled_projects ; python manage.py run_beta_lifecycle"
+    startCommand: "python manage.py send_lifecycle_welcome ; python manage.py send_weekly_digest && python manage.py send_daily_digest && python manage.py send_due_reminders && python manage.py send_announcement_push && python manage.py cleanup_oauth_tokens && python manage.py detect_stalled_projects ; python manage.py run_beta_lifecycle ; python manage.py purge_expired_data"
     envVars:
       - key: DJANGO_SECRET_KEY
         sync: false

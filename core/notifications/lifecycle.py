@@ -9,6 +9,9 @@ lifecycle cron. Enforces:
   logged per combo for admin preview, with NO side effects.
 - Failure tracking: a real-send failure keeps the row at status=failed and
   increments attempts; surfaced in admin at attempts >= 3.
+- Unsubscribe: users who used the unsubscribe link get nothing but the account
+  notices (`unsubscribe.TRANSACTIONAL_EMAIL_IDS`); every other email carries the
+  link and the List-Unsubscribe headers.
 """
 
 from __future__ import annotations
@@ -24,6 +27,7 @@ from .email_templates import render
 from .models import EmailSend
 from .providers.base import DeliveryResult, ProviderError
 from .providers.resend import ResendEmailProvider
+from . import unsubscribe
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +37,7 @@ FAILED = "failed"
 ALREADY_SENT = "already_sent"
 DRY_RUN = "dry_run"
 DRY_RUN_SKIPPED = "dry_run_skipped"
+OPTED_OUT = "opted_out"
 
 
 def _user_locale(user_id: uuid.UUID) -> str:
@@ -101,10 +106,20 @@ def deliver(
     """Render and (unless dry_run) send `email_id` to `user_id`, idempotently."""
     from core.services import app_config
 
+    transactional = email_id in unsubscribe.TRANSACTIONAL_EMAIL_IDS
+    # No row: if they turn emails back on, the email can still go out.
+    if not transactional and unsubscribe.is_opted_out(user_id):
+        return OPTED_OUT
+
     now = timezone.now()
     locale = _user_locale(user_id)
     ctx = _build_context(user_id, extra_ctx, locale)
     subject, html, text = render(email_id, ctx, locale)
+    headers: dict[str, str] = {}
+    if not transactional:
+        footer_html, footer_text, headers = unsubscribe.footer(user_id, locale)
+        html = f"{html}\n{footer_html}"
+        text = f"{text}\n\n--\n{footer_text}"
 
     if app_config.get_bool("dry_run"):
         already = EmailSend.objects.filter(
@@ -143,7 +158,7 @@ def deliver(
         return FAILED
 
     try:
-        result = ResendEmailProvider().send(to, subject, html, text)
+        result = ResendEmailProvider().send(to, subject, html, text, headers=headers)
     except ProviderError as e:
         result = DeliveryResult(success=False, error=str(e))
 

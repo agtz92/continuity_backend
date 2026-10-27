@@ -67,6 +67,7 @@ class NotificationSettingsType:
     due_reminder_hour: int
     manual_enabled: bool
     push_enabled: bool
+    lifecycle_emails_enabled: bool
     is_admin: bool
     calendar_sync_enabled: bool
     calendar_sync_tasks: bool
@@ -95,6 +96,7 @@ class NotificationSettingsInput:
     due_reminder_hour: Optional[int] = None
     manual_enabled: Optional[bool] = None
     push_enabled: Optional[bool] = None
+    lifecycle_emails_enabled: Optional[bool] = None
     calendar_sync_enabled: Optional[bool] = None
     calendar_sync_tasks: Optional[bool] = None
     calendar_sync_routines: Optional[bool] = None
@@ -149,6 +151,7 @@ def _to_gql(s: SettingsModel) -> NotificationSettingsType:
         due_reminder_hour=s.due_reminder_hour,
         manual_enabled=s.manual_enabled,
         push_enabled=s.push_enabled,
+        lifecycle_emails_enabled=s.lifecycle_emails_enabled,
         is_admin=s.is_admin,
         calendar_sync_enabled=s.calendar_sync_enabled,
         calendar_sync_tasks=s.calendar_sync_tasks,
@@ -238,6 +241,8 @@ class NotificationsMutation:
             s.manual_enabled = data.manual_enabled
         if data.push_enabled is not None:
             s.push_enabled = data.push_enabled
+        if data.lifecycle_emails_enabled is not None:
+            s.lifecycle_emails_enabled = data.lifecycle_emails_enabled
         if data.calendar_sync_enabled is not None:
             s.calendar_sync_enabled = data.calendar_sync_enabled
         if data.calendar_sync_tasks is not None:

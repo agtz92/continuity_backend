@@ -10,6 +10,7 @@ from core.mcp.views import McpView
 from core.mcp.oauth import views as oauth_views
 from core import google_tasks_views
 from core import calendar_views
+from core.notifications.unsubscribe import unsubscribe_view
 
 
 def healthcheck(_request):
@@ -55,6 +56,7 @@ urlpatterns = [
         calendar_views.ics_feed,
         name="calendar-ics-feed",
     ),
+    path("email/unsubscribe/", unsubscribe_view, name="email-unsubscribe"),
     path("healthz", healthcheck),
     path("", healthcheck),
 ]

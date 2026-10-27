@@ -31,6 +31,7 @@ class ResendEmailProvider:
         text: str = "",
         *,
         reply_to: str = "",
+        headers: dict[str, str] | None = None,
     ) -> DeliveryResult:
         """Send one email. Raises ProviderError on misconfiguration; returns a
         DeliveryResult(success=False, ...) for transient API failures so the
@@ -51,6 +52,8 @@ class ResendEmailProvider:
             payload["text"] = text
         if reply_to:
             payload["reply_to"] = reply_to
+        if headers:
+            payload["headers"] = headers
 
         try:
             resp = requests.post(

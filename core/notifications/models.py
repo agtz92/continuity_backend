@@ -51,6 +51,9 @@ class NotificationSettings(models.Model):
 
     manual_enabled = models.BooleanField(default=True)
     push_enabled = models.BooleanField(default=True)  # mobile push (Expo) channel
+    # Lifecycle/nudge emails (welcome, inactivity, re-engage). Off = the
+    # unsubscribe link was used; account notices (reclaim_*) still go out.
+    lifecycle_emails_enabled = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)
 
     # Calendar integration (plugin). Master toggle + per-entity-type toggles.

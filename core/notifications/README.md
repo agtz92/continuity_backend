@@ -49,6 +49,14 @@ Both actions are idempotent: complete never un-completes; postpone moves only op
 
 Tests: [tests/test_push_redesign.py](tests/test_push_redesign.py).
 
+## Lifecycle emails: unsubscribe
+
+Welcome / inactivity / re-engage emails (`lifecycle.deliver`, Resend) carry a signed unsubscribe link and the `List-Unsubscribe` + `List-Unsubscribe-Post` headers (RFC 8058) — see [unsubscribe.py](unsubscribe.py). The link hits `GET /email/unsubscribe/?t=<token>` (shows a button, changes nothing: mail scanners prefetch) and the button or the mail client's one-click POST sets `NotificationSettings.lifecycle_emails_enabled = False`. `deliver()` then returns `OPTED_OUT` without writing a ledger row. Account notices (`reclaim_warn`, `reclaim_final`) are `TRANSACTIONAL_EMAIL_IDS`: always sent, no link. The web toggle lives in Settings → Notifications.
+
+## Retention
+
+`purge_expired_data` (hourly cron) applies [core/services/retention.py](../services/retention.py): outbox `body`/`error` cleared after 90 days, email-ledger error/message id after 180. The rows stay — they are what prevents a re-send.
+
 ## Patterns to respect
 
 - **Idempotency**: never call `Notification.objects.create()` directly; always `dispatcher.enqueue()` with a meaningful `dedupe_key`. Re-running the cron must be a no-op.
