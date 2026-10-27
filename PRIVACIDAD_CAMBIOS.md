@@ -93,7 +93,7 @@ Backend `ffc7389`, frontend `d43f3ea`, móvil `268605f` + `67aa177` (manifest).
 ### 2026-10-27: claves rotadas y sin menciones a Stripe en el sitio
 - El dueño rotó la contraseña de Postgres de producción y la API key de Anthropic.
 - Frontend `1677966`: el sitio ya no nombra a Stripe. La política dice "RevenueCat y su procesador de tarjetas"; los Terms, solo RevenueCat Web Billing; el demo del landing cambió su decisión de ejemplo. En el admin, los textos dicen cobro/cliente y la tabla de billing muestra el id del cliente en vez del enlace al dashboard de Stripe.
-- Sin revisar: el contenido del CMS (blog, recursos, páginas) vive en la base de producción y no se buscó ahí.
+- CMS revisado en producción (solo lectura): ningún blog post, recurso, categoría, página, media ni anuncio menciona a Stripe.
 
 ---
 
