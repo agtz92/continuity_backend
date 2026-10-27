@@ -101,9 +101,10 @@ Backend `ffc7389`, frontend `d43f3ea`, móvil `268605f` + `67aa177` (manifest).
 ## Pendiente
 
 ### Lo hace el dueño (fuera del código)
-- [ ] Borrar el bot de Telegram en BotFather.
+- [x] Borrar el bot de Telegram en BotFather (2026-10-27).
+- [x] `DATABASE_URL` con la contraseña nueva en todos los servicios de Render y la IP de Render desbloqueada en Supabase (2026-10-27).
 - [ ] **[Bloqueante]** Definir el responsable del tratamiento (persona o empresa, con domicilio) y añadirlo a la política, como pide el aviso de privacidad de la LFPDPPP.
-- [ ] Confirmar la región de Supabase y de Render, y ajustar la sección de transferencias internacionales.
+- [ ] Confirmar la región de Render (Dashboard → servicio → Settings → Region). Supabase ya está confirmada: `us-east-2` (Ohio, EE. UU.). Si Render también está en EE. UU., la sección de transferencias ("incluido Estados Unidos") ya es correcta y no hay que cambiarla.
 - [ ] Revisar y aceptar los DPA de Supabase, Render, Vercel, Anthropic, RevenueCat, Resend y Expo.
 - [ ] Llenar las App Privacy labels (App Store) y el Data safety (Google Play) de acuerdo con la política.
 - [ ] Revisión legal de la política y de los Terms con un abogado.
