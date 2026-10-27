@@ -90,14 +90,17 @@ Backend `ffc7389`, frontend `d43f3ea`, móvil `268605f` + `67aa177` (manifest).
 - **Token push con un solo dueño.** `registerPushToken` borra ese token de cualquier otra cuenta: si alguien cerró sesión sin darlo de baja (sesión expirada, sin red), sus avisos ya no llegan al teléfono de quien entra después.
 - **Privacy manifest de iOS.** `ios.privacyManifests` en `app.json`: sin tracking; APIs con razón (UserDefaults CA92.1, FileTimestamp C617.1, SystemBootTime 35F9.1, DiskSpace E174.1); datos recopilados, todos ligados a la persona y sin tracking: correo, nombre, user ID, device ID (push), contenido, historial de compras e interacción con el producto. **Es config nativa: requiere un build nuevo, no llega por OTA.**
 
+### 2026-10-27: claves rotadas y sin menciones a Stripe en el sitio
+- El dueño rotó la contraseña de Postgres de producción y la API key de Anthropic.
+- Frontend `1677966`: el sitio ya no nombra a Stripe. La política dice "RevenueCat y su procesador de tarjetas"; los Terms, solo RevenueCat Web Billing; el demo del landing cambió su decisión de ejemplo. En el admin, los textos dicen cobro/cliente y la tabla de billing muestra el id del cliente en vez del enlace al dashboard de Stripe.
+- Sin revisar: el contenido del CMS (blog, recursos, páginas) vive en la base de producción y no se buscó ahí.
+
 ---
 
 ## Pendiente
 
 ### Lo hace el dueño (fuera del código)
-- [ ] **[URGENTE]** Rotar la contraseña de Postgres de producción (expuesta en commits públicos de `continuity_backend`) y actualizarla en Render y en `.env`.
-- [ ] **[URGENTE]** Confirmar que la API key vieja de Anthropic está revocada.
-- [ ] **[URGENTE]** Borrar el bot de Telegram en BotFather.
+- [ ] Borrar el bot de Telegram en BotFather.
 - [ ] **[Bloqueante]** Definir el responsable del tratamiento (persona o empresa, con domicilio) y añadirlo a la política, como pide el aviso de privacidad de la LFPDPPP.
 - [ ] Confirmar la región de Supabase y de Render, y ajustar la sección de transferencias internacionales.
 - [ ] Revisar y aceptar los DPA de Supabase, Render, Vercel, Anthropic, RevenueCat, Resend y Expo.
