@@ -94,6 +94,7 @@ Backend `ffc7389`, frontend `d43f3ea`, móvil `268605f` + `67aa177` (manifest).
 - El dueño rotó la contraseña de Postgres de producción y la API key de Anthropic.
 - Frontend `1677966`: el sitio ya no nombra a Stripe. La política dice "RevenueCat y su procesador de tarjetas"; los Terms, solo RevenueCat Web Billing; el demo del landing cambió su decisión de ejemplo. En el admin, los textos dicen cobro/cliente y la tabla de billing muestra el id del cliente en vez del enlace al dashboard de Stripe.
 - CMS revisado en producción (solo lectura): ningún blog post, recurso, categoría, página, media ni anuncio menciona a Stripe.
+- Móvil `2295685`: los textos de Facturación ya no nombran a Stripe, y las queries de admin piden `billingCustomerId`/`billingTransactionId` (las `stripe*` ya no existían en el backend). Solo JS: puede salir por OTA.
 
 ---
 
