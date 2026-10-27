@@ -5,7 +5,7 @@ privacidad. Cubre backend, web (`frontend/`) y móvil (`continuity-mobile/`).
 Se actualiza cada vez que se cierra o se agrega algo.
 
 - **Proyecto en continuu.it:** "Privacidad y manejo de datos" (`3b439d48-5577-48da-9a65-7ad41aceeb0a`).
-- **Última actualización:** 2026-10-27
+- **Última actualización:** 2026-10-27 (pendientes de código cerrados)
 
 ---
 
@@ -78,6 +78,18 @@ Frontend `cba4a76`.
 - `Providers` escucha `SIGNED_OUT` de Supabase y llama a `clearCaptureStorage()`, que borra `continuity:capture-draft` y `continuity:capture-queue`.
 - Cubre los tres casos: el botón de cerrar sesión, una sesión expirada y un cierre de sesión en otra pestaña.
 
+### 2026-10-27: pendientes de código
+Backend `ffc7389`, frontend `d43f3ea`, móvil `268605f` + `67aa177` (manifest).
+
+- **Payload de RevenueCat mínimo.** `store_webhook` guarda solo `BILLING_EVENT_FIELDS` (`minimal_payload` en `core/billing/store_webhooks.py`): nada de `subscriber_attributes`, aliases ni `app_user_id` dentro del JSON (este sigue en su columna). La migración `billing/0002` recorta las filas ya guardadas. `account_deletion` reutiliza el mismo helper.
+- **Terms con RevenueCat.** "Planes, pagos y renovaciones" ya no dice Stripe a secas: Web Billing en la web (tarjetas por Stripe), App Store/Google Play en las apps. Se agregó que las compras de tienda se cancelan y reembolsan en la tienda, y que borrar la cuenta no cancela la suscripción. Fecha: 27 de octubre de 2026.
+- **Editar el nombre en la web.** Campo "Nombre" en Ajustes → Perfil (`NameField`, `updateProfile(firstName)`, máx. 50). El móvil ya lo tenía; su límite bajó de 60 a 50 para coincidir con el backend.
+- **Borrar conversaciones con Loop.** `DELETE /api/assistant/conversations/<id>/` (`ConversationDetailView`), sin gate de plan: quien bajó a Free puede seguir borrando. En web y móvil, la sección "Tus datos" de Perfil lista las conversaciones guardadas con su botón de borrar (antes no se veían en ningún lado: el chat solo muestra la actual).
+- **Export completo.** Query `myDataExport` (`core/services/data_export.py`): perfil, preferencias, notificaciones, plan, categorías, proyectos, notas, tareas, bloqueos, rutinas y ocurrencias, ideas, Quick Notes y secciones, actividad, conversaciones con mensajes, bug reports y eventos del conector. Deja fuera credenciales, tokens push y contadores (`NOT_EXPORTED`, con motivo). `test_data_export.py` falla si un modelo nuevo de `USER_OWNED_MODELS` no está en ninguna de las dos listas. Botón "Descargar mis datos" en "Tus datos" de web (descarga) y móvil (hoja de compartir). El backup del dashboard sigue igual: es para restaurar, no para portabilidad.
+- **Móvil: cerrar sesión limpio.** `src/lib/signOut.ts`: el botón da de baja el token push del dispositivo antes de cerrar sesión (después ya no hay sesión). `AuthProvider` borra en cada `SIGNED_OUT` el deviceId, las notificaciones descartadas, la última respuesta a una push y el caché de Apollo. Tema, paleta e idioma se quedan: son del dispositivo y el servidor los reaplica al entrar.
+- **Token push con un solo dueño.** `registerPushToken` borra ese token de cualquier otra cuenta: si alguien cerró sesión sin darlo de baja (sesión expirada, sin red), sus avisos ya no llegan al teléfono de quien entra después.
+- **Privacy manifest de iOS.** `ios.privacyManifests` en `app.json`: sin tracking; APIs con razón (UserDefaults CA92.1, FileTimestamp C617.1, SystemBootTime 35F9.1, DiskSpace E174.1); datos recopilados, todos ligados a la persona y sin tracking: correo, nombre, user ID, device ID (push), contenido, historial de compras e interacción con el producto. **Es config nativa: requiere un build nuevo, no llega por OTA.**
+
 ---
 
 ## Pendiente
@@ -93,15 +105,11 @@ Frontend `cba4a76`.
 - [ ] Revisión legal de la política y de los Terms con un abogado.
 
 ### Código
-- [ ] Actualizar los Terms: reemplazar Stripe por RevenueCat (Web Billing + App Store/Google Play).
-- [ ] Minimizar lo que se guarda del payload de RevenueCat (quitar `subscriber_attributes` y campos no necesarios).
-- [ ] iOS: declarar el privacy manifest (`ios.privacyManifests` en `app.json`, con la razón de UserDefaults/AsyncStorage).
-- [ ] Móvil: llamar `unregisterPushToken` al cerrar sesión y al borrar la cuenta, y limpiar AsyncStorage (deviceId, prefs).
-- [ ] Borrar conversaciones del asistente una por una (endpoint DELETE + UI en web y móvil).
-- [ ] Permitir editar el nombre desde `settings/profile` en la web (derecho de rectificación).
-- [ ] Export completo (portabilidad): incluir Quick Notes, rutinas, categorías, bloqueos y conversaciones en el JSON, en web y móvil.
-- [ ] Exponer la exportación de datos en la app móvil (`useBackup` existe, pero ninguna pantalla lo usa).
+Nada pendiente.
 
 ### Sin verificar
 - Borrar cuenta y el cierre de sesión en la web con una sesión real (solo tsc y tests).
 - GA4 en `admon.continuu.it`: por el código no se carga, pero no se abrió el dominio.
+- "Tus datos" (web y móvil), el nombre en la web y el cierre de sesión del móvil: probados con tests, tsc y `expo export`, no con una sesión real ni en un dispositivo.
+- El privacy manifest solo se valida al subir un build a App Store Connect.
+- Las App Privacy labels de App Store Connect deben coincidir con el manifest (tarea del dueño).
