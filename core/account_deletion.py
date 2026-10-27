@@ -33,7 +33,6 @@ from core.models import (
     Category,
     GoogleOAuthCredential,
     GraveyardInsight,
-    ICloudCalendarCredential,
     Idea,
     InteractionDay,
     NoteSection,
@@ -55,7 +54,6 @@ from core.notifications.models import (
     EmailSend,
     ExpoPushToken,
     Notification,
-    NotificationLink,
     NotificationSettings,
 )
 
@@ -84,13 +82,11 @@ USER_OWNED_MODELS = (
     AccountProfile,
     # Notifications + email
     Notification,
-    NotificationLink,
     ExpoPushToken,
     NotificationSettings,
     EmailSend,
     # Integrations + connector OAuth
     GoogleOAuthCredential,
-    ICloudCalendarCredential,
     OAuthAuthorizationCode,
     OAuthRefreshToken,
     OAuthConnectionEvent,

@@ -43,7 +43,6 @@ urlpatterns = [
         "public-graphql/",
         csrf_exempt(PublicGraphQLView.as_view(schema=public_schema)),
     ),
-    path("api/", include("core.notifications.urls")),
     path("api/assistant/", include("core.assistant.urls")),
     path("api/billing/", include("core.billing.urls")),
     path(

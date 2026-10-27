@@ -3,8 +3,7 @@ from django.db import models
 
 
 class Channel(models.TextChoices):
-    TELEGRAM = "telegram", "Telegram"
-    WHATSAPP = "whatsapp", "WhatsApp"
+    # Push is the only channel. Telegram (link-based) was removed in 2026-10.
     EXPO = "expo", "Push (Expo)"
 
 
@@ -67,31 +66,6 @@ class NotificationSettings(models.Model):
     google_calendar_id = models.CharField(max_length=128, blank=True, default="")
 
     updated_at = models.DateTimeField(auto_now=True)
-
-
-class NotificationLink(models.Model):
-    """A user's connection to a specific channel (Telegram chat_id, WhatsApp number).
-
-    Pre-verification, only `link_token` is set; once the user completes the
-    `/start <token>` flow on Telegram (or sandbox JOIN on WhatsApp), `external_id`
-    and `verified_at` get populated.
-    """
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user_id = models.UUIDField(db_index=True)
-    channel = models.CharField(max_length=20, choices=Channel.choices)
-    external_id = models.CharField(max_length=255, blank=True, default="")
-    verified_at = models.DateTimeField(null=True, blank=True)
-    link_token = models.CharField(max_length=64, blank=True, default="", db_index=True)
-    link_token_expires = models.DateTimeField(null=True, blank=True)
-    created = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=["user_id", "channel"], name="unique_link_per_user_channel"
-            )
-        ]
 
 
 class Notification(models.Model):

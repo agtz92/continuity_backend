@@ -47,7 +47,6 @@ from .services import (
     dashboard as dashboard_svc,
     google_calendar as google_calendar_svc,
     google_tasks as google_tasks_svc,
-    icloud_calendar as icloud_calendar_svc,
     mcp_connections as mcp_connections_svc,
     onboarding as onboarding_svc,
     preferences as preferences_svc,
@@ -267,7 +266,6 @@ class Query:
 
         s = _NS.objects.filter(user_id=uid).first()
         gstatus = google_calendar_svc.get_connection_status(uid)
-        istatus = icloud_calendar_svc.get_connection_status(uid)
         return CalendarIntegration(
             feed_url=calendar_feed_svc.feed_url(uid),
             sync_enabled=bool(s.calendar_sync_enabled) if s else False,
@@ -276,8 +274,6 @@ class Query:
             google_connected=gstatus is not None,
             google_email=(gstatus or {}).get("email") or None,
             google_calendar_id=(s.google_calendar_id if s else "") or "",
-            icloud_connected=istatus is not None,
-            icloud_apple_id=(istatus or {}).get("apple_id") or None,
         )
 
     @strawberry.field

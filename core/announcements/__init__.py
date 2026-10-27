@@ -11,6 +11,6 @@ The public `notifications` GraphQL query merges both and returns a
 priority-sorted list to the frontend's NotificationStack.
 
 NOT to be confused with `core.notifications` — that package handles
-out-of-app channels (Telegram, WhatsApp, email digests). This one is
+out-of-app channels (push, email). This one is
 strictly in-app banners.
 """

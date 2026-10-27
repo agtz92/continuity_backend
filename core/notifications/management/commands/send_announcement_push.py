@@ -41,13 +41,10 @@ class Command(BaseCommand):
             profile = AccountProfile.objects.filter(user_id=uid).first()
             plan = profile.plan if profile else Plan.FREE.value
             for ann in _active_announcements(uid, plan):
-                body = f"{ann.title}\n{ann.body}" if ann.body else ann.title
                 result = enqueue(
                     user_id=uid,
                     kind="manual",
                     dedupe_key=f"announcement:{ann.id}",
-                    body=body,
-                    channels=("expo",),
                     # The provider clips the body to two lock-screen lines.
                     push=PushContent(
                         title=ann.title,

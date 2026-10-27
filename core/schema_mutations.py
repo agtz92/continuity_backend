@@ -39,7 +39,6 @@ from .services import (
     dashboard as dashboard_svc,
     google_calendar as google_calendar_svc,
     google_tasks as google_tasks_svc,
-    icloud_calendar as icloud_calendar_svc,
     ideas as ideas_svc,
     mcp_connections as mcp_connections_svc,
     notes as notes_svc,
@@ -792,37 +791,6 @@ class Mutation:
             updated=res.get("updated", 0),
             deleted=res.get("deleted", 0),
         )
-
-    @strawberry.mutation
-    def connect_icloud_calendar(
-        self, info: Info, apple_id: str, app_password: str
-    ) -> bool:
-        uid = _user_id(info)
-        try:
-            icloud_calendar_svc.connect(uid, apple_id, app_password)
-        except icloud_calendar_svc.ICloudCalendarError as e:
-            raise GraphQLError(str(e), extensions={"code": "ICLOUD_CALENDAR_ERROR"})
-        return True
-
-    @strawberry.mutation
-    def disconnect_icloud_calendar(self, info: Info) -> bool:
-        uid = _user_id(info)
-        icloud_calendar_svc.disconnect(uid)
-        return True
-
-    @strawberry.mutation
-    def sync_icloud_calendar_now(self, info: Info) -> int:
-        uid = _user_id(info)
-        try:
-            res = icloud_calendar_svc.sync_user(uid)
-        except icloud_calendar_svc.NotConnectedError:
-            raise GraphQLError(
-                "iCloud Calendar is not connected",
-                extensions={"code": "NOT_CONNECTED"},
-            )
-        except icloud_calendar_svc.ICloudCalendarError as e:
-            raise GraphQLError(str(e), extensions={"code": "ICLOUD_CALENDAR_ERROR"})
-        return res.get("pushed", 0)
 
     # ===== Mutations: Bloqueadores de tareas =====
     @strawberry.mutation(name="addTaskBlocker")

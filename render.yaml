@@ -25,12 +25,6 @@ services:
         sync: false
       - key: CORS_ALLOWED_ORIGINS
         sync: false
-      - key: TELEGRAM_BOT_TOKEN
-        sync: false
-      - key: TELEGRAM_BOT_USERNAME
-        sync: false
-      - key: TELEGRAM_WEBHOOK_SECRET
-        sync: false
       - key: NOTIFICATIONS_DEFAULT_TIMEZONE
         value: America/Mexico_City
       - key: ANTHROPIC_API_KEY
@@ -83,12 +77,6 @@ services:
       - key: SUPABASE_JWT_SECRET
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
-        sync: false
-      - key: TELEGRAM_BOT_TOKEN
-        sync: false
-      - key: TELEGRAM_BOT_USERNAME
-        sync: false
-      - key: TELEGRAM_WEBHOOK_SECRET
         sync: false
       - key: RESEND_API_KEY
         sync: false

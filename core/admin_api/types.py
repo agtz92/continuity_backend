@@ -62,20 +62,12 @@ class UsageDayPoint:
 
 
 @strawberry.type
-class NotificationLinkInfo:
-    channel: str
-    verified: bool
-    created: dt.datetime
-
-
-@strawberry.type
 class NotificationPrefs:
     digest_enabled: bool
     daily_digest_enabled: bool
     due_reminders_enabled: bool
     sleeping_alerts_enabled: bool
     is_admin: bool
-    links: list[NotificationLinkInfo]
 
 
 @strawberry.type
@@ -335,7 +327,6 @@ __all__ = [
     "AdminUserSummary",
     "AdminUserPage",
     "UsageDayPoint",
-    "NotificationLinkInfo",
     "NotificationPrefs",
     "AdminUserDetail",
     "AdminNotificationJob",

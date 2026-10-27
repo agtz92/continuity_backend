@@ -253,7 +253,7 @@ def park_project_tasks(user_id: uuid.UUID, project_id) -> int:
     (already-parked tasks have due_date=None and are skipped). Returns count.
 
     NOTE (calendar integration, not yet built): we clear calendar_event_id here
-    so a parked task no longer maps to a pushed event. When the Google/iCloud
+    so a parked task no longer maps to a pushed event. When the Google Calendar
     push lands, park/restore must also delete/recreate the remote event.
     """
     qs = Task.objects.filter(

@@ -1,23 +1,17 @@
 from .base import NotificationProvider, DeliveryResult, ProviderError
-from .telegram import TelegramProvider
 
 __all__ = [
     "NotificationProvider",
     "DeliveryResult",
     "ProviderError",
-    "TelegramProvider",
     "get_provider",
 ]
 
 
 def get_provider(channel: str) -> NotificationProvider:
-    """Factory: channel string -> Provider instance."""
-    if channel == "telegram":
-        return TelegramProvider()
-    if channel == "whatsapp":
-        from .whatsapp import TwilioWhatsAppProvider  # lazy import — Fase 4
-        return TwilioWhatsAppProvider()
+    """Factory: channel string -> Provider instance. Push (Expo) is the only
+    channel since Telegram was removed (2026-10)."""
     if channel == "expo":
-        from .expo import ExpoProvider  # lazy import — push (Fase 8)
+        from .expo import ExpoProvider
         return ExpoProvider()
     raise ProviderError(f"Unknown channel: {channel}")

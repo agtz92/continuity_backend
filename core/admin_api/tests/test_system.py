@@ -61,7 +61,7 @@ def test_jobs_listing_and_filter(execute_query, user_a, user_b):
     AccountProfile.objects.create(user_id=user_a, is_admin=True)
     Notification.objects.create(
         user_id=user_b,
-        channel="telegram",
+        channel="expo",
         kind=NotificationKind.WEEKLY_DIGEST,
         dedupe_key="x",
         body="hi",
@@ -69,7 +69,7 @@ def test_jobs_listing_and_filter(execute_query, user_a, user_b):
     )
     Notification.objects.create(
         user_id=user_b,
-        channel="telegram",
+        channel="expo",
         kind=NotificationKind.MANUAL,
         dedupe_key="y",
         body="failed",
@@ -95,7 +95,7 @@ def test_retry_resets_status_and_clears_error(execute_query, user_a, user_b):
     AccountProfile.objects.create(user_id=user_a, is_admin=True)
     job = Notification.objects.create(
         user_id=user_b,
-        channel="telegram",
+        channel="expo",
         kind=NotificationKind.MANUAL,
         dedupe_key="z",
         body="x",
@@ -122,7 +122,7 @@ def test_retry_rejects_already_sent(execute_query, user_a, user_b):
     AccountProfile.objects.create(user_id=user_a, is_admin=True)
     job = Notification.objects.create(
         user_id=user_b,
-        channel="telegram",
+        channel="expo",
         kind=NotificationKind.MANUAL,
         dedupe_key="zz",
         body="x",
@@ -154,7 +154,7 @@ def test_system_stats_aggregates(execute_query, user_a, user_b):
 
     Notification.objects.create(
         user_id=user_b,
-        channel="telegram",
+        channel="expo",
         kind=NotificationKind.WEEKLY_DIGEST,
         dedupe_key="dk",
         body="x",

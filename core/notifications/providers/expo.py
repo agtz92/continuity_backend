@@ -1,13 +1,10 @@
 """Expo push provider.
 
 Sends to the Expo Push API (https://exp.host/--/api/v2/push/send) over plain
-HTTP with `requests` — no extra SDK dependency, mirroring the Telegram provider.
+HTTP with `requests` — no extra SDK dependency.
 
-`external_id` is an `ExponentPushToken[...]`. Builders hand us a `PushContent`
-(short title + one or two lines, deep link, action category), so the push never
-carries the long Telegram digest. Senders that don't build one (manual/admin
-messages) fall back to the old path: strip the MarkdownV2 markup, first line as
-title, the rest trimmed to `_FALLBACK_BODY_MAX`.
+`external_id` is an `ExponentPushToken[...]`. Every sender hands us a
+`PushContent` (short title + one or two lines, deep link, action category).
 
 Android channels: Expo drops a push whose `channelId` the device hasn't created,
 and the channels are created by the app's JS. So `channelId` is only sent when
@@ -18,13 +15,12 @@ them is out.
 from __future__ import annotations
 
 import logging
-import re
-from typing import Optional, Sequence
+from typing import Optional
 
 import requests
 from django.conf import settings
 
-from .base import DeliveryResult, InlineButton, NotificationProvider, PushContent
+from .base import DeliveryResult, NotificationProvider, PushContent
 
 log = logging.getLogger(__name__)
 
@@ -32,18 +28,6 @@ _PUSH_URL = "https://exp.host/--/api/v2/push/send"
 _DEFAULT_TIMEOUT = 10  # seconds
 _TITLE_MAX = 100
 _BODY_MAX = 240
-# Fallback bodies (no PushContent) are cut hard: the lock screen shows ~2 lines.
-_FALLBACK_BODY_MAX = 180
-
-
-def _md_to_plain(text: str) -> str:
-    """Strip Telegram MarkdownV2 markup so the push reads as plain text."""
-    # Unescape any backslash-escaped char (MarkdownV2 only escapes its reserved set).
-    out = re.sub(r"\\(.)", r"\1", text)
-    # Links render as their label: "[Ver dashboard](https://…)" -> "Ver dashboard".
-    out = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", out)
-    # Drop the remaining formatting markers we use in builders.
-    return out.replace("*", "").replace("`", "")
 
 
 def _clip(text: str, limit: int) -> str:
@@ -53,27 +37,8 @@ def _clip(text: str, limit: int) -> str:
     return text[: limit - 1].rstrip() + "…"
 
 
-def _split_title_body(body: str) -> tuple[str, str]:
-    plain = _md_to_plain(body).strip()
-    lines = plain.split("\n")
-    first = next((ln.strip() for ln in lines if ln.strip()), "")
-    if not first:
-        return ("Continuity", "")
-    idx = next(i for i, ln in enumerate(lines) if ln.strip())
-    rest = "\n".join(lines[idx + 1:]).strip()
-    if not rest:
-        # Single meaningful line → use it as the body under the app name.
-        return ("Continuity", _clip(first, _FALLBACK_BODY_MAX))
-    return (_clip(first, _TITLE_MAX), _clip(rest, _FALLBACK_BODY_MAX))
-
-
-def build_payload(
-    external_id: str, body: str, *, kind: Optional[str], push: Optional[PushContent]
-) -> dict:
+def build_payload(external_id: str, push: PushContent, *, kind: Optional[str]) -> dict:
     """The Expo message for one device. Pure, so tests can assert on it."""
-    if push is None:
-        title, message = _split_title_body(body)
-        push = PushContent(title=title, body=message)
     payload: dict = {
         "to": external_id,
         "title": _clip(push.title, _TITLE_MAX),
@@ -99,13 +64,11 @@ class ExpoProvider(NotificationProvider):
     def send(
         self,
         external_id: str,
-        body: str,
+        push: PushContent,
         *,
         kind: Optional[str] = None,
-        buttons: Optional[Sequence[InlineButton]] = None,
-        push: Optional[PushContent] = None,
     ) -> DeliveryResult:
-        payload = build_payload(external_id, body, kind=kind, push=push)
+        payload = build_payload(external_id, push, kind=kind)
         try:
             r = requests.post(
                 _PUSH_URL,

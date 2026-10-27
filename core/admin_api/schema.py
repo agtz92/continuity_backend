@@ -24,7 +24,7 @@ from strawberry.types import Info
 from core.assistant.models import AccountProfile, Plan, UsageDay
 from core.services import interactions as interactions_svc
 from core.models import Activity as ActivityModel
-from core.notifications.models import NotificationLink, NotificationSettings
+from core.notifications.models import NotificationSettings
 
 from .audit import record as audit_record
 from .permissions import _admin_user_id
@@ -355,22 +355,12 @@ class AdminUsersQuery:
 
         notif_settings = NotificationSettings.objects.filter(user_id=uid).first()
         if notif_settings:
-            links_qs = NotificationLink.objects.filter(user_id=uid)
-            link_infos = [
-                NotificationLinkInfo(
-                    channel=l.channel,
-                    verified=bool(l.verified_at),
-                    created=l.created,
-                )
-                for l in links_qs
-            ]
             prefs = NotificationPrefs(
                 digest_enabled=notif_settings.digest_enabled,
                 daily_digest_enabled=notif_settings.daily_digest_enabled,
                 due_reminders_enabled=notif_settings.due_reminders_enabled,
                 sleeping_alerts_enabled=notif_settings.sleeping_alerts_enabled,
                 is_admin=notif_settings.is_admin,
-                links=link_infos,
             )
         else:
             prefs = None

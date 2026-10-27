@@ -631,8 +631,6 @@ class CalendarIntegration:
     google_connected: bool
     google_email: Optional[str] = None
     google_calendar_id: str = ""
-    icloud_connected: bool = False
-    icloud_apple_id: Optional[str] = None
 
 
 @strawberry.type

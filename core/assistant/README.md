@@ -328,11 +328,8 @@ tool stays as a fallback for natural-language requests.
 
 ## Phase 3 — Plugins + deep mode (after Phase 2)
 
-- Tools: `start_plugin_setup`, `request_telegram_link`,
-  `update_notification_settings`, `disconnect_channel`,
-  `enable_weekly_digest`. The assistant walks the user through the
-  Telegram link flow using the existing `requestChannelLink` mutation
-  under the hood.
+- Tools: `start_plugin_setup`, `update_notification_settings`,
+  `enable_weekly_digest`.
 - Replace `<ComingSoon />` at
   `frontend/src/app/settings/plugins/page.tsx` with a real plugin
   catalog UI.
@@ -346,7 +343,6 @@ tool stays as a fallback for natural-language requests.
 
 - Stripe Checkout from `/settings/billing`'s "Upgrade" button.
 - Webhook flips `AccountProfile.plan` and sets `plan_renews_at`.
-- Telegram weekly-cost summary for `is_admin` users.
 
 ---
 

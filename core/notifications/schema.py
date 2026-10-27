@@ -1,10 +1,8 @@
 """Strawberry GraphQL surface for notifications.
 
 Exposes:
-- query notificationSettings → user settings + linked channels
+- query notificationSettings → user settings
 - mutation updateNotificationSettings(...)
-- mutation requestChannelLink(channel) → { token, deepLink, expiresAt }
-- mutation disconnectChannel(channel) → bool
 - mutation runNotificationAction(action, taskIds) → int (push action buttons)
 """
 
@@ -12,26 +10,20 @@ from __future__ import annotations
 
 import datetime as dt
 import enum
-import secrets
 import uuid
 import zoneinfo
 from typing import List, Optional
 
 import strawberry
 from django.conf import settings as django_settings
-from django.utils import timezone
 from graphql import GraphQLError
 from strawberry.types import Info
 
 from . import actions
 from .models import (
-    Channel,
     ExpoPushToken,
-    NotificationLink,
     NotificationSettings as SettingsModel,
 )
-
-LINK_TOKEN_TTL = dt.timedelta(minutes=15)
 
 
 def _user_id(info: Info) -> uuid.UUID:
@@ -42,12 +34,6 @@ def _user_id(info: Info) -> uuid.UUID:
 
 
 @strawberry.enum
-class NotificationChannel(enum.Enum):
-    TELEGRAM = "telegram"
-    WHATSAPP = "whatsapp"
-
-
-@strawberry.enum
 class NotificationAction(enum.Enum):
     COMPLETE = "complete"
     POSTPONE = "postpone"
@@ -55,6 +41,10 @@ class NotificationAction(enum.Enum):
 
 @strawberry.type
 class NotificationLinkType:
+    """Kept only so clients built before Telegram was removed (2026-10) can
+    still run their notificationSettings query. Always empty; drop it once no
+    client asks for `links`."""
+
     channel: str
     connected: bool
     verified_at: Optional[dt.datetime]
@@ -83,14 +73,9 @@ class NotificationSettingsType:
     calendar_sync_routines: bool
     calendar_feed_token: str
     google_calendar_id: str
-    links: List[NotificationLinkType]
-
-
-@strawberry.type
-class ChannelLinkRequest:
-    token: str
-    deep_link: str
-    expires_at: dt.datetime
+    links: List[NotificationLinkType] = strawberry.field(
+        deprecation_reason="Telegram was removed; always empty."
+    )
 
 
 @strawberry.input
@@ -148,7 +133,6 @@ SUPPORTED_TIMEZONES = zoneinfo.available_timezones()
 
 
 def _to_gql(s: SettingsModel) -> NotificationSettingsType:
-    links_qs = NotificationLink.objects.filter(user_id=s.user_id)
     return NotificationSettingsType(
         locale=s.locale,
         theme=s.theme,
@@ -171,14 +155,7 @@ def _to_gql(s: SettingsModel) -> NotificationSettingsType:
         calendar_sync_routines=s.calendar_sync_routines,
         calendar_feed_token=s.calendar_feed_token,
         google_calendar_id=s.google_calendar_id,
-        links=[
-            NotificationLinkType(
-                channel=link.channel,
-                connected=bool(link.verified_at),
-                verified_at=link.verified_at,
-            )
-            for link in links_qs
-        ],
+        links=[],
     )
 
 
@@ -298,59 +275,6 @@ class NotificationsMutation:
         """Remove the caller's Expo push token for a device (logout / opt-out)."""
         uid = _user_id(info)
         ExpoPushToken.objects.filter(user_id=uid, device_id=(device_id or "").strip()).delete()
-        return True
-
-    @strawberry.mutation
-    def request_channel_link(
-        self, info: Info, channel: NotificationChannel
-    ) -> ChannelLinkRequest:
-        uid = _user_id(info)
-        if channel != NotificationChannel.TELEGRAM:
-            raise GraphQLError(
-                "Only Telegram is implemented in Phase 1",
-                extensions={"code": "NOT_IMPLEMENTED"},
-            )
-
-        bot_username = getattr(django_settings, "TELEGRAM_BOT_USERNAME", "")
-        if not bot_username:
-            raise GraphQLError(
-                "Server is missing TELEGRAM_BOT_USERNAME",
-                extensions={"code": "SERVER_MISCONFIGURED"},
-            )
-
-        token = secrets.token_urlsafe(24)
-        expires = timezone.now() + LINK_TOKEN_TTL
-
-        # Delete any existing UNverified link for this channel (clean slate),
-        # but keep verified ones — those are reissued via disconnect first.
-        existing = NotificationLink.objects.filter(
-            user_id=uid, channel=channel.value
-        ).first()
-        if existing and existing.verified_at is None:
-            existing.link_token = token
-            existing.link_token_expires = expires
-            existing.save(update_fields=["link_token", "link_token_expires"])
-        elif existing is None:
-            NotificationLink.objects.create(
-                user_id=uid,
-                channel=channel.value,
-                link_token=token,
-                link_token_expires=expires,
-            )
-        else:
-            # Already verified — caller should disconnect first
-            raise GraphQLError(
-                "Channel is already connected. Disconnect first.",
-                extensions={"code": "ALREADY_CONNECTED"},
-            )
-
-        deep_link = f"https://t.me/{bot_username}?start={token}"
-        return ChannelLinkRequest(token=token, deep_link=deep_link, expires_at=expires)
-
-    @strawberry.mutation
-    def disconnect_channel(self, info: Info, channel: NotificationChannel) -> bool:
-        uid = _user_id(info)
-        NotificationLink.objects.filter(user_id=uid, channel=channel.value).delete()
         return True
 
     @strawberry.mutation

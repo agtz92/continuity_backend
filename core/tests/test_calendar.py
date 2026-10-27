@@ -1,8 +1,8 @@
 """Calendar integration — RRULE mapping, ICS feed, and feed-token tests.
 
 Covers the pure event-mapping (calendar_export), the ICS document
-(calendar_feed) and the public feed-token lookup. The Google/iCloud push paths
-hit external APIs and are not exercised here (only their pure helpers are).
+(calendar_feed) and the public feed-token lookup. The Google Calendar push path
+hits an external API and is not exercised here (only its pure helpers are).
 """
 
 from __future__ import annotations

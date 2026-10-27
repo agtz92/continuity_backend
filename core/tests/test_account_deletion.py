@@ -31,7 +31,6 @@ from core.models import (
     Category,
     GoogleOAuthCredential,
     GraveyardInsight,
-    ICloudCalendarCredential,
     Idea,
     InteractionDay,
     NoteSection,
@@ -54,7 +53,6 @@ from core.notifications.models import (
     EmailSend,
     ExpoPushToken,
     Notification,
-    NotificationLink,
     NotificationSettings,
 )
 
@@ -114,17 +112,13 @@ def _seed(user_id: uuid.UUID) -> set[type]:
     AccountProfile.objects.create(user_id=user_id)
 
     Notification.objects.create(
-        user_id=user_id, channel="telegram", kind="weekly", dedupe_key="w1", body="…"
+        user_id=user_id, channel="expo", kind="weekly_digest", dedupe_key="w1", body="…"
     )
-    NotificationLink.objects.create(user_id=user_id, channel="telegram", external_id="42")
     ExpoPushToken.objects.create(user_id=user_id, device_id="dev", token="ExponentPushToken[x]")
     NotificationSettings.objects.create(user_id=user_id)
     EmailSend.objects.create(user_id=user_id, email_id="welcome_regular", status="sent")
 
     GoogleOAuthCredential.objects.create(user_id=user_id, refresh_token="enc", email="a@b.c")
-    ICloudCalendarCredential.objects.create(
-        user_id=user_id, apple_id="a@icloud.com", app_password="enc"
-    )
     client = OAuthClient.objects.create(client_id=f"c-{nonce}", client_name="Claude")
     OAuthAuthorizationCode.objects.create(
         code_hash=f"code-{nonce}",

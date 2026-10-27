@@ -371,23 +371,6 @@ class GoogleOAuthCredential(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 
-class ICloudCalendarCredential(models.Model):
-    """iCloud CalDAV credentials for the optional native-write integration.
-
-    Apple has no calendar OAuth, so the user supplies their Apple ID + an
-    app-specific password (generated at appleid.apple.com). The password is
-    stored Fernet-encrypted (same scheme as GoogleOAuthCredential tokens).
-    ``calendar_url`` is the chosen CalDAV calendar href to write into.
-    """
-
-    user_id = models.UUIDField(primary_key=True)
-    apple_id = models.CharField(max_length=320, blank=True, default="")
-    app_password = models.TextField()  # Fernet-encrypted
-    calendar_url = models.CharField(max_length=500, blank=True, default="")
-    created = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-
 class ActivityKind(models.TextChoices):
     NOTE = "note", "Note"
     PROJECT_CREATED = "project_created", "Project created"
