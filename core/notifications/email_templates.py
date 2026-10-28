@@ -404,3 +404,11 @@ def render(email_id: str, ctx: dict[str, Any], locale: str = DEFAULT_LOCALE) -> 
         text_blocks.append(signature)
 
     return subject, "\n".join(html_parts), "\n\n".join(text_blocks)
+
+
+def render_freeform(subject: str, body: str, ctx: dict[str, Any]) -> tuple[str, str, str]:
+    """Return (subject, html, text) for copy typed by an admin (no template,
+    no CTA). Same tokens and paragraph rules as `render`."""
+    subject = _sub(subject, ctx)
+    blocks = [b.strip() for b in _sub(body, ctx).replace("\r\n", "\n").split("\n\n") if b.strip()]
+    return subject, "\n".join(_block_html(b) for b in blocks), "\n\n".join(blocks)

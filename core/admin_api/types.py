@@ -71,9 +71,26 @@ class NotificationPrefs:
 
 
 @strawberry.type
+class AdminDirectEmail:
+    """One hand-written email an admin sent to a user (`adminSendUserEmail`).
+    Subject/body come from the audit log; status from the EmailSend ledger."""
+
+    id: strawberry.ID
+    created: dt.datetime
+    actor_user_id: strawberry.ID
+    subject: str
+    body: str
+    locale: str
+    status: str
+    error: str
+
+
+@strawberry.type
 class AdminUserDetail:
     user_id: strawberry.ID
     email: str
+    # Name from the onboarding (core.Profile); "" if the user never set one.
+    first_name: str
     plan: str
     is_admin: bool
     is_billing_exempt: bool
@@ -94,6 +111,14 @@ class AdminUserDetail:
     # channel (web / mobile / connector / unknown). Counts only — no content.
     interactions_by_source: list[LabeledCount]
     interactions_30d_total: int
+    # NULL = indefinite (or not exempt). Enforced hourly by
+    # core/services/billing_exemptions.expire_due.
+    billing_exempt_until: Optional[dt.datetime]
+    # What a direct email would go out as: "es"/"en" from the user's settings,
+    # and whether they unsubscribed (then the send is refused).
+    email_locale: str
+    lifecycle_emails_enabled: bool
+    direct_emails: list[AdminDirectEmail]
 
 
 @strawberry.type
@@ -326,6 +351,7 @@ __all__ = [
     "UserCounts",
     "AdminUserSummary",
     "AdminUserPage",
+    "AdminDirectEmail",
     "UsageDayPoint",
     "NotificationPrefs",
     "AdminUserDetail",

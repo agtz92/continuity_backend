@@ -17,6 +17,7 @@ import uuid
 from typing import Optional
 
 import strawberry
+from django.utils import timezone
 from graphql import GraphQLError
 from strawberry.tools import merge_types
 from strawberry.types import Info
@@ -24,9 +25,12 @@ from strawberry.types import Info
 from core.assistant.models import AccountProfile, Plan, UsageDay
 from core.services import interactions as interactions_svc
 from core.models import Activity as ActivityModel
-from core.notifications.models import NotificationSettings
+from core.models import Profile
+from core.notifications.lifecycle import _user_locale
+from core.notifications.models import EmailSend, NotificationSettings
 
 from .audit import record as audit_record
+from .models import AdminAuditLog
 from .permissions import _admin_user_id
 from .services import user_stats as user_stats_svc
 from .supabase_admin import (
@@ -318,6 +322,12 @@ class AdminUsersQuery:
             raise GraphQLError("User not found", extensions={"code": "NOT_FOUND"})
 
         profile = AccountProfile.objects.filter(user_id=uid).first()
+        first_name = (
+            Profile.objects.filter(user_id=uid)
+            .values_list("first_name", flat=True)
+            .first()
+            or ""
+        )
         counts = _build_counts_for(uid)
         last_activity = (
             ActivityModel.objects.filter(user_id=uid)
@@ -368,6 +378,7 @@ class AdminUsersQuery:
         return AdminUserDetail(
             user_id=strawberry.ID(str(uid)),
             email=s_user.email,
+            first_name=first_name,
             plan=(profile.plan if profile else Plan.FREE.value),
             is_admin=bool(profile.is_admin) if profile else False,
             is_billing_exempt=bool(profile.is_billing_exempt) if profile else False,
@@ -386,6 +397,12 @@ class AdminUsersQuery:
             notifications=prefs,
             interactions_by_source=interactions_by_source,
             interactions_30d_total=interactions_30d_total,
+            billing_exempt_until=(profile.billing_exempt_until if profile else None),
+            email_locale=_user_locale(uid),
+            lifecycle_emails_enabled=(
+                notif_settings.lifecycle_emails_enabled if notif_settings else True
+            ),
+            direct_emails=_direct_emails_for(uid),
         )
 
 
@@ -583,7 +600,14 @@ class AdminUsersMutation:
         profile, created = AccountProfile.objects.get_or_create(user_id=uid)
         before = profile.is_billing_exempt
         profile.is_billing_exempt = is_billing_exempt
-        profile.save(update_fields=["is_billing_exempt", "updated_at"])
+        fields = ["is_billing_exempt", "updated_at"]
+        if not is_billing_exempt:
+            # An end date without an exemption would expire nothing; drop it
+            # so turning the flag back on starts clean.
+            profile.billing_exempt_until = None
+            profile.billing_exempt_reason = ""
+            fields += ["billing_exempt_until", "billing_exempt_reason"]
+        profile.save(update_fields=fields)
 
         audit_record(
             actor_user_id=actor,
@@ -622,6 +646,129 @@ class AdminUsersMutation:
             last_activity=last_activity,
             interactions_30d=interactions_svc.interactions_total(uid),
         )
+
+    @strawberry.mutation(name="adminSetUserBillingExemptUntil")
+    def admin_set_user_billing_exempt_until(
+        self, info: Info, user_id: strawberry.ID, until: Optional[dt.datetime] = None
+    ) -> Optional[dt.datetime]:
+        """Fija (o quita, con ``null``) la fecha en que vence la exención.
+
+        Al pasar esa fecha, ``expire_billing_exemptions`` (en el cron horario)
+        quita la exención y, si nadie le cobra el plan, lo baja a Free. Solo
+        aplica a usuarios exentos; ``null`` = cortesía indefinida.
+
+        Raises:
+            GraphQLError: ``BAD_INPUT`` (UUID o fecha en el pasado),
+                ``NOT_EXEMPT`` si el usuario no está exento, o el error de
+                ``_admin_user_id``.
+        """
+        actor = _admin_user_id(info)
+        try:
+            uid = uuid.UUID(str(user_id))
+        except ValueError:
+            raise GraphQLError("Invalid user_id", extensions={"code": "BAD_INPUT"})
+        if until is not None and until <= timezone.now():
+            raise GraphQLError(
+                "La fecha de fin ya pasó", extensions={"code": "BAD_INPUT"}
+            )
+
+        profile = AccountProfile.objects.filter(user_id=uid).first()
+        if profile is None or not profile.is_billing_exempt:
+            raise GraphQLError(
+                "El usuario no está exento de pago", extensions={"code": "NOT_EXEMPT"}
+            )
+        before = profile.billing_exempt_until
+        profile.billing_exempt_until = until
+        profile.save(update_fields=["billing_exempt_until", "updated_at"])
+
+        audit_record(
+            actor_user_id=actor,
+            action="user.set_billing_exempt_until",
+            target_type="user",
+            target_id=uid,
+            payload={
+                "before": before.isoformat() if before else None,
+                "after": until.isoformat() if until else None,
+            },
+        )
+        return profile.billing_exempt_until
+
+    @strawberry.mutation(name="adminSendUserEmail")
+    def admin_send_user_email(
+        self, info: Info, user_id: strawberry.ID, subject: str, body: str
+    ) -> AdminDirectEmail:
+        """Envía al usuario un correo escrito a mano desde el panel.
+
+        Sale por Resend con el remitente de siempre (las respuestas llegan a
+        ``EMAIL_FROM``), en el idioma que el admin haya escrito; acepta los
+        tokens ``{{greeting}}`` y ``{{first_name}}``. Lleva el pie de baja y se
+        rechaza si el usuario se dio de baja de los correos de producto. Queda
+        en el ledger ``EmailSend`` y en la auditoría (con asunto y cuerpo, que
+        es de donde sale el historial de la ficha).
+
+        Raises:
+            GraphQLError: ``BAD_INPUT`` (UUID, asunto/cuerpo vacíos o largos),
+                ``OPTED_OUT``, ``NO_EMAIL``, ``SEND_FAILED`` si Resend falla (la
+                fila queda en ``failed``), o el error de ``_admin_user_id``.
+        """
+        from core.notifications.direct import DirectEmailError, send_direct_email
+
+        actor = _admin_user_id(info)
+        try:
+            uid = uuid.UUID(str(user_id))
+        except ValueError:
+            raise GraphQLError("Invalid user_id", extensions={"code": "BAD_INPUT"})
+
+        try:
+            out = send_direct_email(uid, subject, body)
+        except DirectEmailError as e:
+            raise GraphQLError(str(e), extensions={"code": e.code})
+
+        entry = audit_record(
+            actor_user_id=actor,
+            action="user.send_email",
+            target_type="user",
+            target_id=uid,
+            payload={
+                "send_id": out.send.id,
+                "subject": out.subject,
+                "body": body.strip(),
+                "locale": out.locale,
+                "status": out.send.status,
+            },
+        )
+        if out.send.status != "sent":
+            raise GraphQLError(
+                f"Resend rechazó el envío: {out.send.error}",
+                extensions={"code": "SEND_FAILED"},
+            )
+        return _direct_email_from_audit(entry, {out.send.id: out.send})
+
+
+def _direct_email_from_audit(entry, sends: dict) -> AdminDirectEmail:
+    p = entry.payload or {}
+    send = sends.get(p.get("send_id"))
+    return AdminDirectEmail(
+        id=strawberry.ID(str(entry.id)),
+        created=entry.created,
+        actor_user_id=strawberry.ID(str(entry.actor_user_id)),
+        subject=p.get("subject", ""),
+        body=p.get("body", ""),
+        locale=p.get("locale", ""),
+        status=send.status if send else p.get("status", ""),
+        error=send.error if send else "",
+    )
+
+
+def _direct_emails_for(uid: uuid.UUID) -> list[AdminDirectEmail]:
+    entries = list(
+        AdminAuditLog.objects.filter(
+            action="user.send_email", target_type="user", target_id=str(uid)
+        ).order_by("-created")[:50]
+    )
+    ids = [e.payload.get("send_id") for e in entries if e.payload.get("send_id")]
+    sends = {s.id: s for s in EmailSend.objects.filter(id__in=ids)}
+    return [_direct_email_from_audit(e, sends) for e in entries]
 
 
 # ---------- Ensamblaje por área ----------

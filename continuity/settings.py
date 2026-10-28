@@ -18,6 +18,8 @@ SUPABASE_SERVICE_ROLE_KEY = config("SUPABASE_SERVICE_ROLE_KEY", default="")  # a
 # (only dry_run rows are logged).
 RESEND_API_KEY = config("RESEND_API_KEY", default="")
 EMAIL_FROM = config("EMAIL_FROM", default="Alfredo <alfredo@continuu.it>")
+# Where replies to hand-written admin emails land (core/notifications/direct.py).
+EMAIL_REPLY_TO = config("EMAIL_REPLY_TO", default="hello@continuu.it")
 
 # Google Tasks (plugin: importa tareas desde Google Tasks)
 GOOGLE_OAUTH_CLIENT_ID = config("GOOGLE_OAUTH_CLIENT_ID", default="")

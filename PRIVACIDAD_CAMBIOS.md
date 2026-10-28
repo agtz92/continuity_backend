@@ -5,7 +5,7 @@ privacidad. Cubre backend, web (`frontend/`) y móvil (`continuity-mobile/`).
 Se actualiza cada vez que se cierra o se agrega algo.
 
 - **Proyecto en continuu.it:** "Privacidad y manejo de datos" (`3b439d48-5577-48da-9a65-7ad41aceeb0a`).
-- **Última actualización:** 2026-10-27 (pendientes de código cerrados)
+- **Última actualización:** 2026-10-28 (correo directo desde el admin)
 
 ---
 
@@ -97,6 +97,11 @@ Backend `ffc7389`, frontend `d43f3ea`, móvil `268605f` + `67aa177` (manifest).
 - Móvil `2295685`: los textos de Facturación ya no nombran a Stripe, y las queries de admin piden `billingCustomerId`/`billingTransactionId` (las `stripe*` ya no existían en el backend). Solo JS, pero antes de un OTA hay que revisar el diff de `package.json`/`app.json` contra el último build (ver `continuity-mobile/CLAUDE.md`).
 
 ---
+
+### 2026-10-28: correo directo del admin a un usuario
+- `adminSendUserEmail` manda un correo escrito a mano por Resend (proveedor ya nombrado en la política).
+- Respeta la baja de correos de producto (se rechaza con `OPTED_OUT`) y lleva el pie de baja y los headers `List-Unsubscribe`.
+- Asunto y cuerpo se guardan en `AdminAuditLog` (`user.send_email`, `target_type="user"`): el borrado de cuenta ya redacta ese payload. La fila de `EmailSend` se borra con la cuenta.
 
 ## Pendiente
 

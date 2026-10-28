@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from django.core.management.base import BaseCommand
 
-from core.services import beta_lifecycle
+from core.services import beta_lifecycle, billing_exemptions
 
 
 class Command(BaseCommand):
@@ -43,6 +43,12 @@ class Command(BaseCommand):
         from core.services import app_config
 
         now = timezone.now()
+        # Hourly, outside the daily gate: courtesy plans end within the hour
+        # of their date. See core/services/billing_exemptions.py.
+        expired = billing_exemptions.expire_due(now)
+        if expired:
+            self.stdout.write(f"Billing exemptions expired: {expired}")
+
         target_hour = options["hour"]
         if target_hour is None:
             target_hour = app_config.get_int("lifecycle_run_hour_utc")
