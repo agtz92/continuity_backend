@@ -47,7 +47,9 @@ Migraciones: `assistant/0010` (campos), `assistant/0011` (backfill),
    autenticado): si `beta_enrollment_open` y `activos < beta_spot_cap` →
    beta + exento('beta') + plan pro; si no → regular que paga.
 2. **Welcome** (`send_lifecycle_welcome`, cron horario): a quien no tiene welcome.
-   `welcome_beta` / `welcome_regular` según cohorte.
+   `welcome_beta` / `welcome_regular` según cohorte. Solo cuentas de **≤ 3 días**
+   (`MAX_AGE`); las más viejas sin welcome se marcan `suppressed` (no se mandan
+   tarde). Un error con un usuario se cuenta como `error=N` y no corta el lote.
 3. **Inactividad** (`run_beta_lifecycle`, cron diario 15:00 UTC): clasifica cada
    beta activo y manda **un** email por corrida.
 
@@ -141,6 +143,13 @@ envía ni se reclama hasta apagarlo; en dry_run solo se escriben filas de previe
 ### Crons (Render)
 
 - **Horario** (`continuity-notifications-hourly`): se le añadió `send_lifecycle_welcome` al inicio.
+  > **2026-10-28:** en producción `send_lifecycle_welcome` **nunca había corrido**: ninguna
+  > cuenta creada desde el 2026-06-26 tenía fila de welcome (ni `failed`), mientras los
+  > correos de inactividad sí salían a las 15:0x UTC. El código funciona (simulado contra
+  > producción en modo lectura); lo que falta es el comando en el cron de Render, que se
+  > configura a mano y no se lee de `render.yaml`. Revisa en el dashboard que el *Command*
+  > del cron horario coincida con el `startCommand` de `render.yaml` y que su log tenga la
+  > línea `Lifecycle welcome: …`.
 - **Diario** (`continuity-beta-lifecycle-daily`, **`0 15 * * *`** = 15:00 UTC): `run_beta_lifecycle`.
 
 ### Apagar `dry_run` (go-live) — sin redeploy

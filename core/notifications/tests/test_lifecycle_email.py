@@ -188,3 +188,62 @@ def test_welcome_command_picks_template_by_cohort(monkeypatch):
 
     assert EmailSend.objects.filter(user_id=beta, email_id="welcome_beta").exists()
     assert EmailSend.objects.filter(user_id=regular, email_id="welcome_regular").exists()
+
+
+@pytest.mark.django_db
+def test_welcome_suppresses_accounts_older_than_window(monkeypatch):
+    import datetime as dt
+
+    from django.core.management import call_command
+    from django.utils import timezone
+
+    from core.assistant.models import AccountProfile
+
+    app_config.set("dry_run", False)
+    _patch_recipient(monkeypatch)
+    _patch_provider(monkeypatch)
+
+    fresh = uuid.uuid4()
+    old_beta = uuid.uuid4()
+    AccountProfile.objects.create(user_id=fresh)
+    AccountProfile.objects.create(user_id=old_beta, beta_cohort=True, beta_status="reclaimed")
+    # `created` is auto_now_add: backdate it after the insert.
+    AccountProfile.objects.filter(user_id=old_beta).update(
+        created=timezone.now() - dt.timedelta(days=90)
+    )
+
+    call_command("send_lifecycle_welcome")
+
+    assert EmailSend.objects.get(user_id=fresh, email_id="welcome_regular").status == "sent"
+    old = EmailSend.objects.get(user_id=old_beta, email_id="welcome_beta", dry_run=False)
+    assert old.status == EmailSend.Status.SUPPRESSED and old.sent_at is None
+
+    # Next run: both are settled, nothing goes out again.
+    call_command("send_lifecycle_welcome")
+    assert EmailSend.objects.filter(user_id__in=[fresh, old_beta]).count() == 2
+
+
+@pytest.mark.django_db
+def test_welcome_one_failure_does_not_abort_batch(monkeypatch):
+    from io import StringIO
+
+    from django.core.management import call_command
+
+    from core.assistant.models import AccountProfile
+
+    bad, good = uuid.uuid4(), uuid.uuid4()
+    AccountProfile.objects.create(user_id=bad)
+    AccountProfile.objects.create(user_id=good)
+    real_deliver = lifecycle.deliver
+
+    def _deliver(user_id, email_id, **kw):
+        if user_id == bad:
+            raise RuntimeError("boom")
+        return real_deliver(user_id, email_id, **kw)
+
+    monkeypatch.setattr(lifecycle, "deliver", _deliver)
+    out = StringIO()
+    call_command("send_lifecycle_welcome", stdout=out)
+
+    assert "error=1" in out.getvalue()
+    assert EmailSend.objects.filter(user_id=good, email_id="welcome_regular").exists()
