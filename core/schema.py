@@ -200,9 +200,17 @@ class Query:
         string the client saves to a file (right to data portability)."""
         import json
 
+        from .admin_api.supabase_admin import get_user
         from .services.data_export import build_export
 
-        return json.dumps(build_export(_user_id(info)), ensure_ascii=False, indent=2)
+        uid = _user_id(info)
+        # The email lives in Supabase auth, not our tables. Best-effort: the
+        # file still goes out without it if the admin API is unreachable.
+        try:
+            email = getattr(get_user(uid), "email", "") or ""
+        except Exception:
+            email = ""
+        return json.dumps(build_export(uid, email=email), ensure_ascii=False, indent=2)
 
     @strawberry.field
     def onboarding_state(self, info: Info) -> OnboardingState:

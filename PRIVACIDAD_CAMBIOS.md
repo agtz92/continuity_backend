@@ -103,6 +103,14 @@ Backend `ffc7389`, frontend `d43f3ea`, móvil `268605f` + `67aa177` (manifest).
 - Respeta la baja de correos de producto (se rechaza con `OPTED_OUT`) y lleva el pie de baja y los headers `List-Unsubscribe`.
 - Asunto y cuerpo se guardan en `AdminAuditLog` (`user.send_email`, `target_type="user"`): el borrado de cuenta ya redacta ese payload. La fila de `EmailSend` se borra con la cuenta.
 
+### 2026-10-28: export de datos con lista blanca de columnas
+Revisando un export real salían un secreto y datos internos. Cambios en `core/services/data_export.py`:
+- **Columnas por lista blanca** (`FIELDS`); lo que se deja fuera va en `OMITTED_FIELDS` con su motivo. `test_data_export.py` falla si una columna de un modelo exportado no está en ninguna de las dos, así una columna nueva ya no sale por omisión.
+- **Fuera:** `calendar_feed_token` (daba acceso al feed de calendario), `is_admin`, flags de billing exento y beta, ids de sync (`google_task_id`, `calendar_event_id`, `client_token`, `parked_due_*`), estado de triaje de bug reports, `client_id` OAuth e ids secuenciales (revelaban volumen de la plataforma).
+- **Conversaciones con Loop:** cada mensaje sale como `{role, text, created}`. Fuera los bloques `tool_use`/`tool_result`, el modelo, el `stop_reason` y los conteos de tokens y caché; lo que hicieron las tools ya está en `activity`.
+- **Eventos del conector:** sin `token_refreshed` (uno por cada vida del token, mostraba la cadencia); quedan autorizar y revocar.
+- **Correo:** `myDataExport` ahora incluye el email de la cuenta (Supabase auth, best-effort; si falla sale vacío).
+
 ## Pendiente
 
 ### Lo hace el dueño (fuera del código)
