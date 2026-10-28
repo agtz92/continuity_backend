@@ -5,11 +5,19 @@ privacidad. Cubre backend, web (`frontend/`) y móvil (`continuity-mobile/`).
 Se actualiza cada vez que se cierra o se agrega algo.
 
 - **Proyecto en continuu.it:** "Privacidad y manejo de datos" (`3b439d48-5577-48da-9a65-7ad41aceeb0a`).
-- **Última actualización:** 2026-10-28 (correo directo desde el admin)
+- **Última actualización:** 2026-10-28 (GA mide el registro)
 
 ---
 
 ## Hecho
+
+### 2026-10-28: GA mide el registro (`sign_up`)
+Frontend `ab26859`.
+- GA (con el mismo consentimiento) se carga también en `/login` (con el banner) y en `/onboarding` (sin banner: solo si ya se aceptó). Nunca en `admon.*`, el dashboard ni el admin.
+- Evento `sign_up` con un solo parámetro, `method` (`email` o `google`). No lleva correo, nombre ni id de usuario.
+  - Email: al enviar el formulario de registro, solo si Supabase creó la cuenta (un correo ya registrado no cuenta).
+  - Google: la primera vez que una cuenta de Google creada hace menos de 30 min llega al onboarding (`SignupTracker`).
+- La política (`legal.privacy` en `messages/{en,es}.json`) ya no dice que GA "nunca se carga dentro de la aplicación"; nombra estas pantallas y el evento. Fecha de actualización: 28 de octubre.
 
 ### 2026-10-26: política de privacidad reescrita
 Frontend `80300b3`.
