@@ -140,7 +140,7 @@ Backend `58e5502`. Revisando un export real salían un secreto y datos internos.
   - Supabase: ya incluido en sus Terms; no hace falta firmar nada (confirmado en Organization → Legal Documents, 2026-10-29). El Supabase Assistant está en Disabled: no comparte datos de la base con terceros.
   - Vercel: plan Pro activo (confirmado 2026-10-29), así que el DPA aplica (vercel.com/legal/dpa); no hace falta firmar nada.
   - Expo: no publica un DPA; pedirlo por correo a Expo (cubre los tokens push y el envío).
-  - Google Analytics: aceptar el Data Processing Amendment en Admin → Account details.
+  - Google Analytics: Términos del Tratamiento de Datos aceptados el 2026-05-25 (confirmado 2026-10-29). Falta desmarcar "Productos y servicios de Google" y "Contribuciones al modelo" en las opciones para compartir datos: con esas casillas Google usa los datos de los visitantes para sus propios fines, y la política dice que los proveedores solo tratan datos por nuestra cuenta.
 - [ ] Llenar las App Privacy labels (App Store) y el Data safety (Google Play) de acuerdo con la política.
 - [ ] Revisión legal de la política y de los Terms con un abogado.
 
