@@ -139,7 +139,7 @@ Backend `58e5502`. Revisando un export real salían un secreto y datos internos.
   - Ya incluidos al aceptar sus términos, solo guardar copia: Supabase y Vercel (ver abajo), Render (render.com/dpa), Anthropic (Commercial Terms), RevenueCat (revenuecat.com/dpa) y Resend (resend.com/legal/dpa, pre-firmado).
   - Supabase: ya incluido en sus Terms; no hace falta firmar nada (confirmado en Organization → Legal Documents, 2026-10-29). El Supabase Assistant está en Disabled: no comparte datos de la base con terceros.
   - Vercel: plan Pro activo (confirmado 2026-10-29), así que el DPA aplica (vercel.com/legal/dpa); no hace falta firmar nada.
-  - Expo: no publica un DPA; pedirlo por correo a Expo (cubre los tokens push y el envío).
+  - Expo: no publica un DPA. Solicitado el 2026-10-29 por el formulario expo.dev/contact (tema Other, "Legal / Privacy"); esperando respuesta. Subprocesadores: expo.dev/privacy/subprocessors.
   - Google Analytics: Términos del Tratamiento de Datos aceptados el 2026-05-25. El 2026-10-29 se desmarcaron "Productos y servicios de Google" y "Contribuciones al modelo": Google ya no usa los datos de los visitantes para sus fines. Contacto de privacidad en la ATD: hello@continuu.it.
 - [ ] Llenar las App Privacy labels (App Store) y el Data safety (Google Play) de acuerdo con la política.
 - [ ] Revisión legal de la política y de los Terms con un abogado.
