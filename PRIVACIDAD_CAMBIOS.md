@@ -136,8 +136,8 @@ Backend `58e5502`. Revisando un export real salían un secreto y datos internos.
 - [x] GA4 no carga en `admon.continuu.it`: verificado por el dueño (2026-10-29).
 - [x] Regiones confirmadas (2026-10-27): Supabase `us-east-2` (Ohio) y Render Oregon (US West). Las dos están en EE. UU., así que la sección de transferencias ("incluido Estados Unidos") ya es correcta.
 - [ ] DPA con los proveedores (investigado 2026-10-29):
-  - Ya incluidos al aceptar sus términos, solo guardar copia: Render (render.com/dpa), Anthropic (Commercial Terms), RevenueCat (revenuecat.com/dpa) y Resend (resend.com/legal/dpa, pre-firmado).
-  - Supabase: pedir la versión firmable (PandaDoc) en Dashboard → Organization → Legal Documents.
+  - Ya incluidos al aceptar sus términos, solo guardar copia: Supabase (ver abajo), Render (render.com/dpa), Anthropic (Commercial Terms), RevenueCat (revenuecat.com/dpa) y Resend (resend.com/legal/dpa, pre-firmado).
+  - Supabase: ya incluido en sus Terms; no hace falta firmar nada (confirmado en Organization → Legal Documents, 2026-10-29). El Supabase Assistant está en Disabled: no comparte datos de la base con terceros.
   - Vercel: el DPA solo cubre los planes Pro y Enterprise; en Hobby no hay DPA (y Hobby es solo para uso no comercial).
   - Expo: no publica un DPA; pedirlo por correo a Expo (cubre los tokens push y el envío).
   - Google Analytics: aceptar el Data Processing Amendment en Admin → Account details.
