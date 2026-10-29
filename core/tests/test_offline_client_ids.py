@@ -213,3 +213,31 @@ def test_set_task_done_de_otro_usuario(execute_query, user_a, user_b, task_facto
     assert _code(result) == "NOT_FOUND"
     task.refresh_from_db()
     assert task.done is False
+
+
+CREATE_ROUTINE = """
+    mutation($data: RoutineInput!) { createRoutine(data: $data) { id title } }
+"""
+
+
+@pytest.mark.django_db
+def test_create_routine_idempotente(execute_query, user_a):
+    from core.models import Routine
+
+    client_id = str(uuid.uuid4())
+    variables = {
+        "data": {
+            "title": "Leer",
+            "recurrenceType": "weekly_days",
+            "startDate": "2026-10-29",
+            "weekdays": [0, 2, 4],
+            "id": client_id,
+        }
+    }
+    first = execute_query(CREATE_ROUTINE, user_id=user_a, variable_values=variables)
+    again = execute_query(CREATE_ROUTINE, user_id=user_a, variable_values=variables)
+
+    assert first.errors is None and again.errors is None
+    assert first.data["createRoutine"]["id"] == client_id
+    assert again.data["createRoutine"]["id"] == client_id
+    assert Routine.objects.filter(user_id=user_a).count() == 1

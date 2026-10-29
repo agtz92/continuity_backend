@@ -124,7 +124,13 @@ def create_routine(
     project_id: Optional[uuid.UUID] = None,
     time_of_day: Optional[dt.time] = None,
     duration_minutes: Optional[int] = None,
+    client_id=None,
 ) -> Routine:
+    # `client_id`: la cola offline del móvil crea con su propio UUID y reintenta
+    # con el mismo (ver `existing_for_client_id`).
+    existing, new_id = existing_for_client_id(Routine, user_id, client_id)
+    if existing is not None:
+        return existing
     assert_owned(user_id, project_id)
     check_entity_quota(user_id, "routines")
     _validate_rule(
@@ -146,6 +152,7 @@ def create_routine(
         },
     )
     routine = Routine.objects.create(
+        **({"id": new_id} if new_id else {}),
         user_id=user_id,
         title=title,
         description=description or "",

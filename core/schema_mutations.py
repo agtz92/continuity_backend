@@ -517,6 +517,7 @@ class Mutation:
                 project_id=data.project_id or None,
                 time_of_day=data.time_of_day,
                 duration_minutes=data.duration_minutes,
+                client_id=data.id,
             )
         except ValidationError as e:
             # ValidationError aquí = regla de recurrencia inválida → BAD_INPUT.

@@ -566,6 +566,9 @@ class RoutineInput:
     project_id: Optional[strawberry.ID] = None
     time_of_day: Optional[dt.time] = None
     duration_minutes: Optional[int] = None
+    # Solo en create: id generado por la cola offline del móvil; reenviarlo
+    # devuelve la misma fila (idempotente). `updateRoutine` lo ignora.
+    id: Optional[strawberry.ID] = None
 
 
 @strawberry.input
