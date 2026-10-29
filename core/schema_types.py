@@ -451,6 +451,23 @@ class RoutineDueItem:
 
 
 @strawberry.type
+class QuotaCap:
+    kind: str
+    # None = sin tope.
+    cap: Optional[int]
+
+
+@strawberry.type
+class EntityQuotaInfo:
+    """Plan y topes de entidades (ver `core.quotas.plan_quotas`)."""
+
+    plan: str
+    caps: List[QuotaCap]
+    # Exceder el tope de cualquiera de estos bloquea crear lo que sea.
+    blocking_kinds: List[str]
+
+
+@strawberry.type
 class Dashboard:
     projects: List[Project]
     tasks: List[Task]
@@ -461,6 +478,7 @@ class Dashboard:
     routines: List[Routine]
     routine_occurrences: List[RoutineOccurrence]
     last_backup: Optional[dt.datetime]
+    quota: EntityQuotaInfo
 
 
 # ---------- Inputs ----------
@@ -1003,6 +1021,8 @@ __all__ = [
     "RoutineOccurrence",
     "RoutineDueItem",
     "Dashboard",
+    "EntityQuotaInfo",
+    "QuotaCap",
     "ProjectInput",
     "ProjectNoteInput",
     "CategoryInput",

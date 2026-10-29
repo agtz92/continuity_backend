@@ -241,3 +241,23 @@ def test_create_routine_idempotente(execute_query, user_a):
     assert first.data["createRoutine"]["id"] == client_id
     assert again.data["createRoutine"]["id"] == client_id
     assert Routine.objects.filter(user_id=user_a).count() == 1
+
+
+DASHBOARD_QUOTA = """
+    query { dashboard { quota { plan blockingKinds caps { kind cap } } } }
+"""
+
+
+@pytest.mark.django_db
+def test_dashboard_trae_plan_y_topes(execute_query, user_a):
+    """La cola offline revisa el cupo con esto: tiene que cuadrar con quotas.py."""
+    from core.quotas import ENTITY_QUOTAS
+
+    result = execute_query(DASHBOARD_QUOTA, user_id=user_a)
+
+    assert result.errors is None
+    quota = result.data["dashboard"]["quota"]
+    assert quota["plan"] == "free"
+    caps = {c["kind"]: c["cap"] for c in quota["caps"]}
+    assert caps == {k: v["free"] for k, v in ENTITY_QUOTAS.items()}
+    assert "routines" in quota["blockingKinds"]

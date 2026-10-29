@@ -71,6 +71,17 @@ from .schema_helpers import (
 # Tipos e inputs GraphQL viven en schema_types.py (extraídos, ver AUDITORIA_CODIGO.md).
 from .schema_types import *  # noqa: F401,F403
 from .schema_types import _to_analytics_gql  # conversor privado (no entra por *)
+from .quotas import plan_quotas
+
+
+def _quota_info(uid) -> EntityQuotaInfo:
+    """Plan y topes para que la cola offline del móvil revise el cupo sin red."""
+    plan, caps, blocking = plan_quotas(uid)
+    return EntityQuotaInfo(
+        plan=plan,
+        caps=[QuotaCap(kind=k, cap=v) for k, v in caps.items()],
+        blocking_kinds=blocking,
+    )
 
 # ---------- Queries ----------
 
@@ -116,6 +127,7 @@ class Query:
                 RoutineOccurrence.from_model(o) for o in d.routine_occurrences
             ],
             last_backup=d.last_backup,
+            quota=_quota_info(uid),
         )
 
     @strawberry.field

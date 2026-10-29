@@ -17,6 +17,7 @@ Móvil `32158ea` (rama `offline-fase-1`). Plan: `docs/plan-offline-movil.md` (fa
 - Se borra al cerrar sesión, al expirar la sesión y al borrar la cuenta (`clearUserData` → `purgePersistedCache`). No se cifra aparte: depende del cifrado en reposo de iOS/Android.
 - Sin red y con el token vencido, la app usa la sesión que Supabase ya guardaba en AsyncStorage para saber de quién es la caché; no se guarda nada nuevo de auth.
 - Fase 2 (sin commit): los cambios hechos sin red se guardan en una cola en el mismo sandbox (`outbox-<userId>.json`, `src/lib/outbox/queue.ts`) hasta que se envían. Guarda lo que el usuario escribió (títulos, notas, secciones). Se borra al cerrar sesión con la caché; si la sesión se cierra con cambios pendientes, esos cambios se pierden a propósito para no mandarlos con otra cuenta.
+- Lo que el servidor rechaza al reconectar (p. ej. por el tope del plan) se queda en el mismo archivo, en la lista "No se pudo guardar", hasta que el usuario lo reintenta o lo descarta. También se borra al cerrar sesión.
 - [ ] Revisar si la política (`legal.privacy`, sección de almacenamiento local) debe mencionar que la app móvil guarda una copia de los datos y de los cambios pendientes en el dispositivo.
 
 ### 2026-10-28: GA mide el registro (`sign_up`)

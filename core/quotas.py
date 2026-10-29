@@ -174,6 +174,19 @@ def _count(kind: str, user_id: uuid.UUID, project_id: Optional[uuid.UUID]) -> in
 _BLOCKING_KINDS = ["projects", "tasks_total", "routines", "ideas", "categories"]
 
 
+def plan_quotas(user_id: uuid.UUID) -> tuple[str, dict[str, Optional[int]], list[str]]:
+    """El plan del usuario, sus topes por tipo y los tipos bloqueantes.
+
+    Va en el `dashboard` para que la app móvil pueda aplicar **la misma regla
+    que `check_entity_quota`** sin red: la cola offline revisa el tope antes de
+    encolar un create, en vez de crear algo que el servidor rechazará después.
+    El servidor sigue siendo quien decide; esto solo evita la mala experiencia.
+    """
+    plan = _get_plan(user_id)
+    caps = {kind: per_plan.get(plan) for kind, per_plan in ENTITY_QUOTAS.items()}
+    return plan, caps, list(_BLOCKING_KINDS)
+
+
 def check_entity_quota(
     user_id: uuid.UUID,
     kind: str,
