@@ -514,6 +514,9 @@ class TaskInput:
     # rapida: mismo token = misma tarea, no una copia.
     blocker: Optional[str] = ""
     client_token: Optional[str] = ""
+    # Solo en create: id generado por la cola offline del móvil; reenviarlo
+    # devuelve la misma fila (idempotente). Los update lo ignoran.
+    id: Optional[strawberry.ID] = None
 
 
 @strawberry.input
@@ -521,6 +524,9 @@ class IdeaInput:
     title: str
     description: Optional[str] = ""
     why: Optional[str] = ""
+    # Solo en create: id generado por la cola offline del móvil; reenviarlo
+    # devuelve la misma fila (idempotente). Los update lo ignoran.
+    id: Optional[strawberry.ID] = None
 
 
 @strawberry.input
@@ -529,6 +535,9 @@ class QuickNoteInput:
     category_id: Optional[strawberry.ID] = None
     project_id: Optional[strawberry.ID] = None
     pinned: Optional[bool] = False
+    # Solo en create: id generado por la cola offline del móvil; reenviarlo
+    # devuelve la misma fila (idempotente). Los update lo ignoran.
+    id: Optional[strawberry.ID] = None
 
 
 @strawberry.input
@@ -537,6 +546,9 @@ class NoteSectionInput:
     body: Optional[str] = ""
     position: Optional[int] = None
     collapsed: Optional[bool] = False
+    # Solo en create: id generado por la cola offline del móvil; reenviarlo
+    # devuelve la misma fila (idempotente). Los update lo ignoran.
+    id: Optional[strawberry.ID] = None
 
 
 @strawberry.input

@@ -204,12 +204,15 @@ class Mutation:
             duration_minutes=data.duration_minutes,
             blocker=data.blocker or "",
             client_token=data.client_token or "",
+            client_id=data.id,
         )
         # `from_model` no consulta bloqueadores (los recibe, para que el
         # dashboard evite el N+1). Aquí solo puede haberlos si la captura mandó
         # uno o si el token devolvió una tarea que ya existía, así que la query
         # extra se paga únicamente en esos dos casos.
-        may_have_blockers = bool((data.blocker or "").strip() or data.client_token)
+        may_have_blockers = bool(
+            (data.blocker or "").strip() or data.client_token or data.id
+        )
         blockers = (
             [TaskBlocker.from_model(b) for b in m.blockers.all()]
             if may_have_blockers
@@ -239,6 +242,15 @@ class Mutation:
     def toggle_task(self, info: Info, id: strawberry.ID) -> Task:
         uid = _user_id(info)
         m = tasks_svc.toggle_task(uid, id)
+        return _task_with_blockers(m)
+
+    @strawberry.mutation
+    @gql_error_handler
+    def set_task_done(self, info: Info, id: strawberry.ID, done: bool) -> Task:
+        """Como `toggleTask` pero con el estado explícito, así reintentarlo no
+        lo invierte. Lo usa la cola offline del móvil."""
+        uid = _user_id(info)
+        m = tasks_svc.set_task_done(uid, id, done)
         return _task_with_blockers(m)
 
     @strawberry.mutation
@@ -286,6 +298,7 @@ class Mutation:
             title=data.title,
             description=data.description or "",
             why=data.why or "",
+            client_id=data.id,
         )
         return Idea.from_model(m)
 
@@ -344,6 +357,7 @@ class Mutation:
             category_id=data.category_id,
             project_id=data.project_id,
             pinned=bool(data.pinned),
+            client_id=data.id,
         )
         return QuickNote.from_model(m)
 
@@ -391,6 +405,7 @@ class Mutation:
             body=data.body or "",
             position=data.position,
             collapsed=bool(data.collapsed),
+            client_id=data.id,
         )
         return NoteSection.from_model(m)
 
@@ -427,9 +442,17 @@ class Mutation:
     # ===== Mutations: Notas de actividad (kind=NOTE) =====
     @strawberry.mutation
     @gql_error_handler
-    def add_note(self, info: Info, project_id: strawberry.ID, note: str) -> Activity:
+    def add_note(
+        self,
+        info: Info,
+        project_id: strawberry.ID,
+        note: str,
+        id: Optional[strawberry.ID] = None,
+    ) -> Activity:
         uid = _user_id(info)
-        m = activities_svc.add_note(uid, project_id=project_id, note=note)
+        m = activities_svc.add_note(
+            uid, project_id=project_id, note=note, client_id=id
+        )
         return Activity.from_model(m)
 
     @strawberry.mutation
@@ -560,10 +583,15 @@ class Mutation:
         routine_id: strawberry.ID,
         scheduled_date: dt.date,
         note: Optional[str] = "",
+        id: Optional[strawberry.ID] = None,
     ) -> RoutineOccurrence:
         uid = _user_id(info)
         m = routines_svc.complete_occurrence(
-            uid, routine_id, scheduled_date=scheduled_date, note=note or ""
+            uid,
+            routine_id,
+            scheduled_date=scheduled_date,
+            note=note or "",
+            client_id=id,
         )
         return RoutineOccurrence.from_model(m)
 

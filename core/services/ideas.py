@@ -12,6 +12,7 @@ from ..models import ActivityKind, Idea, Project
 from ..quotas import check_entity_quota
 from ._cache import bump_context_version
 from .activities import log_event
+from ._common import existing_for_client_id
 from .projects import NotFoundError
 
 
@@ -40,9 +41,14 @@ def create_idea(
     title: str,
     description: str = "",
     why: str = "",
+    client_id=None,
 ) -> Idea:
+    existing, new_id = existing_for_client_id(Idea, user_id, client_id)
+    if existing is not None:
+        return existing
     check_entity_quota(user_id, "ideas")
     idea = Idea.objects.create(
+        **({"id": new_id} if new_id else {}),
         user_id=user_id,
         title=title,
         description=description or "",

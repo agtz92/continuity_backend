@@ -13,6 +13,7 @@ from django.utils import timezone
 from ..models import ActivityKind, Project, Task, TaskBlocker
 from ..quotas import check_entity_quota
 from ._cache import bump_context_version
+from ._common import existing_for_client_id
 from .activities import iso, log_event
 from .projects import (
     DAILY_VIEW_PROJECT_STATUSES,
@@ -129,6 +130,7 @@ def create_task(
     duration_minutes: Optional[int] = None,
     blocker: str = "",
     client_token: str = "",
+    client_id=None,
 ) -> Task:
     """Crea una tarea y, si viene, su blocker externo **en la misma
     transaccion**.
@@ -152,6 +154,12 @@ def create_task(
         if existing is not None:
             return existing
 
+    # `client_id`: la cola offline del móvil crea con su propio UUID y reintenta
+    # con el mismo (ver `existing_for_client_id`).
+    existing, new_id = existing_for_client_id(Task, user_id, client_id)
+    if existing is not None:
+        return existing
+
     check_entity_quota(user_id, "tasks_total")
     if project_id:
         check_entity_quota(user_id, "tasks_per_project", project_id=project_id)
@@ -159,6 +167,7 @@ def create_task(
     reason = (blocker or "").strip()
     with transaction.atomic():
         task = Task.objects.create(
+            **({"id": new_id} if new_id else {}),
             user_id=user_id,
             title=title,
             project_id=project_id or None,
@@ -334,6 +343,19 @@ def toggle_task(user_id: uuid.UUID, task_id) -> Task:
             )
     bump_context_version(user_id)
     return task
+
+
+def set_task_done(user_id: uuid.UUID, task_id, done: bool) -> Task:
+    """`toggle_task` con el estado explícito: idempotente.
+
+    La cola offline del móvil puede mandar una operación tarde o dos veces; un
+    toggle repetido la dejaría al revés. Si ya está como se pide, no se toca
+    (ni se vuelve a registrar la activity de completada).
+    """
+    task = get_task(user_id, task_id)
+    if task.done == bool(done):
+        return task
+    return toggle_task(user_id, task_id)
 
 
 def postpone_task(user_id: uuid.UUID, task_id, due_date: dt.datetime) -> Task:

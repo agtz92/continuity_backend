@@ -19,7 +19,7 @@ from django.utils import timezone
 from ..models import Activity, ActivityKind, Project
 from ..quotas import check_entity_quota
 from ._cache import bump_context_version as _bump_context_version
-from ._common import NotFoundError
+from ._common import NotFoundError, existing_for_client_id
 
 
 def log_event(
@@ -33,8 +33,10 @@ def log_event(
     previous_value: str = "",
     new_value: str = "",
     note: str = "",
+    activity_id: Optional[uuid.UUID] = None,
 ) -> Activity:
     return Activity.objects.create(
+        **({"id": activity_id} if activity_id else {}),
         user_id=user_id,
         kind=kind,
         entity_id=entity_id,
@@ -76,8 +78,16 @@ def list_activity(
 # ---------- Public note operations (kind=NOTE only)
 
 
-def add_note(user_id: uuid.UUID, *, project_id, note: str) -> Activity:
-    """Create a user-authored note tied to a project. Touches last_activity."""
+def add_note(
+    user_id: uuid.UUID, *, project_id, note: str, client_id=None
+) -> Activity:
+    """Create a user-authored note tied to a project. Touches last_activity.
+
+    `client_id`: id propio de la cola offline del móvil; reenviarlo devuelve la
+    misma nota (ver `existing_for_client_id`)."""
+    existing, new_id = existing_for_client_id(Activity, user_id, client_id)
+    if existing is not None:
+        return existing
     if not Project.objects.filter(pk=project_id, user_id=user_id).exists():
         raise NotFoundError("Project not found")
     # `notes_per_project` here is a cheap proxy for "is the user creating
@@ -90,6 +100,7 @@ def add_note(user_id: uuid.UUID, *, project_id, note: str) -> Activity:
         kind=ActivityKind.NOTE,
         project_id=project_id,
         note=note,
+        activity_id=new_id,
     )
     Project.objects.filter(pk=project_id, user_id=user_id).update(
         last_activity=timezone.now()

@@ -5,11 +5,19 @@ privacidad. Cubre backend, web (`frontend/`) y móvil (`continuity-mobile/`).
 Se actualiza cada vez que se cierra o se agrega algo.
 
 - **Proyecto en continuu.it:** "Privacidad y manejo de datos" (`3b439d48-5577-48da-9a65-7ad41aceeb0a`).
-- **Última actualización:** 2026-10-28 (GA mide el registro)
+- **Última actualización:** 2026-10-29 (móvil guarda los datos en el teléfono para leerlos sin red)
 
 ---
 
 ## Hecho
+
+### 2026-10-29: móvil guarda los datos en el teléfono (lectura offline)
+Móvil `32158ea` (rama `offline-fase-1`). Plan: `docs/plan-offline-movil.md` (fase 1).
+- La caché de Apollo (proyectos, tareas, ideas, activities, rutinas, notas, perfil) se guarda en un archivo del sandbox de la app (`documentDirectory/apollo-cache-<userId>.json`, `src/lib/cachePersist.ts`). Antes solo vivía en memoria.
+- Se borra al cerrar sesión, al expirar la sesión y al borrar la cuenta (`clearUserData` → `purgePersistedCache`). No se cifra aparte: depende del cifrado en reposo de iOS/Android.
+- Sin red y con el token vencido, la app usa la sesión que Supabase ya guardaba en AsyncStorage para saber de quién es la caché; no se guarda nada nuevo de auth.
+- Fase 2 (sin commit): los cambios hechos sin red se guardan en una cola en el mismo sandbox (`outbox-<userId>.json`, `src/lib/outbox/queue.ts`) hasta que se envían. Guarda lo que el usuario escribió (títulos, notas, secciones). Se borra al cerrar sesión con la caché; si la sesión se cierra con cambios pendientes, esos cambios se pierden a propósito para no mandarlos con otra cuenta.
+- [ ] Revisar si la política (`legal.privacy`, sección de almacenamiento local) debe mencionar que la app móvil guarda una copia de los datos y de los cambios pendientes en el dispositivo.
 
 ### 2026-10-28: GA mide el registro (`sign_up`)
 Frontend `ab26859`.

@@ -27,7 +27,7 @@ from ..models import (
 from .projects import DAILY_VIEW_PROJECT_STATUSES
 from ..quotas import check_entity_quota
 from ._cache import bump_context_version
-from ._common import NotFoundError
+from ._common import NotFoundError, existing_for_client_id
 from .activities import log_event
 from .projects import assert_owned
 
@@ -391,13 +391,21 @@ def complete_occurrence(
     *,
     scheduled_date: dt.date,
     note: str = "",
+    client_id=None,
 ) -> RoutineOccurrence:
     routine = get_routine(user_id, routine_id)
+    # El id del cliente solo se usa si la ocurrencia es nueva; si ya existía
+    # (completada desde otro lado) manda la que hay.
+    _, new_id = existing_for_client_id(RoutineOccurrence, user_id, client_id)
     occ, created = RoutineOccurrence.objects.get_or_create(
         user_id=user_id,
         routine=routine,
         scheduled_date=scheduled_date,
-        defaults={"completed_at": timezone.now(), "note": note or ""},
+        defaults={
+            "completed_at": timezone.now(),
+            "note": note or "",
+            **({"id": new_id} if new_id else {}),
+        },
     )
     if not created:
         # Idempotent: refresh completion timestamp and note.

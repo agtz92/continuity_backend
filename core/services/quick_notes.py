@@ -19,6 +19,7 @@ from ..models import ActivityKind, Category, NoteSection, Project, QuickNote
 from ..quotas import check_entity_quota
 from ._cache import bump_context_version
 from .activities import log_event
+from ._common import existing_for_client_id
 from .projects import NotFoundError
 
 
@@ -97,11 +98,16 @@ def create_quick_note(
     category_id=None,
     project_id=None,
     pinned: bool = False,
+    client_id=None,
 ) -> QuickNote:
+    existing, new_id = existing_for_client_id(QuickNote, user_id, client_id)
+    if existing is not None:
+        return existing
     check_entity_quota(user_id, "quick_notes")
     category = _resolve_category(user_id, category_id)
     project = _resolve_project(user_id, project_id)
     note = QuickNote.objects.create(
+        **({"id": new_id} if new_id else {}),
         user_id=user_id,
         title=(title or "").strip(),
         category=category,
@@ -181,7 +187,11 @@ def add_section(
     body: str = "",
     position: Optional[int] = None,
     collapsed: bool = False,
+    client_id=None,
 ) -> NoteSection:
+    existing, new_id = existing_for_client_id(NoteSection, user_id, client_id)
+    if existing is not None:
+        return existing
     note = get_quick_note(user_id, note_id)  # ownership check
     check_entity_quota(user_id, "sections_per_note", project_id=note.id)
     if position is None:
@@ -192,6 +202,7 @@ def add_section(
         )
         position = (last.position + 1) if last else 0
     section = NoteSection.objects.create(
+        **({"id": new_id} if new_id else {}),
         user_id=user_id,
         note=note,
         heading=(heading or "").strip(),
