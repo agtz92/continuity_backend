@@ -132,7 +132,7 @@ Backend `58e5502`. Revisando un export real salían un secreto y datos internos.
 ### Lo hace el dueño (fuera del código)
 - [x] Borrar el bot de Telegram en BotFather (2026-10-27).
 - [x] `DATABASE_URL` con la contraseña nueva en todos los servicios de Render y la IP de Render desbloqueada en Supabase (2026-10-27).
-- [ ] **[Bloqueante]** Definir el responsable del tratamiento (persona o empresa, con domicilio) y añadirlo a la política, como pide el aviso de privacidad de la LFPDPPP.
+- [x] Responsable del tratamiento en la política (2026-10-29, frontend `b74d2bb`): Alfredo Gutiérrez, persona física, contacto hello@continuu.it. **Sin domicilio, por decisión del dueño**, aunque la LFPDPPP lo pide; si se quiere cumplir del todo, basta una oficina virtual. Llevarlo a la revisión legal.
 - [x] GA4 no carga en `admon.continuu.it`: verificado por el dueño (2026-10-29).
 - [x] Regiones confirmadas (2026-10-27): Supabase `us-east-2` (Ohio) y Render Oregon (US West). Las dos están en EE. UU., así que la sección de transferencias ("incluido Estados Unidos") ya es correcta.
 - [ ] Revisar y aceptar los DPA de Supabase, Render, Vercel, Anthropic, RevenueCat, Resend y Expo.
