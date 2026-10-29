@@ -133,6 +133,7 @@ Backend `58e5502`. Revisando un export real salían un secreto y datos internos.
 - [x] Borrar el bot de Telegram en BotFather (2026-10-27).
 - [x] `DATABASE_URL` con la contraseña nueva en todos los servicios de Render y la IP de Render desbloqueada en Supabase (2026-10-27).
 - [ ] **[Bloqueante]** Definir el responsable del tratamiento (persona o empresa, con domicilio) y añadirlo a la política, como pide el aviso de privacidad de la LFPDPPP.
+- [x] GA4 no carga en `admon.continuu.it`: verificado por el dueño (2026-10-29).
 - [x] Regiones confirmadas (2026-10-27): Supabase `us-east-2` (Ohio) y Render Oregon (US West). Las dos están en EE. UU., así que la sección de transferencias ("incluido Estados Unidos") ya es correcta.
 - [ ] Revisar y aceptar los DPA de Supabase, Render, Vercel, Anthropic, RevenueCat, Resend y Expo.
 - [ ] Llenar las App Privacy labels (App Store) y el Data safety (Google Play) de acuerdo con la política.
@@ -143,7 +144,6 @@ Nada pendiente.
 
 ### Sin verificar
 - Borrar cuenta y el cierre de sesión en la web con una sesión real (solo tsc y tests).
-- GA4 en `admon.continuu.it`: por el código no se carga, pero no se abrió el dominio.
 - "Tus datos" (web y móvil), el nombre en la web y el cierre de sesión del móvil: probados con tests, tsc y `expo export`, no con una sesión real ni en un dispositivo.
 - El privacy manifest solo se valida al subir un build a App Store Connect.
 - Las App Privacy labels de App Store Connect deben coincidir con el manifest (tarea del dueño).
