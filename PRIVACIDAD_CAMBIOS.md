@@ -119,6 +119,14 @@ Backend `58e5502`. Revisando un export real salían un secreto y datos internos.
 - **Eventos del conector:** sin `token_refreshed` (uno por cada vida del token, mostraba la cadencia); quedan autorizar y revocar.
 - **Correo:** `myDataExport` ahora incluye el email de la cuenta (Supabase auth, best-effort; si falla sale vacío).
 
+### 2026-10-28: respaldo y restauración en el servidor
+- **Un solo formato.** "Respaldo y restauración" de la web descarga el mismo JSON que `myDataExport`; ya no arma el archivo en el navegador con lo que tenía cargado el dashboard.
+- **Restaurar es una mutation** (`restoreBackup`, `core/services/backup_restore.py`), en una transacción: o entra todo o nada. Antes eran cientos de mutations desde el navegador que chocaban con el rate limit (120/min) y en "reemplazar" podían borrar la cuenta sin restaurarla.
+- **Aislamiento:** cada fila restaurada recibe un id nuevo y las referencias se remapean; un archivo no puede tocar filas de otra cuenta. Se restaura solo contenido (no ajustes, conversaciones ni datos de billing).
+- Respeta los cupos del plan (si el respaldo los rebasa, no escribe nada) y acepta los respaldos viejos del cliente.
+- `DATA_UPLOAD_MAX_MEMORY_SIZE` subió a 10 MB para que quepa el archivo.
+- Móvil: se borró `useBackup.ts`, que no usaba ninguna pantalla y tenía la lógica vieja, y sus textos `modals.backup`.
+
 ## Pendiente
 
 ### Lo hace el dueño (fuera del código)

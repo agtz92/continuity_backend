@@ -786,6 +786,20 @@ class GraveyardInsightType:
     is_stale: bool
 
 
+@strawberry.type
+class RestoreBackupResult:
+    """Rows created per kind by `restoreBackup` (0 when the file had none)."""
+
+    categories: int = 0
+    projects: int = 0
+    project_notes: int = 0
+    tasks: int = 0
+    routines: int = 0
+    ideas: int = 0
+    quick_notes: int = 0
+    activity: int = 0
+
+
 # TODO: mover serializador a analytics.py
 def _to_analytics_gql(r: analytics_mod.AnalyticsResult) -> Analytics:
     """Convierte el resultado de cálculo de analytics a los tipos GraphQL.
@@ -1009,4 +1023,5 @@ __all__ = [
     "LoopStats",
     "Analytics",
     "GraveyardInsightType",
+    "RestoreBackupResult",
 ]

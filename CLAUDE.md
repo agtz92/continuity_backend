@@ -167,6 +167,18 @@ cookie) — ver `docs/marketing-performance.md` y `frontend/CLAUDE.md`.
   publicados en **una** query (antes era un `COUNT` por categoría → N+1). Mantenerlo así.
 - Tests: `core/cms/tests/test_help_resources.py`, `test_admin_cms.py`.
 
+## Respaldo y restauración (`core/services/backup_restore.py`)
+
+El respaldo de la web **es** el JSON de `myDataExport` (`data_export.py`). `restoreBackup(data, mode)`
+lo aplica en **una transacción** con `app.live_off`: ids nuevos y referencias remapeadas (un archivo
+nunca toca filas de otra cuenta), `merge` salta ids que ya existen en la cuenta y empata categorías
+por nombre, `replace` borra antes solo los tipos que trae el archivo. Conserva `created`/`updated_at`
+(`bulk_create` + `bulk_update`, porque `auto_now` los pisa). Cupos: cuenta antes y después y revierte
+si el respaldo rebasó un tope. Acepta los respaldos viejos del cliente (camelCase).
+- **Modelo nuevo de contenido** → añádelo a `SECTIONS` del servicio (con sus FKs) además de a
+  `data_export.FIELDS`; si no, se exporta pero no se restaura.
+- Tests: `core/tests/test_backup_restore.py`.
+
 ## Onboarding — pasos
 
 `core/services/onboarding.py` define `TOTAL_STEPS` (hoy **5**: nombre · tema ·

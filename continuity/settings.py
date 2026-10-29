@@ -182,6 +182,10 @@ CACHES = {
 GRAPHQL_RATE_LIMIT_USER = config("GRAPHQL_RATE_LIMIT_USER", default="120/m")
 GRAPHQL_RATE_LIMIT_IP = config("GRAPHQL_RATE_LIMIT_IP", default="300/m")
 
+# `restoreBackup` receives the whole backup as one GraphQL variable. Django's
+# 2.5 MB default fits ~2x a heavy account (≈1 MB); 10 MB leaves room.
+DATA_UPLOAD_MAX_MEMORY_SIZE = config("DATA_UPLOAD_MAX_MEMORY_SIZE", default=10 * 1024 * 1024, cast=int)
+
 # MCP connector (/mcp/) — protects our infra (Postgres/compute), not an AI bill,
 # since the model runs on the user's Claude. See docs/mcp-connector/PLAN.md §2.
 MCP_RATE_LIMIT_USER = config("MCP_RATE_LIMIT_USER", default="120/m")

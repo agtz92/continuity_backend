@@ -587,6 +587,26 @@ class Mutation:
         )
         return now
 
+    @strawberry.mutation
+    def restore_backup(self, info: Info, data: str, mode: str) -> RestoreBackupResult:
+        """Restaura un archivo de backup (el JSON de `myDataExport` o uno viejo
+        del cliente) en una sola transacción: o entra todo o nada. `mode` es
+        `merge` o `replace`. Detalle en `services/backup_restore.py`."""
+        uid = _user_id(info)
+        from .services import backup_restore
+
+        try:
+            created = backup_restore.restore_backup(
+                uid, backup_restore.parse_backup(data), mode=mode
+            )
+        except backup_restore.BackupInvalid as e:
+            raise GraphQLError(str(e), extensions={"code": "BAD_INPUT"})
+        except EntityQuotaExceeded as e:
+            raise _quota_error(e)
+        return RestoreBackupResult(
+            **{k: v for k, v in created.items() if k in RestoreBackupResult.__annotations__}
+        )
+
     # ===== Mutations: Perfil =====
     @strawberry.mutation
     def update_profile(
