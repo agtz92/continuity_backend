@@ -90,16 +90,21 @@ def _quota_info(uid) -> EntityQuotaInfo:
 class Query:
     # TODO: refactor — mover a services/dashboard.py:get_full_dashboard(uid); consulta 7+ modelos en el resolver (ver AUDITORIA_CODIGO.md)
     @strawberry.field
-    def dashboard(self, info: Info) -> Dashboard:
+    def dashboard(
+        self, info: Info, activity_days: Optional[int] = None
+    ) -> Dashboard:
         """Carga inicial de la app: todo el estado del usuario en un round-trip.
 
         A diferencia del resto de resolvers, el acceso a datos se delega al
         servicio ``dashboard`` (que junta todo en un pase, un round-trip de
         producto); aquí solo se proyectan los modelos crudos a los tipos
         GraphQL con los conversores ``from_model``.
+
+        ``activityDays`` (opcional) recorta las actividades a los últimos N
+        días, conservando todas las notas; ver ``get_dashboard``.
         """
         uid = _user_id(info)
-        d = dashboard_svc.get_dashboard(uid)
+        d = dashboard_svc.get_dashboard(uid, activity_days=activity_days)
         # "Atorado" se deriva de las tareas (DP-03). Aquí es donde se puede
         # calcular sin N+1: el servicio ya trajo tareas y blockers en bloque.
         blocked_at = {

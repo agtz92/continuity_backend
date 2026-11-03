@@ -13,8 +13,12 @@ import datetime as dt
 from dataclasses import dataclass
 from typing import Optional
 
+from django.db.models import Q
+from django.utils import timezone
+
 from core.models import (
     Activity as ActivityModel,
+    ActivityKind,
     BackupMeta,
     Category as CategoryModel,
     Idea as IdeaModel,
@@ -44,7 +48,7 @@ class DashboardData:
     last_backup: Optional[dt.datetime]
 
 
-def get_dashboard(uid) -> DashboardData:
+def get_dashboard(uid, activity_days: Optional[int] = None) -> DashboardData:
     """Reúne todo el estado del usuario en un solo objeto.
 
     Consulta varios modelos directamente (un round-trip de producto) y los
@@ -53,6 +57,12 @@ def get_dashboard(uid) -> DashboardData:
 
     Args:
         uid: UUID del usuario autenticado.
+        activity_days: si viene, solo trae las actividades de los últimos N
+            días **más todas las notas** (kind=NOTE: son texto del usuario y
+            el detalle de proyecto las lista completas). Lo pide el móvil: la
+            cuenta más grande pasa de 1,700 actividades y el dashboard se
+            descarga varias veces por sesión. El historial completo va por la
+            query paginada ``activity``. ``None`` = todo (lo que usa la web).
 
     Returns:
         ``DashboardData`` con los modelos crudos y el ``blocker_map``.
@@ -60,7 +70,13 @@ def get_dashboard(uid) -> DashboardData:
     projects = list(ProjectModel.objects.filter(user_id=uid))
     tasks = list(TaskModel.objects.filter(user_id=uid))
     ideas = list(IdeaModel.objects.filter(user_id=uid))
-    activities = list(ActivityModel.objects.filter(user_id=uid))
+    activity_qs = ActivityModel.objects.filter(user_id=uid)
+    if activity_days is not None:
+        since = timezone.now() - dt.timedelta(days=max(1, activity_days))
+        activity_qs = activity_qs.filter(
+            Q(created__gte=since) | Q(kind=ActivityKind.NOTE)
+        )
+    activities = list(activity_qs)
     categories = list(CategoryModel.objects.filter(user_id=uid))
     project_notes = list(ProjectNoteModel.objects.filter(user_id=uid))
     routines = routines_svc.list_routines(uid, include_archived=True)
