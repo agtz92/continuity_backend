@@ -77,3 +77,43 @@ def test_dashboard_isolates_users(
     assert {t["title"] for t in result_b.data["dashboard"]["tasks"]} == {"B's task"}
     assert {i["title"] for i in result_a.data["dashboard"]["ideas"]} == {"A's idea"}
     assert {i["title"] for i in result_b.data["dashboard"]["ideas"]} == {"B's idea"}
+
+
+@pytest.mark.django_db
+def test_dashboard_activity_days_trims_old_events_but_keeps_notes(
+    execute_query, user_a
+):
+    """`activityDays` (lo usa el móvil) deja fuera los eventos viejos, pero
+    nunca las notas: el detalle de proyecto las lista completas. Sin el
+    argumento (la web) sigue llegando todo."""
+    import datetime as dt
+
+    from django.utils import timezone
+
+    from core.models import Activity, ActivityKind
+
+    old = timezone.now() - dt.timedelta(days=200)
+    old_event = Activity.objects.create(
+        user_id=user_a, kind=ActivityKind.PROJECT_CREATED, entity_title="old event"
+    )
+    old_note = Activity.objects.create(
+        user_id=user_a, kind=ActivityKind.NOTE, note="old note"
+    )
+    Activity.objects.filter(pk__in=[old_event.pk, old_note.pk]).update(created=old)
+    Activity.objects.create(
+        user_id=user_a, kind=ActivityKind.PROJECT_CREATED, entity_title="new event"
+    )
+
+    trimmed = execute_query(
+        "query { dashboard(activityDays: 60) { activities { kind note } } }",
+        user_id=user_a,
+    )
+    assert trimmed.errors is None
+    kinds = sorted(
+        (a["kind"], a["note"]) for a in trimmed.data["dashboard"]["activities"]
+    )
+    assert kinds == [("note", "old note"), ("project_created", "")]
+
+    full = execute_query(DASHBOARD_QUERY, user_id=user_a)
+    assert full.errors is None
+    assert len(full.data["dashboard"]["activities"]) == 3
