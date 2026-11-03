@@ -78,8 +78,14 @@ def blocked_reason(blockers: Iterable) -> str:
     return ""
 
 
+# Estados cerrados: un proyecto muerto o archivado no está "atorado" aunque
+# alguna tarea suya conserve un blocker. Matarlo sin quitar el bloqueo no debe
+# dejarlo contando en los "atorados" de web ni de móvil.
+CLOSED_STATUSES = frozenset({"killed", "archived"})
+
+
 def project_blocked_since(
-    project_id, tasks: Iterable, blocker_map: dict
+    project_id, tasks: Iterable, blocker_map: dict, status: Optional[str] = None
 ) -> Optional[dt.datetime]:
     """Desde cuándo está atorado un proyecto, mirando sus tareas abiertas.
 
@@ -88,11 +94,15 @@ def project_blocked_since(
         tasks: tareas del usuario (se filtran aquí por proyecto).
         blocker_map: ``task_id -> [TaskBlocker]``, ya precargado por el
             servicio de dashboard para no disparar un N+1.
+        status: estado del proyecto; si está en ``CLOSED_STATUSES`` nunca
+            cuenta como atorado.
 
     Returns:
         La fecha del blocker abierto más antiguo entre sus tareas pendientes,
         o ``None`` si el proyecto no está atorado.
     """
+    if status in CLOSED_STATUSES:
+        return None
     found = []
     for t in tasks:
         if t.project_id != project_id or t.done:

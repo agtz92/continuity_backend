@@ -103,7 +103,9 @@ class Query:
         # "Atorado" se deriva de las tareas (DP-03). Aquí es donde se puede
         # calcular sin N+1: el servicio ya trajo tareas y blockers en bloque.
         blocked_at = {
-            p.id: cooling_svc.project_blocked_since(p.id, d.tasks, d.blocker_map)
+            p.id: cooling_svc.project_blocked_since(
+                p.id, d.tasks, d.blocker_map, status=p.status
+            )
             for p in d.projects
         }
         return Dashboard(

@@ -82,3 +82,26 @@ def test_proyecto_atorado_solo_por_tareas_abiertas(user_a):
     assert svc.project_blocked_since(p.id, tasks, blocker_map) == b_abierta.created
     # Un proyecto sin tareas bloqueadas no está atorado.
     assert svc.project_blocked_since(otro.id, tasks, blocker_map) is None
+
+
+@pytest.mark.django_db
+def test_proyecto_cerrado_no_cuenta_como_atorado(user_a):
+    p = Project.objects.create(user_id=user_a, name="Piloto", status="killed")
+    abierta = Task.objects.create(user_id=user_a, project=p, title="Firmar contrato")
+    b = TaskBlocker.objects.create(
+        user_id=user_a, blocked_task=abierta, external_description="Sin respuesta"
+    )
+    blocker_map = {abierta.id: [b]}
+
+    # Matarlo (o archivarlo) sin quitar el blocker no lo deja atorado.
+    for status in ("killed", "archived"):
+        assert (
+            svc.project_blocked_since(p.id, [abierta], blocker_map, status=status)
+            is None
+        )
+    # Pausado o lanzado sí siguen atorados: el trabajo aún está en juego.
+    for status in ("paused", "launched"):
+        assert (
+            svc.project_blocked_since(p.id, [abierta], blocker_map, status=status)
+            == b.created
+        )
