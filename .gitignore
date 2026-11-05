@@ -10,3 +10,4 @@ venv/
 staticfiles/
 .DS_Store
 .env.example
+.chrome-tmp*/
