@@ -8,7 +8,7 @@ from typing import Optional
 from django.db import transaction
 from django.utils import timezone
 
-from ..models import ActivityKind, Idea, Project
+from ..models import ActivityKind, Category, Idea, Project
 from ..quotas import check_entity_quota
 from ._cache import bump_context_version
 from .activities import log_event
@@ -119,6 +119,12 @@ def promote_idea(
     posible desde allí, y eso es preferible a que la app falle en producción.
     """
     check_entity_quota(user_id, "projects")
+    # Only the caller's own category may be attached (same rule as
+    # create_project); another account's id is dropped, never linked.
+    if category_id and not Category.objects.filter(
+        pk=category_id, user_id=user_id
+    ).exists():
+        category_id = None
     with transaction.atomic():
         idea = get_idea(user_id, idea_id)
         project = Project.objects.create(
