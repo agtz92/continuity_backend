@@ -10,19 +10,22 @@ from django.core.exceptions import ValidationError
 from ..models import Profile
 
 # Source of truth for which avatar IDs the server will accept. Must stay in
-# sync with frontend/src/lib/avatars.ts AVATAR_CATALOG. Avatars are stored as
-# "{style}/{slug}" strings; the image lives at
-# {SUPABASE_URL}/storage/v1/object/public/avatars/{style}/{slug}.webp.
-VALID_AVATARS: set[str] = {
-    # 3D
-    "3d/momo", "3d/yuki", "3d/tako", "3d/kuma", "3d/hoshi", "3d/pip", "3d/tetsu",
-    # Anime
-    "anime/momo", "anime/yuki", "anime/tako", "anime/kuma", "anime/hoshi", "anime/pip", "anime/tetsu",
-    # 8-bit
-    "8bit/momo", "8bit/yuki", "8bit/tako", "8bit/kuma", "8bit/hoshi", "8bit/pip", "8bit/tetsu",
-    # Vector
-    "vector/momo", "vector/yuki", "vector/tako", "vector/kuma", "vector/hoshi", "vector/pip", "vector/tetsu",
-}
+# sync with frontend/src/lib/avatars.ts and continuity-mobile/src/lib/avatars.ts.
+# Avatars are stored as "{style}/{slug}"; since 2026-11 the only style is
+# "vector" and the images ship inside each client (no Storage fetch).
+AVATAR_SLUGS: tuple[str, ...] = ("momo", "yuki", "tako", "kuma", "hoshi", "pip", "tetsu")
+VALID_AVATARS: set[str] = {f"vector/{slug}" for slug in AVATAR_SLUGS}
+
+# Retired styles. Old mobile builds may still send them: map to the same
+# character in vector instead of rejecting (migration 0039 converted stored rows).
+LEGACY_AVATAR_STYLES: tuple[str, ...] = ("3d", "anime", "8bit")
+
+
+def normalize_avatar(avatar: str) -> str:
+    style, _, slug = avatar.partition("/")
+    if style in LEGACY_AVATAR_STYLES:
+        return f"vector/{slug}"
+    return avatar
 
 
 def get_profile(user_id: uuid.UUID) -> Profile:
@@ -35,6 +38,7 @@ def set_avatar(user_id: uuid.UUID, avatar: Optional[str]) -> Profile:
     if avatar is None or avatar == "":
         profile.avatar = ""
     else:
+        avatar = normalize_avatar(avatar)
         if avatar not in VALID_AVATARS:
             raise ValidationError(f"Unknown avatar id: {avatar}")
         profile.avatar = avatar
