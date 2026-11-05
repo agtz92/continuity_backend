@@ -181,7 +181,9 @@ def _announcement_revision(a: Announcement) -> str:
         a.starts_at.isoformat() if a.starts_at else "",
         a.ends_at.isoformat() if a.ends_at else "",
     ]
-    return hashlib.sha1("".join(parts).encode()).hexdigest()[:8]
+    # Not a security hash: a short content-version id. Switching algorithms would
+    # change every id and re-show announcements users already dismissed.
+    return hashlib.sha1("".join(parts).encode(), usedforsecurity=False).hexdigest()[:8]
 
 
 def _active_announcements(user_id: uuid.UUID, plan: str) -> list[UserNotification]:
