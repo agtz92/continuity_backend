@@ -68,6 +68,57 @@ end
 $$;
 """
 
+# SECURITY DEFINER functions in public are reachable as /rest/v1/rpc/<name>.
+# Supabase's default privileges grant EXECUTE on them to anon/authenticated,
+# so take it away from every one we own. Trigger and event-trigger functions
+# need no EXECUTE grant to fire. The single exception is live_is_admin():
+# the Realtime policy on the `admin` channel (migration 0037) runs as
+# `authenticated` and calls it. It only answers about the caller.
+CLIENT_CALLABLE_FUNCTIONS = ("live_is_admin",)
+
+FUNCTIONS_SQL = """
+do $$
+declare
+  f record;
+begin
+  if not exists (select 1 from pg_roles where rolname = 'anon')
+     or not exists (select 1 from pg_roles where rolname = 'authenticated') then
+    return;
+  end if;
+
+  for f in
+    select p.oid::regprocedure as sig, p.proname
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.prosecdef
+      and pg_get_userbyid(p.proowner) = current_user
+  loop
+    execute format('revoke execute on function %s from public, anon, authenticated', f.sig);
+    if f.proname = any (array['live_is_admin']) then
+      execute format('grant execute on function %s to authenticated', f.sig);
+    end if;
+  end loop;
+
+  alter default privileges in schema public
+    revoke execute on functions from anon, authenticated;
+end
+$$;
+"""
+
+# SECURITY DEFINER functions a client role can call that it shouldn't.
+FUNCTION_VIOLATIONS_SQL = """
+select p.proname,
+       array_remove(array[
+         case when has_function_privilege('anon', p.oid, 'EXECUTE')
+           then 'anon can execute' end,
+         case when has_function_privilege('authenticated', p.oid, 'EXECUTE')
+              and p.proname <> all (%s)
+           then 'authenticated can execute' end
+       ], null) as problems
+from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public' and p.prosecdef
+order by p.proname
+"""
+
 # Reverse of the migration: drop only what we added. RLS stays on (0011 owns
 # that) and grants are not restored: re-granting would re-open PostgREST.
 REVERSE_SQL = f"""
@@ -121,10 +172,14 @@ def apply_rls_posture(connection) -> None:
         return
     with connection.cursor() as cur:
         cur.execute(APPLY_SQL)
+        cur.execute(FUNCTIONS_SQL)
 
 
 def rls_violations(connection) -> list[tuple[str, list[str]]]:
-    """[(table, [problems])] for every public table that isn't locked down."""
+    """[(table or function(), [problems])] for anything open to client roles."""
     with connection.cursor() as cur:
         cur.execute(VIOLATIONS_SQL)
-        return [(name, list(problems)) for name, problems in cur.fetchall() if problems]
+        out = [(name, list(p)) for name, p in cur.fetchall() if p]
+        cur.execute(FUNCTION_VIOLATIONS_SQL, [list(CLIENT_CALLABLE_FUNCTIONS)])
+        out += [(f"{name}()", list(p)) for name, p in cur.fetchall() if p]
+        return out
