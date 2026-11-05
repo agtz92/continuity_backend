@@ -5,11 +5,22 @@ privacidad. Cubre backend, web (`frontend/`) y móvil (`continuity-mobile/`).
 Se actualiza cada vez que se cierra o se agrega algo.
 
 - **Proyecto en continuu.it:** "Privacidad y manejo de datos" (`3b439d48-5577-48da-9a65-7ad41aceeb0a`).
-- **Última actualización:** 2026-10-29 (móvil guarda los datos en el teléfono para leerlos sin red)
+- **Última actualización:** 2026-11-05 (dictado iOS: respaldo al servidor de Apple)
 
 ---
 
 ## Hecho
+
+### 2026-11-04: dictado por voz en Loop (sin commit)
+Web `frontend/src/hooks/useDictation.ts` · móvil `src/hooks/useDictation.ts`. Botón de micrófono en el compositor de Loop (solo modo `llm`).
+- El reconocimiento lo hace el sistema o el navegador, no nuestro backend: Continuity nunca recibe ni guarda audio. A Loop solo le llega el texto que el usuario decide enviar, como cualquier mensaje.
+- iOS: `SFSpeechRecognizer`; si el equipo soporta reconocimiento en el dispositivo se exige (`requiresOnDeviceRecognition`) y el audio no sale del teléfono. Si no, Apple lo procesa en sus servidores.
+  - 2026-11-05: si el intento en el dispositivo falla antes de transcribir nada (modelo local del idioma no descargado o Dictado apagado en Ajustes), se reintenta una vez sin `requiresOnDeviceRecognition`, así que en ese caso Apple procesa el audio en sus servidores. Antes el botón no hacía nada.
+- Android: el servicio de reconocimiento del sistema (normalmente Google), que puede procesar el audio en sus servidores.
+- Web: Web Speech API. En Chrome/Edge el audio va al servicio del navegador (Google/Microsoft). Firefox no la tiene y el botón no aparece.
+- Permisos nuevos en móvil: micrófono y reconocimiento de voz (textos en `app.json`, plugin `expo-speech-recognition`).
+- [ ] Revisar si la política (`legal.privacy`) debe mencionar el dictado y que lo procesa el proveedor del sistema o navegador.
+- [ ] App Store Connect / Play Console: revisar si las etiquetas de privacidad deben declarar "audio" (no lo recogemos nosotros, pero conviene confirmarlo).
 
 ### 2026-10-29: móvil guarda los datos en el teléfono (lectura offline)
 Móvil `32158ea` (rama `offline-fase-1`). Plan: `docs/plan-offline-movil.md` (fase 1).
