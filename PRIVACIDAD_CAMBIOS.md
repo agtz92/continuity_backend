@@ -11,6 +11,23 @@ Se actualiza cada vez que se cierra o se agrega algo.
 
 ## Hecho
 
+### 2026-11-05: auditoría de aislamiento entre usuarios + RLS deny-all explícito (sin commit, sin desplegar)
+- Auditoría de cada punto de entrada que devuelve o cambia datos del usuario: GraphQL, REST del asistente, MCP, OAuth, ICS y unsubscribe. Todos filtran por `user_id` excepto uno:
+  - **Arreglado:** `promoteIdea(categoryId)` aceptaba la categoría de otra cuenta. Con eso, B veía el nombre y el color de la categoría de A en su `analytics`. Ahora el id ajeno se descarta (`core/services/ideas.py`).
+- RLS: las 51 tablas de `public` ya tenían RLS sin políticas, que equivale a negar todo a `anon` y `authenticated`. Lo hicimos explícito y a prueba de errores (`core/rls.py`, migración `0040`):
+  - una política RESTRICTIVE `using (false)` en cada tabla;
+  - se revocan los privilegios de esos dos roles;
+  - el post_migrate cubre las tablas nuevas.
+  - **No** se escribieron políticas "dueño lee sus filas": ningún cliente lee tablas directo y la anon key es pública. Verificar en producción con `python manage.py check_rls`.
+- Tests: `core/tests/test_cross_user_isolation.py`, `core/assistant/tests/test_cross_user.py` y `core/tests/test_rls_posture.py` (este último solo en Postgres de Supabase).
+- **Arreglado (mismo día):** el callback de Google OAuth (Tasks/Calendar) guardaba el token de Google bajo el `uid` del `state`, sin saber quién estaba en el navegador. B podía mandarle a A su enlace de consentimiento y quedarse con el token de Google de A.
+  - Ahora el callback no guarda nada: verifica la firma del `state` y redirige a la página con `google_code` + `google_state`.
+  - La página, con sesión, llama a `completeGoogleOauth`, que solo canjea el código si el `state` es del usuario logueado.
+  - Además, el path de regreso ya no acepta `//dominio`.
+  - Tests: `core/tests/test_google_oauth_binding.py`.
+  - No se añadió un nonce de un solo uso: la caché es memoria local por proceso, y Google ya invalida cada código tras usarlo.
+- [ ] El conector MCP no aplica el `scope` del token en cada llamada (gatea por plan) y el access JWT sigue valiendo hasta que expira aunque se revoque la conexión.
+
 ### 2026-11-04: dictado por voz en Loop (sin commit)
 Web `frontend/src/hooks/useDictation.ts` · móvil `src/hooks/useDictation.ts`. Botón de micrófono en el compositor de Loop (solo modo `llm`).
 - El reconocimiento lo hace el sistema o el navegador, no nuestro backend: Continuity nunca recibe ni guarda audio. A Loop solo le llega el texto que el usuario decide enviar, como cualquier mensaje.

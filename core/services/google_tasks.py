@@ -158,10 +158,31 @@ def build_authorization_url(user_id: uuid.UUID, return_to: str) -> str:
     return auth_url
 
 
-def exchange_code_and_store(code: str, state: str) -> tuple[uuid.UUID, str]:
-    """Validate state, swap ``code`` for tokens, persist them, return (uid, return_to)."""
+def return_path_for_state(state: str) -> str:
+    """Verify ``state`` (signature + expiry) and return its in-app return path.
+
+    Used by the unauthenticated callback, which only hands ``code``/``state``
+    on to the logged-in frontend; it never exchanges the code itself.
+    """
+    ret = _verify_state(state).get("ret") or "/settings/plugins/google-tasks"
+    # Path only: "//evil.com" would be a protocol-relative open redirect.
+    if not ret.startswith("/") or ret.startswith("//"):
+        ret = "/settings/plugins/google-tasks"
+    return ret
+
+
+def exchange_code_and_store(code: str, state: str, *, user_id: uuid.UUID) -> str:
+    """Swap ``code`` for tokens and store them for the **logged-in** ``user_id``.
+
+    The state must have been issued to that same user. This is what stops a
+    shared consent link: if B starts the flow and A completes it, A's browser
+    calls this as A, the state says B, and nothing is stored. Google auth
+    codes are single-use, so a state can't be replayed to mint more tokens.
+    Returns the return path.
+    """
     payload = _verify_state(state)
-    user_id = uuid.UUID(payload["uid"])
+    if str(payload.get("uid")) != str(user_id):
+        raise InvalidStateError("State was issued to a different user")
     return_to = payload.get("ret") or "/settings/plugins/google-tasks"
 
     flow = _flow()
@@ -189,7 +210,7 @@ def exchange_code_and_store(code: str, state: str) -> tuple[uuid.UUID, str]:
             "email": email or "",
         },
     )
-    return user_id, return_to
+    return return_to
 
 
 def _fetch_email(creds: Credentials) -> str:

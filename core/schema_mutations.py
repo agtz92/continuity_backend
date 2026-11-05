@@ -760,6 +760,26 @@ class Mutation:
             raise GraphQLError(str(e), extensions={"code": "GOOGLE_TASKS_ERROR"})
 
     @strawberry.mutation
+    def complete_google_oauth(self, info: Info, code: str, state: str) -> bool:
+        """Finish a Google OAuth connection for the logged-in user.
+
+        Called by the frontend page the callback redirects to. The code is
+        exchanged only if ``state`` was issued to this same user, so a consent
+        link started by someone else can't attach your Google account to theirs.
+        """
+        uid = _user_id(info)
+        try:
+            google_tasks_svc.exchange_code_and_store(code, state, user_id=uid)
+        except google_tasks_svc.InvalidStateError:
+            raise GraphQLError(
+                "This Google connection link isn't valid for your account. Start again from Settings.",
+                extensions={"code": "INVALID_OAUTH_STATE"},
+            )
+        except google_tasks_svc.GoogleTasksError as e:
+            raise GraphQLError(str(e), extensions={"code": "GOOGLE_TASKS_ERROR"})
+        return True
+
+    @strawberry.mutation
     def import_google_tasks(
         self, info: Info, mappings: List[GoogleTasksImportMapping]
     ) -> GoogleTasksImportResult:
