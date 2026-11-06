@@ -91,7 +91,10 @@ class Query:
     # TODO: refactor — mover a services/dashboard.py:get_full_dashboard(uid); consulta 7+ modelos en el resolver (ver AUDITORIA_CODIGO.md)
     @strawberry.field
     def dashboard(
-        self, info: Info, activity_days: Optional[int] = None
+        self,
+        info: Info,
+        activity_days: Optional[int] = None,
+        done_task_days: Optional[int] = None,
     ) -> Dashboard:
         """Carga inicial de la app: todo el estado del usuario en un round-trip.
 
@@ -101,10 +104,14 @@ class Query:
         GraphQL con los conversores ``from_model``.
 
         ``activityDays`` (opcional) recorta las actividades a los últimos N
-        días, conservando todas las notas; ver ``get_dashboard``.
+        días, conservando todas las notas; ``doneTaskDays`` hace lo mismo con
+        las tareas completadas. Ver ``get_dashboard``.
         """
         uid = _user_id(info)
-        d = dashboard_svc.get_dashboard(uid, activity_days=activity_days)
+        d = dashboard_svc.get_dashboard(
+            uid, activity_days=activity_days, done_task_days=done_task_days
+        )
+        older = d.older_done or {}
         # "Atorado" se deriva de las tareas (DP-03). Aquí es donde se puede
         # calcular sin N+1: el servicio ya trajo tareas y blockers en bloque.
         blocked_at = {
@@ -115,7 +122,9 @@ class Query:
         }
         return Dashboard(
             projects=[
-                Project.from_model(p, blocked_since=blocked_at.get(p.id))
+                Project.from_model(
+                    p, blocked_since=blocked_at.get(p.id), older_done=older.get(p.id)
+                )
                 for p in d.projects
             ],
             tasks=[
@@ -138,19 +147,52 @@ class Query:
         )
 
     @strawberry.field
-    def dashboard_delta(self, info: Info, since: dt.datetime) -> DashboardDelta:
+    def dashboard_delta(
+        self,
+        info: Info,
+        since: dt.datetime,
+        done_task_days: Optional[int] = None,
+    ) -> DashboardDelta:
         """Reconciliación barata tras escribir: proyectos (con sus derivados) y
         activities desde ``since``. La web la pide en vez de volver a bajar el
         dashboard completo después de cada mutación."""
         uid = _user_id(info)
-        d = dashboard_svc.get_dashboard_delta(uid, since)
+        d = dashboard_svc.get_dashboard_delta(uid, since, done_task_days)
+        older = d.older_done or {}
         return DashboardDelta(
             projects=[
-                Project.from_model(p, blocked_since=d.blocked_at.get(p.id))
+                Project.from_model(
+                    p, blocked_since=d.blocked_at.get(p.id), older_done=older.get(p.id)
+                )
                 for p in d.projects
             ],
             activities=[Activity.from_model(a) for a in d.activities],
         )
+
+    @strawberry.field
+    def completed_tasks(
+        self,
+        info: Info,
+        before: dt.datetime,
+        project_id: Optional[strawberry.ID] = None,
+        offset: int = 0,
+        limit: int = 50,
+    ) -> List[Task]:
+        """Completadas que el dashboard ya no trae (``doneTaskDays``): las de
+        antes de ``before`` (el inicio de la ventana del cliente) más las que no
+        tienen ``completedAt``. De la más reciente a la más vieja, paginadas por
+        ``offset``. ``projectId`` opcional para el detalle de un proyecto."""
+        uid = _user_id(info)
+        pid = None
+        if project_id is not None:
+            try:
+                pid = uuid.UUID(str(project_id))
+            except ValueError:
+                return []
+        rows = dashboard_svc.list_older_done(
+            uid, before, project_id=pid, offset=offset, limit=limit
+        )
+        return [Task.from_model(t) for t in rows]
 
     @strawberry.field
     def graveyard_insight(self, info: Info) -> Optional[GraveyardInsightType]:

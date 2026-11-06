@@ -88,11 +88,22 @@ class Project:
     # el resto de resolvers lo dejan en None y la UI cae a "no bloqueado".
     blocked_since: Optional[dt.datetime] = None
     is_blocked: bool = False
+    # Tareas completadas que el dashboard NO trae por estar fuera de su ventana
+    # (`doneTaskDays`). El cliente suma estas a las completadas que sí tiene en
+    # caché para el progreso del proyecto. Solo las calcula el dashboard/delta
+    # con ventana; el resto de resolvers devuelven 0, así que **ningún cliente
+    # debe pedirlas en una mutation de edición** (pisaría el valor bueno).
+    older_done_count: int = 0
+    older_done_effort_hours: float = 0.0
 
     @classmethod
     def from_model(
-        cls, m: ProjectModel, blocked_since: Optional[dt.datetime] = None
+        cls,
+        m: ProjectModel,
+        blocked_since: Optional[dt.datetime] = None,
+        older_done: Optional[tuple] = None,
     ) -> "Project":
+        older_count, older_hours = older_done or (0, 0.0)
         days = cooling_svc.days_since_touch(m.last_activity)
         return cls(
             id=strawberry.ID(str(m.id)),
@@ -121,6 +132,8 @@ class Project:
             cooling=cooling_svc.cooling(days),
             blocked_since=blocked_since,
             is_blocked=blocked_since is not None,
+            older_done_count=older_count,
+            older_done_effort_hours=float(older_hours or 0),
         )
 
 

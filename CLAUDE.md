@@ -69,6 +69,17 @@ delta lo cubra o que el cliente caiga al refetch completo. **Desplegar backend a
 clientes** (sin el campo, los clientes caen al refetch completo, que es lo de antes). Tests:
 `core/tests/test_dashboard_delta.py`.
 
+## Ventana de tareas completadas (`doneTaskDays`)
+
+`dashboard(doneTaskDays: N)` trae **todas las abiertas** y solo las completadas de los últimos N
+días (web y móvil piden 30). Las completadas no tienen tope en ningún plan y nunca se borran: sin
+ventana el dashboard crecía con cada palomeo. Las de antes (y las sin `completed_at`) se cuentan
+por proyecto en `Project.olderDoneCount` / `olderDoneEffortHours` (un GROUP BY, también en
+`dashboardDelta(doneTaskDays:)`) y se listan con `completedTasks(before, projectId, offset,
+limit)`. **Esos dos campos valen 0 fuera del dashboard/delta**: no los pidas en mutations de
+edición de proyecto. Sin el argumento todo sigue como antes (clientes viejos). Tests:
+`core/tests/test_done_task_window.py`.
+
 ## Estructura del schema de `core` (tras el refactor de modularidad)
 
 `core/schema.py` quedó como **ensamblaje**: `class Query` + `merge_types` + `schema`.
