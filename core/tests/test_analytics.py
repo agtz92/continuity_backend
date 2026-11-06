@@ -55,6 +55,15 @@ PROMOTE_IDEA = """
 """
 
 
+def _back_a_minute(user_id):
+    """La ventana es ``[start, now)``: una activity creada en el mismo tick de
+    reloj que el ``now`` del resolver queda fuera. En Windows el reloj avanza
+    a saltos de ms y la consulta ya es tan rápida que pasaba; se mueve atrás."""
+    Activity.objects.filter(user_id=user_id).update(
+        created=timezone.now() - dt.timedelta(minutes=1)
+    )
+
+
 def _shift_created(obj, when: dt.datetime):
     """Bypass auto_now_add to backdate `created` for testing."""
     type(obj).objects.filter(pk=obj.pk).update(created=when)
@@ -122,6 +131,7 @@ def test_activity_series_fills_empty_days(
     Activity.objects.create(
         user_id=user_a, kind=ActivityKind.NOTE, project_id=p.id, note="hello"
     )
+    _back_a_minute(user_a)
     res = execute_query(
         ANALYTICS_QUERY, user_id=user_a,
         variable_values={"range": "LAST_30_DAYS"},
@@ -177,6 +187,7 @@ def test_top_projects_orders_and_truncates(
                 user_id=user_a, kind=ActivityKind.NOTE,
                 project_id=p.id, note="x",
             )
+    _back_a_minute(user_a)
 
     res = execute_query(
         ANALYTICS_QUERY, user_id=user_a,

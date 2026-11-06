@@ -338,3 +338,13 @@ con `allNotes: false` las notas (`Activity.kind=note`) se recortan a la ventana 
 comportamiento viejo (todas las notas) para clientes sin actualizar. El delta **debe** recibir
 los mismos argumentos que el dashboard: los proyectos que devuelve reemplazan a los cacheados y
 sin ellos `olderNoteCount` volvería en 0.
+
+## CPU por petición: caché de parseo/validación y ejecución síncrona
+
+`core/schema.py` arma el schema con `ParserCache` + `ValidationCache` (los clientes mandan
+siempre los mismos documentos) y `execution_context_class=SyncExecutionContext`, que responde
+"no" a `is_awaitable` en cada campo (graphql-core lo pregunta >600 000 veces en un dashboard
+grande). Medido en local: dashboard promedio 103 → 84 ms, 10× 721 → 655 ms. **Si se agrega un
+resolver `async` o una vista asíncrona, quitar `SyncExecutionContext`.** Lo que queda del costo
+es la resolución campo por campo de graphql-core (~75 %): se baja con menos filas/campos o
+evitando la respuesta (ver `ANALISIS_CARGA_DATOS.md`, 1.1).

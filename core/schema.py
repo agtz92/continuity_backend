@@ -448,10 +448,36 @@ CombinedMutation = merge_types(
     ),
 )
 
+from graphql.execution import ExecutionContext  # noqa: E402
+from strawberry.extensions import ParserCache, ValidationCache  # noqa: E402
+
 from .interaction_tracking import InteractionTrackingExtension  # noqa: E402
 
+
+class SyncExecutionContext(ExecutionContext):
+    """graphql-core pregunta ``is_awaitable`` por **cada campo** resuelto (más de
+    600 000 veces en un dashboard grande, ~11 % del CPU de la petición). Esta
+    API solo se ejecuta síncrona (``GraphQLView`` de Django, ningún resolver
+    es ``async``), así que la respuesta siempre es "no".
+
+    Si algún día se agrega un resolver ``async`` o una vista asíncrona, quitar
+    esta clase: un awaitable se trataría como valor y fallaría al serializar.
+    """
+
+    is_awaitable = staticmethod(lambda _value: False)
+
+
+# CPU por petición (prueba de estrés 2026-11-06: 0,5 CPU al 90-106 % con 50
+# usuarios). Los clientes mandan siempre los mismos documentos, así que el
+# parseo y la validación (hasta ~20 ms por petición) se hacen una vez por
+# documento y por proceso. Ver ANALISIS_CARGA_DATOS.md.
 schema = strawberry.Schema(
     query=CombinedQuery,
     mutation=CombinedMutation,
-    extensions=[InteractionTrackingExtension],
+    extensions=[
+        InteractionTrackingExtension,
+        ParserCache(maxsize=256),
+        ValidationCache(maxsize=256),
+    ],
+    execution_context_class=SyncExecutionContext,
 )
