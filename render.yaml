@@ -5,9 +5,9 @@ services:
     rootDir: backend
     plan: free
     buildCommand: "./build.sh"
-    # gthread workers: sync workers buffer SSE responses, gthread doesn't —
-    # the assistant's streaming chat needs deltas to flush as they arrive.
-    startCommand: "gunicorn continuity.wsgi:application --worker-class gthread --workers 2 --threads 4 --timeout 120"
+    # gthread workers + concurrency live in gunicorn.conf.py (env-driven).
+    # No flags here: they would override the config file.
+    startCommand: "gunicorn continuity.wsgi:application"
     envVars:
       - key: DJANGO_SECRET_KEY
         generateValue: true
@@ -54,6 +54,11 @@ services:
         sync: false
       - key: PYTHON_VERSION
         value: "3.12.4"
+      # Concurrency (gunicorn.conf.py): requests at once = workers x threads.
+      - key: WEB_CONCURRENCY
+        value: "2"
+      - key: GUNICORN_THREADS
+        value: "8"
 
   - type: cron
     name: continuity-notifications-hourly
