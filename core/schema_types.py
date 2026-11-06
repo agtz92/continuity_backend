@@ -95,6 +95,10 @@ class Project:
     # debe pedirlas en una mutation de edición** (pisaría el valor bueno).
     older_done_count: int = 0
     older_done_effort_hours: float = 0.0
+    # Igual, para las notas de bitácora (Activity kind=note) anteriores a la
+    # ventana de activities cuando el cliente pide `allNotes: false`. Con eso
+    # el conteo del logbook no baja; las notas se piden con `activity`.
+    older_note_count: int = 0
 
     @classmethod
     def from_model(
@@ -102,6 +106,7 @@ class Project:
         m: ProjectModel,
         blocked_since: Optional[dt.datetime] = None,
         older_done: Optional[tuple] = None,
+        older_note_count: int = 0,
     ) -> "Project":
         older_count, older_hours = older_done or (0, 0.0)
         days = cooling_svc.days_since_touch(m.last_activity)
@@ -134,6 +139,7 @@ class Project:
             is_blocked=blocked_since is not None,
             older_done_count=older_count,
             older_done_effort_hours=float(older_hours or 0),
+            older_note_count=int(older_note_count or 0),
         )
 
 

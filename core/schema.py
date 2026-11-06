@@ -95,6 +95,7 @@ class Query:
         info: Info,
         activity_days: Optional[int] = None,
         done_task_days: Optional[int] = None,
+        all_notes: bool = True,
     ) -> Dashboard:
         """Carga inicial de la app: todo el estado del usuario en un round-trip.
 
@@ -104,14 +105,20 @@ class Query:
         GraphQL con los conversores ``from_model``.
 
         ``activityDays`` (opcional) recorta las actividades a los últimos N
-        días, conservando todas las notas; ``doneTaskDays`` hace lo mismo con
-        las tareas completadas. Ver ``get_dashboard``.
+        días, conservando todas las notas salvo con ``allNotes: false`` (entonces
+        las anteriores se cuentan en ``Project.olderNoteCount`` y se piden con
+        ``activity``); ``doneTaskDays`` hace lo mismo con las tareas
+        completadas. Ver ``get_dashboard``.
         """
         uid = _user_id(info)
         d = dashboard_svc.get_dashboard(
-            uid, activity_days=activity_days, done_task_days=done_task_days
+            uid,
+            activity_days=activity_days,
+            done_task_days=done_task_days,
+            all_notes=all_notes,
         )
         older = d.older_done or {}
+        older_notes = d.older_notes or {}
         # "Atorado" se deriva de las tareas (DP-03). Aquí es donde se puede
         # calcular sin N+1: el servicio ya trajo tareas y blockers en bloque.
         blocked_at = cooling_svc.blocked_since_by_project(
@@ -120,7 +127,10 @@ class Query:
         return Dashboard(
             projects=[
                 Project.from_model(
-                    p, blocked_since=blocked_at.get(p.id), older_done=older.get(p.id)
+                    p,
+                    blocked_since=blocked_at.get(p.id),
+                    older_done=older.get(p.id),
+                    older_note_count=older_notes.get(p.id, 0),
                 )
                 for p in d.projects
             ],
@@ -149,17 +159,29 @@ class Query:
         info: Info,
         since: dt.datetime,
         done_task_days: Optional[int] = None,
+        activity_days: Optional[int] = None,
+        all_notes: bool = True,
     ) -> DashboardDelta:
         """Reconciliación barata tras escribir: proyectos (con sus derivados) y
         activities desde ``since``. La web la pide en vez de volver a bajar el
         dashboard completo después de cada mutación."""
         uid = _user_id(info)
-        d = dashboard_svc.get_dashboard_delta(uid, since, done_task_days)
+        d = dashboard_svc.get_dashboard_delta(
+            uid,
+            since,
+            done_task_days,
+            activity_days=activity_days,
+            all_notes=all_notes,
+        )
         older = d.older_done or {}
+        older_notes = d.older_notes or {}
         return DashboardDelta(
             projects=[
                 Project.from_model(
-                    p, blocked_since=d.blocked_at.get(p.id), older_done=older.get(p.id)
+                    p,
+                    blocked_since=d.blocked_at.get(p.id),
+                    older_done=older.get(p.id),
+                    older_note_count=older_notes.get(p.id, 0),
                 )
                 for p in d.projects
             ],

@@ -327,3 +327,14 @@ que **excluye** el auto-stall de Graveyard (si no, resetearía el reloj). Config
   lo vuelve a bajar por HTTP en cada `kid` desconocido).
 - `core/tests/test_migrations_in_sync.py` falla si un cambio de modelo no tiene migración.
 - Análisis completo y siguientes fases: `continuity/ANALISIS_CARGA_DATOS.md`.
+
+## Notas de bitácora fuera del dashboard (`allNotes`)
+
+`dashboard(activityDays, doneTaskDays, allNotes)` y `dashboardDelta(..., activityDays, allNotes)`:
+con `allNotes: false` las notas (`Activity.kind=note`) se recortan a la ventana de
+`activityDays` como el resto de activities, y las anteriores se cuentan por proyecto en
+`Project.olderNoteCount` (`older_notes_by_project`, un GROUP BY). Los clientes las piden con
+`activity(projectId, kinds: ["note"], until)`. El default `allNotes: true` mantiene el
+comportamiento viejo (todas las notas) para clientes sin actualizar. El delta **debe** recibir
+los mismos argumentos que el dashboard: los proyectos que devuelve reemplazan a los cacheados y
+sin ellos `olderNoteCount` volvería en 0.

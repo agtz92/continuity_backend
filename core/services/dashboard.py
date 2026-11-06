@@ -58,6 +58,33 @@ def older_done_by_project(uid, since: Optional[dt.datetime]) -> dict:
     return {r["project_id"]: (r["n"], r["hours"] or 0.0) for r in rows}
 
 
+def activity_window_start(activity_days: Optional[int]) -> Optional[dt.datetime]:
+    """Inicio de la ventana de activities, o ``None`` si no hay ventana."""
+    if activity_days is None:
+        return None
+    return timezone.now() - dt.timedelta(days=max(1, int(activity_days)))
+
+
+def older_notes_by_project(uid, since: Optional[dt.datetime]) -> dict:
+    """``project_id -> cuántas notas`` de bitácora anteriores a ``since``.
+
+    Un solo GROUP BY sobre el índice ``(user_id, project_id)`` de Activity.
+    Sin ventana devuelve ``{}``."""
+    if since is None:
+        return {}
+    rows = (
+        ActivityModel.objects.filter(
+            user_id=uid,
+            kind=ActivityKind.NOTE,
+            created__lt=since,
+            project_id__isnull=False,
+        )
+        .values("project_id")
+        .annotate(n=Count("id"))
+    )
+    return {r["project_id"]: r["n"] for r in rows}
+
+
 COMPLETED_PAGE_MAX = 200
 
 
@@ -94,6 +121,9 @@ class DashboardData:
     last_backup: Optional[dt.datetime]
     # project_id -> (completadas fuera de la ventana, sus horas). Vacío sin ventana.
     older_done: dict = None
+    # project_id -> notas de bitácora anteriores a la ventana (solo con
+    # ``all_notes=False``). Vacío si el cliente recibe todas.
+    older_notes: dict = None
 
 
 @dataclass
@@ -104,6 +134,7 @@ class DashboardDeltaData:
     blocked_at: dict
     activities: list
     older_done: dict = None
+    older_notes: dict = None
 
 
 # Tope de activities por delta: una ráfaga normal genera unas pocas. Si alguna
@@ -112,7 +143,11 @@ DELTA_ACTIVITY_LIMIT = 200
 
 
 def get_dashboard_delta(
-    uid, since: dt.datetime, done_task_days: Optional[int] = None
+    uid,
+    since: dt.datetime,
+    done_task_days: Optional[int] = None,
+    activity_days: Optional[int] = None,
+    all_notes: bool = True,
 ) -> DashboardDeltaData:
     """Lo mínimo para reconciliar la caché del cliente tras sus escrituras.
 
@@ -148,6 +183,9 @@ def get_dashboard_delta(
         blocked_at=blocked_at,
         activities=activities,
         older_done=older_done_by_project(uid, done_window_start(done_task_days)),
+        older_notes=(
+            {} if all_notes else older_notes_by_project(uid, activity_window_start(activity_days))
+        ),
     )
 
 
@@ -155,6 +193,7 @@ def get_dashboard(
     uid,
     activity_days: Optional[int] = None,
     done_task_days: Optional[int] = None,
+    all_notes: bool = True,
 ) -> DashboardData:
     """Reúne todo el estado del usuario en un solo objeto.
 
@@ -194,11 +233,17 @@ def get_dashboard(
     tasks = list(task_qs)
     ideas = list(IdeaModel.objects.filter(user_id=uid))
     activity_qs = ActivityModel.objects.filter(user_id=uid)
-    if activity_days is not None:
-        since = timezone.now() - dt.timedelta(days=max(1, activity_days))
-        activity_qs = activity_qs.filter(
-            Q(created__gte=since) | Q(kind=ActivityKind.NOTE)
-        )
+    activity_since = activity_window_start(activity_days)
+    if activity_since is not None:
+        if all_notes:
+            # Clientes viejos: todas las notas de la historia, siempre.
+            activity_qs = activity_qs.filter(
+                Q(created__gte=activity_since) | Q(kind=ActivityKind.NOTE)
+            )
+        else:
+            # Las notas anteriores se cuentan por proyecto (`older_notes`) y
+            # se piden con la query `activity` al abrir el logbook.
+            activity_qs = activity_qs.filter(created__gte=activity_since)
     activities = list(activity_qs)
     categories = list(CategoryModel.objects.filter(user_id=uid))
     project_notes = list(ProjectNoteModel.objects.filter(user_id=uid))
@@ -206,10 +251,13 @@ def get_dashboard(
     routine_occurrences = routines_svc.list_recent_occurrences(uid, days=90)
     meta = BackupMeta.objects.filter(user_id=uid).first()
     blocker_map: dict = {}
-    task_ids = {t.id for t in tasks}
-    for b in TaskBlockerModel.objects.filter(user_id=uid):
-        if window is None or b.blocked_task_id in task_ids:
-            blocker_map.setdefault(b.blocked_task_id, []).append(b)
+    blocker_qs = TaskBlockerModel.objects.filter(user_id=uid)
+    if window is not None:
+        # Solo los de tareas que viajan; antes se bajaban todos y se
+        # filtraban en Python.
+        blocker_qs = blocker_qs.filter(blocked_task_id__in=[t.id for t in tasks])
+    for b in blocker_qs:
+        blocker_map.setdefault(b.blocked_task_id, []).append(b)
     return DashboardData(
         projects=projects,
         tasks=tasks,
@@ -222,4 +270,5 @@ def get_dashboard(
         blocker_map=blocker_map,
         last_backup=meta.last_backup if meta else None,
         older_done=older_done_by_project(uid, window),
+        older_notes={} if all_notes else older_notes_by_project(uid, activity_since),
     )
