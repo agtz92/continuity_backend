@@ -48,6 +48,58 @@ class DashboardData:
     last_backup: Optional[dt.datetime]
 
 
+@dataclass
+class DashboardDeltaData:
+    """Proyectos con su ``blocked_since`` y las activities desde ``since``."""
+
+    projects: list
+    blocked_at: dict
+    activities: list
+
+
+# Tope de activities por delta: una ráfaga normal genera unas pocas. Si alguna
+# vez se llega aquí, el cliente igual reconcilia en el siguiente dashboard.
+DELTA_ACTIVITY_LIMIT = 200
+
+
+def get_dashboard_delta(uid, since: dt.datetime) -> DashboardDeltaData:
+    """Lo mínimo para reconciliar la caché del cliente tras sus escrituras.
+
+    Cuatro consultas pequeñas en vez de las ~10 del dashboard completo: todos
+    los proyectos (son pocos), solo las tareas **abiertas** y sus blockers (lo
+    único que necesita ``project_blocked_since``) y las activities creadas
+    desde ``since``. ``since`` lo manda el cliente a partir de la activity más
+    nueva que ya tiene, así que es hora del servidor y no hay desfase de reloj.
+    """
+    from . import cooling as cooling_svc
+
+    projects = list(ProjectModel.objects.filter(user_id=uid))
+    open_tasks = list(
+        TaskModel.objects.filter(user_id=uid, done=False).only(
+            "id", "project_id", "done"
+        )
+    )
+    open_ids = {t.id for t in open_tasks}
+    blocker_map: dict = {}
+    for b in TaskBlockerModel.objects.filter(user_id=uid):
+        if b.blocked_task_id in open_ids:
+            blocker_map.setdefault(b.blocked_task_id, []).append(b)
+    blocked_at = {
+        p.id: cooling_svc.project_blocked_since(
+            p.id, open_tasks, blocker_map, status=p.status
+        )
+        for p in projects
+    }
+    activities = list(
+        ActivityModel.objects.filter(user_id=uid, created__gte=since).order_by(
+            "-created"
+        )[:DELTA_ACTIVITY_LIMIT]
+    )
+    return DashboardDeltaData(
+        projects=projects, blocked_at=blocked_at, activities=activities
+    )
+
+
 def get_dashboard(uid, activity_days: Optional[int] = None) -> DashboardData:
     """Reúne todo el estado del usuario en un solo objeto.
 

@@ -468,6 +468,20 @@ class EntityQuotaInfo:
 
 
 @strawberry.type
+class DashboardDelta:
+    """Lo que el servidor deriva tras una escritura, sin el dashboard entero.
+
+    Los clientes ya funden en su caché el objeto que devuelve cada mutación;
+    esto trae lo que la mutación no puede devolver: los campos derivados de los
+    proyectos (enfriamiento, atorado, última actividad) y las activities que el
+    servidor registró. Ver ``services.dashboard.get_dashboard_delta``.
+    """
+
+    projects: List[Project]
+    activities: List[Activity]
+
+
+@strawberry.type
 class Dashboard:
     projects: List[Project]
     tasks: List[Task]
@@ -1021,6 +1035,7 @@ __all__ = [
     "RoutineOccurrence",
     "RoutineDueItem",
     "Dashboard",
+    "DashboardDelta",
     "EntityQuotaInfo",
     "QuotaCap",
     "ProjectInput",

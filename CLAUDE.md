@@ -47,9 +47,27 @@ con `{table, op}` (nada de datos: el cliente vuelve a pedir por GraphQL). Client
 
 **Deploy en Render:** el Build Command del servicio (configurado a mano en el dashboard, no en
 `render.yaml` ni en `build.sh`) es `pip install -r requirements.txt && python manage.py migrate --no-input`.
-Hasta el 2026-10-19 era solo `pip install` y **ninguna migración corría en Render**. Si una
+Hasta el 2026-10-19 era solo `pip install` y **ninguna migración corría en Render**.
+El Start Command debe ser solo `gunicorn continuity.wsgi:application`: worker class, workers,
+hilos y timeout viven en `gunicorn.conf.py` y se ajustan con las env vars `WEB_CONCURRENCY`
+(default 2) y `GUNICORN_THREADS` (default 8). Cualquier flag en el comando pisa ese archivo.
+Peticiones simultáneas = workers × hilos = conexiones máximas a Postgres.
+**CSP:** `core/security_headers.py` pone `Content-Security-Policy` a toda respuesta (estricta
+para la API, otra para `/admin/`). Una página HTML nueva que cargue algo externo necesita
+ajustar esa política. Si una
 migración falla, el build falla y sigue sirviendo la versión anterior. Ojo: el `.env` local apunta a
 la base de producción; un `migrate` en tu máquina la toca directo.
+
+## `dashboardDelta` — reconciliar sin bajar el dashboard
+
+`dashboard_delta(since)` (`core/schema.py`, servicio `services/dashboard.get_dashboard_delta`)
+devuelve **todos los proyectos** con sus derivados (`blockedSince` desde tareas abiertas +
+blockers) y las activities con `created >= since` (tope 200). Web y móvil lo piden tras sus
+propias escrituras en vez de relanzar `dashboard` (~10 consultas). Si cambias qué deriva el
+servidor al escribir (un campo de proyecto, una tabla nueva con efectos en otras), revisa que el
+delta lo cubra o que el cliente caiga al refetch completo. **Desplegar backend antes que los
+clientes** (sin el campo, los clientes caen al refetch completo, que es lo de antes). Tests:
+`core/tests/test_dashboard_delta.py`.
 
 ## Estructura del schema de `core` (tras el refactor de modularidad)
 

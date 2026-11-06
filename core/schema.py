@@ -138,6 +138,21 @@ class Query:
         )
 
     @strawberry.field
+    def dashboard_delta(self, info: Info, since: dt.datetime) -> DashboardDelta:
+        """Reconciliación barata tras escribir: proyectos (con sus derivados) y
+        activities desde ``since``. La web la pide en vez de volver a bajar el
+        dashboard completo después de cada mutación."""
+        uid = _user_id(info)
+        d = dashboard_svc.get_dashboard_delta(uid, since)
+        return DashboardDelta(
+            projects=[
+                Project.from_model(p, blocked_since=d.blocked_at.get(p.id))
+                for p in d.projects
+            ],
+            activities=[Activity.from_model(a) for a in d.activities],
+        )
+
+    @strawberry.field
     def graveyard_insight(self, info: Info) -> Optional[GraveyardInsightType]:
         uid = _user_id(info)
         gi = GraveyardInsightModel.objects.filter(user_id=uid).first()
