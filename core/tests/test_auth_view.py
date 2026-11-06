@@ -171,3 +171,22 @@ def test_sanitizer_passes_through_application_errors():
     [out] = auth.sanitize_graphql_errors(_Result([err]))
     assert out["message"] == "Project not found"
     assert out["extensions"]["code"] == "NOT_FOUND"
+
+
+def test_hs256_token_skips_jwks(settings, monkeypatch):
+    """Un token HS256 no consulta el JWKS: ante un ``kid`` desconocido PyJWKClient
+    lo vuelve a bajar por HTTP en cada request."""
+    settings.SUPABASE_URL = "https://example.supabase.co"
+
+    def _boom():
+        raise AssertionError("no debería pedir el JWKS para HS256")
+
+    monkeypatch.setattr(auth, "_get_jwks_client", _boom)
+    uid = uuid.uuid4()
+    claims = auth.verify_supabase_jwt(_signed_token(uid))
+    assert claims["sub"] == str(uid)
+
+
+def test_garbage_token_is_invalid():
+    with pytest.raises(auth.JWTAuthError):
+        auth.verify_supabase_jwt("not-a-jwt")

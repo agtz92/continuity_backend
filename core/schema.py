@@ -114,12 +114,9 @@ class Query:
         older = d.older_done or {}
         # "Atorado" se deriva de las tareas (DP-03). Aquí es donde se puede
         # calcular sin N+1: el servicio ya trajo tareas y blockers en bloque.
-        blocked_at = {
-            p.id: cooling_svc.project_blocked_since(
-                p.id, d.tasks, d.blocker_map, status=p.status
-            )
-            for p in d.projects
-        }
+        blocked_at = cooling_svc.blocked_since_by_project(
+            d.projects, d.tasks, d.blocker_map
+        )
         return Dashboard(
             projects=[
                 Project.from_model(

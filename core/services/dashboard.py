@@ -135,12 +135,9 @@ def get_dashboard_delta(
     for b in TaskBlockerModel.objects.filter(user_id=uid):
         if b.blocked_task_id in open_ids:
             blocker_map.setdefault(b.blocked_task_id, []).append(b)
-    blocked_at = {
-        p.id: cooling_svc.project_blocked_since(
-            p.id, open_tasks, blocker_map, status=p.status
-        )
-        for p in projects
-    }
+    blocked_at = cooling_svc.blocked_since_by_project(
+        projects, open_tasks, blocker_map
+    )
     activities = list(
         ActivityModel.objects.filter(user_id=uid, created__gte=since).order_by(
             "-created"
@@ -187,7 +184,13 @@ def get_dashboard(
     window = done_window_start(done_task_days)
     task_qs = TaskModel.objects.filter(user_id=uid)
     if window is not None:
-        task_qs = task_qs.exclude(older_done_q(window))
+        # Abiertas o hechas dentro de la ventana. Escrito como OR positivo (no
+        # ``exclude(older_done_q)``) para que Postgres use los dos índices
+        # parciales de Task (abiertas / hechas por completed_at); un NOT (...)
+        # obliga a recorrer todas las tareas del usuario.
+        task_qs = task_qs.filter(
+            Q(done=False) | Q(done=True, completed_at__gte=window)
+        )
     tasks = list(task_qs)
     ideas = list(IdeaModel.objects.filter(user_id=uid))
     activity_qs = ActivityModel.objects.filter(user_id=uid)

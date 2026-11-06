@@ -109,3 +109,29 @@ def project_blocked_since(
             continue
         found.extend(blocker_map.get(t.id, []))
     return blocked_since(found)
+
+
+def blocked_since_by_project(
+    projects: Iterable, tasks: Iterable, blocker_map: dict
+) -> dict:
+    """``project_id -> blocked_since`` para todos los proyectos en una pasada.
+
+    Lo mismo que llamar ``project_blocked_since`` por proyecto, pero recorre
+    las tareas una sola vez (O(T)) en vez de una vez por proyecto (O(P×T)):
+    con cuentas grandes esa vuelta era lo más caro del dashboard en CPU.
+    """
+    found: dict = {}
+    for t in tasks:
+        if t.done or t.project_id is None:
+            continue
+        blockers = blocker_map.get(t.id)
+        if blockers:
+            found.setdefault(t.project_id, []).extend(blockers)
+    return {
+        p.id: (
+            None
+            if p.status in CLOSED_STATUSES
+            else blocked_since(found.get(p.id, []))
+        )
+        for p in projects
+    }

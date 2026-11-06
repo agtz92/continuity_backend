@@ -157,6 +157,33 @@ class Task(TimestampedModel):
 
     class Meta:
         ordering = ["done", "due_date", "-created"]
+        # Índices de las lecturas calientes (dashboard, delta, completedTasks,
+        # cuotas). Parciales por ``done`` para que cada uno solo cubra su mitad.
+        # Se crean CONCURRENTLY en 0042 (sin bloquear escrituras en producción).
+        indexes = [
+            # Abiertas: dashboard, delta, cuota tasks_total, Today.
+            models.Index(
+                fields=["user_id", "due_date", "-created"],
+                condition=Q(done=False),
+                name="core_task_user_open_idx",
+            ),
+            # Hechas por fecha de cierre: ventana de 30 días, completedTasks,
+            # older_done_by_project, analytics.
+            models.Index(
+                models.F("user_id"),
+                models.OrderBy(
+                    models.F("completed_at"), descending=True, nulls_last=True
+                ),
+                models.OrderBy(models.F("created"), descending=True),
+                condition=Q(done=True),
+                name="core_task_user_donecomp_idx",
+            ),
+            # Cuota tasks_per_project y filtros por proyecto.
+            models.Index(
+                fields=["user_id", "project_id", "done"],
+                name="core_task_user_proj_done_idx",
+            ),
+        ]
         constraints = [
             models.UniqueConstraint(
                 fields=["user_id", "google_task_id"],

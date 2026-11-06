@@ -5,11 +5,15 @@ privacidad. Cubre backend, web (`frontend/`) y móvil (`continuity-mobile/`).
 Se actualiza cada vez que se cierra o se agrega algo.
 
 - **Proyecto en continuu.it:** "Privacidad y manejo de datos" (`3b439d48-5577-48da-9a65-7ad41aceeb0a`).
-- **Última actualización:** 2026-11-05 (dictado iOS: ya no se exige reconocimiento en el equipo)
+- **Última actualización:** 2026-11-06 (web: caché de Apollo se borra al cerrar sesión)
 
 ---
 
 ## Hecho
+
+### 2026-11-06: la web borra la caché de Apollo al cerrar sesión
+- `frontend/src/app/providers.tsx`: con `SIGNED_OUT` ahora también corre `apolloClient.clearStore()`. Antes solo se vaciaba la cola de captura, y si otra cuenta entraba en la misma pestaña podía ver por un momento los datos en memoria de la anterior.
+- El móvil ya lo hacía (`clearUserData` en `continuity-mobile/src/lib/signOut.ts`), y ahora también olvida el `/usage` compartido.
 
 ### 2026-11-05: auditoría de aislamiento entre usuarios + RLS deny-all explícito (sin commit, sin desplegar)
 - Auditoría de cada punto de entrada que devuelve o cambia datos del usuario: GraphQL, REST del asistente, MCP, OAuth, ICS y unsubscribe. Todos filtran por `user_id` excepto uno:

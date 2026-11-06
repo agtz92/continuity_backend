@@ -116,7 +116,16 @@ def verify_supabase_jwt(token: str) -> dict:
     """
     last_error: Optional[Exception] = None
 
-    client = _get_jwks_client()
+    # Un token HS256 nunca va a estar en el JWKS. Intentarlo primero no es
+    # gratis: ante un ``kid`` desconocido PyJWKClient vuelve a bajar el JWKS
+    # por HTTP antes de fallar, y ese fallo no se cachea, así que serían una
+    # llamada de red por request. Mirar el ``alg`` del header (sin verificar)
+    # solo elige el camino; la firma se verifica igual en ambos.
+    try:
+        alg = jwt.get_unverified_header(token).get("alg")
+    except jwt.InvalidTokenError as e:
+        raise JWTAuthError(f"Invalid token: {e}") from e
+    client = None if alg == "HS256" else _get_jwks_client()
     if client is not None:
         try:
             signing_key = client.get_signing_key_from_jwt(token).key

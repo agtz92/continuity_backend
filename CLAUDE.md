@@ -311,3 +311,19 @@ Cron diario `run_beta_lifecycle` (Render 15:00 UTC) clasifica y reclama cupos; a
 que **excluye** el auto-stall de Graveyard (si no, resetearía el reloj). Config en `app_config`.
 
 **Detalle completo:** [`docs/beta-lifecycle.md`](docs/beta-lifecycle.md).
+
+
+## Índices calientes de Task y CPU del dashboard
+
+- `Task` tiene tres índices para las lecturas del dashboard (migración `0042`, creados
+  `CONCURRENTLY`; en SQLite el SQL es no-op y solo cambia el estado): abiertas
+  `(user_id, due_date, -created) WHERE NOT done`, hechas
+  `(user_id, completed_at DESC NULLS LAST, -created) WHERE done` y `(user_id, project_id, done)`.
+  Para que se usen, filtra con OR positivo (`Q(done=False) | Q(done=True, completed_at__gte=w)`),
+  no con `exclude(...)`.
+- "Atorado" por proyecto: `cooling.blocked_since_by_project` (una pasada sobre las tareas).
+  No vuelvas a llamar `project_blocked_since` dentro de un loop de proyectos: es O(P×T).
+- JWT: `verify_supabase_jwt` mira el `alg` del header; los HS256 no consultan el JWKS (PyJWKClient
+  lo vuelve a bajar por HTTP en cada `kid` desconocido).
+- `core/tests/test_migrations_in_sync.py` falla si un cambio de modelo no tiene migración.
+- Análisis completo y siguientes fases: `continuity/ANALISIS_CARGA_DATOS.md`.
