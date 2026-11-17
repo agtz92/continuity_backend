@@ -18,9 +18,10 @@ Se actualiza cada vez que se cierra o se agrega algo.
 - Auditoría: no hay asignación masiva. Las mutations y vistas REST leen campo por campo, y `restoreBackup` usa la lista blanca `FIELDS` y fuerza el `user_id` del servidor. `is_admin` solo lo escriben `adminSetUserIsAdmin` y `manage.py promote_admin`.
 - [x] Sesión de `applereview@continuu.it` revocada (sus tokens se pegaron en una conversación el 2026-11-17).
 - [x] `NotificationSettings.is_admin` (duplicado de `AccountProfile.is_admin`, nunca usado para permisos) salió del modelo, del admin de Django, del export y de las consultas de web y móvil. Fase 1, migración `notifications/0018`: la columna se queda con `db_default=false` para que la instancia vieja de Render no truene durante el deploy. Los campos GraphQL `NotificationSettings.isAdmin` y `NotificationPrefs.isAdmin` siguen (deprecados) para builds viejas de la app, pero ahora reflejan `AccountProfile.is_admin`.
-- [ ] Fase 2, ya con la 0018 desplegada: migración que haga `ALTER TABLE notifications_notificationsettings DROP COLUMN is_admin`.
+- [x] Fase 2 (`notifications/0019`): se borra la columna `is_admin` de `notifications_notificationsettings`.
 - [x] MFA (TOTP) obligatorio para el panel de admin (sin commit). `core/auth.py` pasa el claim `aal` del JWT al contexto y `_admin_user_id` exige `aal2` a los admins (código `MFA_REQUIRED`; un no-admin sigue recibiendo `FORBIDDEN`). La web (`AdminMfaGate`) registra el factor con QR o pide el código. Interruptor de emergencia: `ADMIN_REQUIRE_MFA=false` en Render. Detalle en `docs/admin-panel.md`.
-- [ ] El sitio Django `/admin/` y el canal Realtime `admin` no pasan por esa revisión.
+- [x] El sitio Django `/admin/` (login de solo contraseña) queda apagado en producción: `DJANGO_ADMIN_ENABLED`, por defecto igual a `DEBUG`. Al apagarlo no había ninguna cuenta staff ni superusuario. Test: `core/tests/test_django_admin_site.py`.
+- [ ] El canal Realtime `admin` (solo señales `{table, op}`, sin datos) no exige `aal2`.
 
 ### 2026-11-06: la web borra la caché de Apollo al cerrar sesión
 - `frontend/src/app/providers.tsx`: con `SIGNED_OUT` ahora también corre `apolloClient.clearStore()`. Antes solo se vaciaba la cola de captura, y si otra cuenta entraba en la misma pestaña podía ver por un momento los datos en memoria de la anterior.

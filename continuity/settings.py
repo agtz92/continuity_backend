@@ -14,6 +14,10 @@ SUPABASE_URL = config("SUPABASE_URL", default="").rstrip("/")
 # Emergency switch only: set ADMIN_REQUIRE_MFA=false on Render if every admin
 # lost their authenticator. See docs/admin-panel.md.
 ADMIN_REQUIRE_MFA = config("ADMIN_REQUIRE_MFA", default=True, cast=bool)
+# Django's own /admin/ site. Off in production: it has a password-only login
+# and no staff accounts exist (the real panel is admon.continuu.it). On by
+# default when DEBUG so local inspection keeps working.
+DJANGO_ADMIN_ENABLED = config("DJANGO_ADMIN_ENABLED", default=DEBUG, cast=bool)
 SUPABASE_JWT_SECRET = config("SUPABASE_JWT_SECRET", default="")  # legacy HS256 fallback
 SUPABASE_SERVICE_ROLE_KEY = config("SUPABASE_SERVICE_ROLE_KEY", default="")  # admin-only
 

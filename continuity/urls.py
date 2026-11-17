@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path, re_path
 from django.http import JsonResponse
@@ -18,7 +19,6 @@ def healthcheck(_request):
 
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
     path("graphql/", csrf_exempt(JWTAuthGraphQLView.as_view(schema=schema))),
     # Acepta /mcp y /mcp/ sin redirect 301 (Claude normaliza la URL sin slash
     # y los clientes MCP no siguen redirects en el POST).
@@ -60,3 +60,7 @@ urlpatterns = [
     path("healthz", healthcheck),
     path("", healthcheck),
 ]
+
+# See settings.DJANGO_ADMIN_ENABLED: off in production, on with DEBUG.
+if settings.DJANGO_ADMIN_ENABLED:
+    urlpatterns.insert(0, path("admin/", admin.site.urls))
