@@ -30,8 +30,11 @@ def execute_query():
         document: str,
         user_id: Optional[uuid.UUID] = None,
         variable_values: Optional[dict[str, Any]] = None,
+        aal: Optional[str] = "aal2",
     ):
-        context = SimpleNamespace(user_id=user_id)
+        # aal2 = the session passed TOTP; admin fields require it. Pass
+        # aal="aal1" to test a password-only session.
+        context = SimpleNamespace(user_id=user_id, aal=aal)
         return schema.execute_sync(
             document,
             context_value=context,

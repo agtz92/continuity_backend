@@ -4,8 +4,8 @@ from .models import NotificationSettings, Notification
 
 @admin.register(NotificationSettings)
 class NotificationSettingsAdmin(admin.ModelAdmin):
-    list_display = ("user_id", "timezone", "digest_enabled", "is_admin", "updated_at")
-    list_filter = ("digest_enabled", "is_admin")
+    list_display = ("user_id", "timezone", "digest_enabled", "updated_at")
+    list_filter = ("digest_enabled",)
 
 
 @admin.register(Notification)

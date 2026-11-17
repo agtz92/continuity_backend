@@ -68,7 +68,11 @@ class NotificationSettingsType:
     manual_enabled: bool
     push_enabled: bool
     lifecycle_emails_enabled: bool
-    is_admin: bool
+    # Kept so old app builds that still select it don't fail validation.
+    # The real role lives in AccountProfile.is_admin (see `me.isAdmin`).
+    is_admin: bool = strawberry.field(
+        deprecation_reason="Use me.isAdmin. Informational only, never used for authorization."
+    )
     calendar_sync_enabled: bool
     calendar_sync_tasks: bool
     calendar_sync_routines: bool
@@ -134,6 +138,12 @@ SUPPORTED_PALETTES = CURRENT_PALETTES | LEGACY_PALETTES
 SUPPORTED_TIMEZONES = zoneinfo.available_timezones()
 
 
+def _profile_is_admin(user_id) -> bool:
+    from core.admin_api.permissions import is_admin
+
+    return is_admin(user_id)
+
+
 def _to_gql(s: SettingsModel) -> NotificationSettingsType:
     return NotificationSettingsType(
         locale=s.locale,
@@ -152,7 +162,7 @@ def _to_gql(s: SettingsModel) -> NotificationSettingsType:
         manual_enabled=s.manual_enabled,
         push_enabled=s.push_enabled,
         lifecycle_emails_enabled=s.lifecycle_emails_enabled,
-        is_admin=s.is_admin,
+        is_admin=_profile_is_admin(s.user_id),
         calendar_sync_enabled=s.calendar_sync_enabled,
         calendar_sync_tasks=s.calendar_sync_tasks,
         calendar_sync_routines=s.calendar_sync_routines,

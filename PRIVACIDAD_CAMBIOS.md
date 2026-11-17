@@ -5,11 +5,22 @@ privacidad. Cubre backend, web (`frontend/`) y móvil (`continuity-mobile/`).
 Se actualiza cada vez que se cierra o se agrega algo.
 
 - **Proyecto en continuu.it:** "Privacidad y manejo de datos" (`3b439d48-5577-48da-9a65-7ad41aceeb0a`).
-- **Última actualización:** 2026-11-06 (web: caché de Apollo se borra al cerrar sesión)
+- **Última actualización:** 2026-11-17 (sweep de permisos de admin reforzado)
 
 ---
 
 ## Hecho
+
+### 2026-11-17: sweep de permisos de admin reforzado + campos privilegiados (sin commit)
+- `core/admin_api/tests/test_permission_sweep.py` reescrito. El viejo llamaba cada mutation sin argumentos, así que casi todas morían en la validación de GraphQL antes de llegar a `_admin_user_id` y el test pasaba aunque faltara el chequeo (probado: quitando el chequeo de `core/feedback/schema.py`, el viejo pasaba y el nuevo falla).
+- Ahora arma argumentos válidos desde el schema para **todas** las queries y mutations `admin*` (64) y exige `FORBIDDEN` para no-admin y `UNAUTHENTICATED`/`FORBIDDEN` para anónimo. Un control confirma que un admin sí pasa.
+- Nuevo: ningún campo de usuario acepta `isAdmin`, `role`, `plan`, `userId`, `isBillingExempt`, `betaCohort` ni campos de billing (lista `PRIVILEGED_FIELDS`). Mandar `isAdmin`/`plan` extra a `updateNotificationSettings`, `updateProfile` o `completeOnboarding` se rechaza y la cuenta sigue normal. Un perfil nuevo nunca nace admin.
+- Auditoría: no hay asignación masiva. Las mutations y vistas REST leen campo por campo, y `restoreBackup` usa la lista blanca `FIELDS` y fuerza el `user_id` del servidor. `is_admin` solo lo escriben `adminSetUserIsAdmin` y `manage.py promote_admin`.
+- [x] Sesión de `applereview@continuu.it` revocada (sus tokens se pegaron en una conversación el 2026-11-17).
+- [x] `NotificationSettings.is_admin` (duplicado de `AccountProfile.is_admin`, nunca usado para permisos) salió del modelo, del admin de Django, del export y de las consultas de web y móvil. Fase 1, migración `notifications/0018`: la columna se queda con `db_default=false` para que la instancia vieja de Render no truene durante el deploy. Los campos GraphQL `NotificationSettings.isAdmin` y `NotificationPrefs.isAdmin` siguen (deprecados) para builds viejas de la app, pero ahora reflejan `AccountProfile.is_admin`.
+- [ ] Fase 2, ya con la 0018 desplegada: migración que haga `ALTER TABLE notifications_notificationsettings DROP COLUMN is_admin`.
+- [x] MFA (TOTP) obligatorio para el panel de admin (sin commit). `core/auth.py` pasa el claim `aal` del JWT al contexto y `_admin_user_id` exige `aal2` a los admins (código `MFA_REQUIRED`; un no-admin sigue recibiendo `FORBIDDEN`). La web (`AdminMfaGate`) registra el factor con QR o pide el código. Interruptor de emergencia: `ADMIN_REQUIRE_MFA=false` en Render. Detalle en `docs/admin-panel.md`.
+- [ ] El sitio Django `/admin/` y el canal Realtime `admin` no pasan por esa revisión.
 
 ### 2026-11-06: la web borra la caché de Apollo al cerrar sesión
 - `frontend/src/app/providers.tsx`: con `SIGNED_OUT` ahora también corre `apolloClient.clearStore()`. Antes solo se vaciaba la cola de captura, y si otra cuenta entraba en la misma pestaña podía ver por un momento los datos en memoria de la anterior.

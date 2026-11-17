@@ -155,7 +155,6 @@ FIELDS: dict[type[models.Model], tuple[str, ...]] = {
 #: app works rather than what the person stored.
 OMITTED_FIELDS: dict[type[models.Model], dict[str, str]] = {
     NotificationSettings: {
-        "is_admin": "internal role flag",
         "calendar_feed_token": "access credential for the calendar feed",
     },
     OnboardingProgress: {

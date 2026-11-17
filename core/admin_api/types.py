@@ -67,7 +67,9 @@ class NotificationPrefs:
     daily_digest_enabled: bool
     due_reminders_enabled: bool
     sleeping_alerts_enabled: bool
-    is_admin: bool
+    is_admin: bool = strawberry.field(
+        deprecation_reason="Use AdminUserDetail.isAdmin; mirrors AccountProfile.is_admin."
+    )
 
 
 @strawberry.type

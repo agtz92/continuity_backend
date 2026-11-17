@@ -370,7 +370,7 @@ class AdminUsersQuery:
                 daily_digest_enabled=notif_settings.daily_digest_enabled,
                 due_reminders_enabled=notif_settings.due_reminders_enabled,
                 sleeping_alerts_enabled=notif_settings.sleeping_alerts_enabled,
-                is_admin=notif_settings.is_admin,
+                is_admin=bool(profile.is_admin) if profile else False,
             )
         else:
             prefs = None

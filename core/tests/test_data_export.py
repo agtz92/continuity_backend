@@ -81,7 +81,7 @@ def test_export_includes_the_users_content_and_nothing_else():
 @pytest.mark.django_db
 def test_export_leaves_out_secrets_and_internals():
     me = uuid.uuid4()
-    NotificationSettings.objects.create(user_id=me, calendar_feed_token="feed-secret", is_admin=True)
+    NotificationSettings.objects.create(user_id=me, calendar_feed_token="feed-secret")
     AccountProfile.objects.create(user_id=me, plan="studio", is_billing_exempt=True, beta_cohort=True)
     Task.objects.create(user_id=me, title="T", client_token="tok-123", google_task_id="g-1")
     OAuthConnectionEvent.objects.create(user_id=me, client_id="mcp_abc", client_name="Claude", event="authorized")

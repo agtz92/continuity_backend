@@ -10,6 +10,10 @@ DEBUG = config("DJANGO_DEBUG", default=False, cast=bool)
 ALLOWED_HOSTS = config("DJANGO_ALLOWED_HOSTS", default="*", cast=Csv())
 
 SUPABASE_URL = config("SUPABASE_URL", default="").rstrip("/")
+# Admin operations require a session that passed TOTP (JWT claim aal=aal2).
+# Emergency switch only: set ADMIN_REQUIRE_MFA=false on Render if every admin
+# lost their authenticator. See docs/admin-panel.md.
+ADMIN_REQUIRE_MFA = config("ADMIN_REQUIRE_MFA", default=True, cast=bool)
 SUPABASE_JWT_SECRET = config("SUPABASE_JWT_SECRET", default="")  # legacy HS256 fallback
 SUPABASE_SERVICE_ROLE_KEY = config("SUPABASE_SERVICE_ROLE_KEY", default="")  # admin-only
 

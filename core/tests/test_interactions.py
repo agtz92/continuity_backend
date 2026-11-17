@@ -280,7 +280,7 @@ def test_admin_user_detail_exposes_interactions():
         last_sign_in_at=None,
         email_confirmed_at=None,
     )
-    ctx = SimpleNamespace(user_id=admin_id, request=_req())
+    ctx = SimpleNamespace(user_id=admin_id, request=_req(), aal="aal2")
     with patch("core.admin_api.schema.supabase_get_user", return_value=fake_user):
         res = schema.execute_sync(
             ADMIN_USER_Q, context_value=ctx, variable_values={"uid": str(target)}

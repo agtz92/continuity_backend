@@ -162,7 +162,7 @@ query {
 def _admin_ctx():
     admin_id = uuid.uuid4()
     AccountProfile.objects.create(user_id=admin_id, is_admin=True)
-    return SimpleNamespace(user_id=admin_id)
+    return SimpleNamespace(user_id=admin_id, aal="aal2")
 
 
 @pytest.mark.django_db

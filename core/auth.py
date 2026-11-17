@@ -166,15 +166,20 @@ def verify_supabase_jwt(token: str) -> dict:
     )
 
 
-def extract_user_id(request) -> Optional[uuid.UUID]:
+def extract_claims(request) -> Optional[dict]:
+    """Verified JWT claims of the request, or None when there is no bearer token."""
     auth = request.META.get("HTTP_AUTHORIZATION", "")
     if not auth.startswith("Bearer "):
         return None
     token = auth.split(" ", 1)[1].strip()
     if not token:
         return None
-    claims = verify_supabase_jwt(token)
-    sub = claims.get("sub")
+    return verify_supabase_jwt(token)
+
+
+def extract_user_id(request) -> Optional[uuid.UUID]:
+    claims = extract_claims(request)
+    sub = (claims or {}).get("sub")
     return uuid.UUID(sub) if sub else None
 
 
@@ -206,7 +211,9 @@ def authenticate_request(
         )
 
     try:
-        user_id = extract_user_id(request)
+        claims = extract_claims(request) or {}
+        sub = claims.get("sub")
+        user_id = uuid.UUID(sub) if sub else None
     except JWTAuthError as e:
         return JsonResponse(
             {
@@ -232,6 +239,9 @@ def authenticate_request(
             status=401,
         )
     request.user_id = user_id
+    # Authenticator assurance level: "aal1" = password/OAuth only, "aal2" =
+    # also passed a second factor (TOTP). Admin operations require aal2.
+    request.auth_aal = claims.get("aal")
 
     if is_ratelimited(
         request=request,
@@ -270,4 +280,5 @@ class JWTAuthGraphQLView(_SanitizingGraphQLView):
     def get_context(self, request, response=None):
         context = super().get_context(request, response)
         context.user_id = getattr(request, "user_id", None)
+        context.aal = getattr(request, "auth_aal", None)
         return context
